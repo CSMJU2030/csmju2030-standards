@@ -136,10 +136,17 @@ subsystem ปักหมุดเวอร์ชันไว้ (`@v1.3.0`) จ
 
 ## สถานะที่ยังไม่เสร็จ
 
+ยืนยันแล้วว่าใช้งานได้จริง: PR ทดสอบบน `csmju-equipment` (#1 และ #2) รันครบ
+ทั้ง 8 job ผ่านหมด และ `mergeStateStatus` เป็น `BLOCKED` เพราะรอ review ตามที่
+ตั้งใจ — คือ gate บล็อก merge ได้จริง ไม่ใช่แค่รายงานผล
+
 | เรื่อง | สถานะ |
 |---|---|
-| `docs/ui-prompt-template.md` | ยังเป็น stub รอเจ้าของส่งฉบับจริง |
-| Teams (`devops`, `pm`, `pl-*`, `aie-*`) | ยังไม่ได้สร้าง — `bypass_actors` ใช้ `OrganizationAdmin` ชั่วคราว |
-| ruleset ระดับ org | ต้องมี scope `admin:org` และอาจต้องมี plan Team |
-| org settings ตาม checklist | ยังไม่ได้ตั้ง |
-| standards repo เป็น private | ยังไม่ได้ — ต้องทำ GitHub App ก่อน (เหตุผลใน `new-subsystem.sh`) |
+| Teams `devops` `pm` `pl-equipment` `aie-equipment` | ✅ สร้างและผูกสิทธิ์แล้ว |
+| org settings, Actions allow-list, secret scanning, Dependabot | ✅ ตั้งแล้ว — รายละเอียดใน `org-settings/org-settings-checklist.md` |
+| ruleset ระดับ repo | ✅ ทั้ง 2 repo |
+| **ruleset ระดับ org** | ❌ ต้องมี plan **GitHub Team** — API ตอบ 403 ตรง ๆ บน Free ต้องรัน `apply-rulesets.sh repo <name>` ทุกครั้งที่สร้าง subsystem ใหม่ |
+| Require 2FA / ห้าม member ลบ repo / เปลี่ยน visibility | ⬜ ต้องตั้งในหน้าเว็บ |
+| `docs/ui-prompt-template.md` | ⬜ ยังเป็น stub รอเจ้าของส่งฉบับจริง (อีก 6 ฉบับเป็นของจริงแล้ว) |
+| สมาชิกจริงใน team `pl-*` / `aie-*` | ⬜ ยังมีแค่เจ้าของ org — จนกว่าจะมีคนจริง PR จะ approve ไม่ได้นอกจากใช้ bypass ของ devops |
+| standards repo เป็น private | ⬜ ต้องทำ GitHub App ก่อน (เหตุผลอยู่ในหัว `new-subsystem.sh`) |

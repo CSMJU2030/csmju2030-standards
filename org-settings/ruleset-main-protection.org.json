@@ -3,11 +3,30 @@
   "target": "branch",
   "enforcement": "active",
   "bypass_actors": [
-    { "actor_id": 1, "actor_type": "OrganizationAdmin", "bypass_mode": "pull_request" }
+    {
+      "actor_id": 19344982,
+      "actor_type": "Team",
+      "bypass_mode": "pull_request"
+    },
+    {
+      "actor_id": 1,
+      "actor_type": "OrganizationAdmin",
+      "bypass_mode": "pull_request"
+    }
   ],
   "conditions": {
-    "repository_name": { "include": ["csmju-*"], "exclude": [] },
-    "ref_name": { "include": ["refs/heads/main"], "exclude": [] }
+    "repository_name": {
+      "include": [
+        "csmju-*"
+      ],
+      "exclude": []
+    },
+    "ref_name": {
+      "include": [
+        "refs/heads/main"
+      ],
+      "exclude": []
+    }
   },
   "rules": [
     {
@@ -25,20 +44,44 @@
       "parameters": {
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
-          { "context": "compliance / Convention Check" },
-          { "context": "compliance / Standards Version Check" },
-          { "context": "compliance / Security & Stack Scan" },
-          { "context": "compliance / API Contract Sync" },
-          { "context": "compliance / Data Dictionary Compliance" },
-          { "context": "compliance / UI Token Compliance" },
-          { "context": "compliance / Code Quality" },
-          { "context": "compliance / Exception Validation" }
+          {
+            "context": "compliance / Convention Check"
+          },
+          {
+            "context": "compliance / Standards Version Check"
+          },
+          {
+            "context": "compliance / Security & Stack Scan"
+          },
+          {
+            "context": "compliance / API Contract Sync"
+          },
+          {
+            "context": "compliance / Data Dictionary Compliance"
+          },
+          {
+            "context": "compliance / UI Token Compliance"
+          },
+          {
+            "context": "compliance / Code Quality"
+          },
+          {
+            "context": "compliance / Exception Validation"
+          }
         ]
       }
     },
-    { "type": "required_linear_history" },
-    { "type": "non_fast_forward" },
-    { "type": "deletion" },
-    { "type": "creation" }
+    {
+      "type": "required_linear_history"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "creation"
+    }
   ]
 }

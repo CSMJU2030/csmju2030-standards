@@ -1,9 +1,26 @@
-# Organization settings checklist (reference only — not applied)
+# Organization settings checklist
 
-> Everything on this page is a **manual, one-time setup task** performed by
-> DevOps against a real GitHub organization with admin rights. It cannot be
-> scripted from inside a subsystem repo's CI, and nothing in this scaffold
-> applies it automatically — see the implementation report for why.
+> สถานะ ณ 2026-09-04 — ส่วนใหญ่ตั้งแล้วผ่าน `gh api` ที่เหลือระบุไว้ว่าทำไมยัง
+> ไม่ได้ ไม่ใช่ทุกข้อที่ทำได้บน plan Free
+
+## สรุปสถานะ
+
+| ข้อ | สถานะ |
+|---|---|
+| Teams `devops` `pm` `pl-equipment` `aie-equipment` | ✅ สร้างแล้ว + ผูกสิทธิ์เข้า repo แล้ว |
+| Base permissions = Read | ✅ |
+| Members can create repositories | ✅ ปิดแล้ว (ทั้ง public และ private) |
+| Actions = Allow select actions | ✅ + allow-list |
+| Workflow permissions = read | ✅ |
+| Allow Actions to approve PRs | ✅ ปิดแล้ว |
+| Secret scanning + push protection | ✅ ทั้ง 2 repo |
+| Dependabot alerts + security updates | ✅ ทั้ง 2 repo |
+| Ruleset ระดับ repo | ✅ ทั้ง 2 repo (bypass = team `devops`) |
+| **Ruleset ระดับ org** | ❌ **ทำไม่ได้บน plan Free** — API ตอบ 403 `"Upgrade to GitHub Team to enable this feature."` ต้องตั้งราย repo ด้วย `apply-rulesets.sh repo <name>` ทุกครั้งที่สร้าง subsystem ใหม่ |
+| Require 2FA for all members | ⬜ ยังไม่ได้ตั้ง — ตั้งในหน้าเว็บ: Settings → Authentication security |
+| Members can delete repositories | ⬜ ยังไม่ได้ตั้ง — ตั้งในหน้าเว็บ: Settings → Member privileges |
+| Members can change repo visibility | ⬜ ยังไม่ได้ตั้ง — ตั้งในหน้าเว็บ: Settings → Member privileges |
+| Custom secret-scanning pattern (CSMJU client_secret) | ⬜ ต้องทำในหน้าเว็บ |
 
 ## Teams to create (§5.2)
 
@@ -49,29 +66,52 @@ csmju2030/*
 
 ## Rulesets
 
-The `.yml` files here are human-readable reference; GitHub never reads them.
-The importable payloads are the `.json` files, applied by `apply-rulesets.sh`:
+`.yml` ในโฟลเดอร์นี้เป็นฉบับให้คนอ่าน GitHub ไม่อ่านไฟล์พวกนี้ ตัวที่ import
+ได้คือ `.json` ใช้ผ่าน `apply-rulesets.sh`
 
 ```bash
-./apply-rulesets.sh validate csmju2030-standards   # POST as disabled, then delete
-./apply-rulesets.sh org                            # needs admin:org
-./apply-rulesets.sh repo csmju-equipment           # plain `repo` scope, per repo
+./apply-rulesets.sh validate <repo>       # POST แบบ disabled แล้วลบ — ตรวจ payload
+./apply-rulesets.sh repo csmju-equipment  # ตั้งราย repo (ใช้ได้บน plan Free)
+./apply-rulesets.sh self                  # ป้องกัน main ของ standards repo เอง
+./apply-rulesets.sh org                   # ❌ 403 บน plan Free
 ```
 
-Both payloads were verified against the live API on 2026-09-04 (created as
-`enforcement: disabled` on `CSMJU2030/csmju2030-standards`, then deleted).
+**ระดับ org ใช้ไม่ได้บน plan Free** — ยืนยันแล้วว่า
+`GET /orgs/CSMJU2030/rulesets` ตอบ 403 `"Upgrade to GitHub Team to enable this
+feature."` แม้ token มี `admin:org` ครบ เพราะฉะนั้นทุกครั้งที่สร้าง subsystem
+ใหม่ ต้องรัน `apply-rulesets.sh repo <name>` ด้วย (`new-subsystem.sh` เตือนไว้
+ท้ายสคริปต์แล้ว)
 
-Two things must be true before applying with `enforcement: active`:
+`bypass_actors` ใช้ team `devops` (`actor_id` 19344982) + `OrganizationAdmin`
+ทั้งคู่เป็น `bypass_mode: pull_request` บน subsystem repo — คือ bypass ได้ตอน
+merge PR แต่ยัง push ตรงเข้า `main` ไม่ได้ ส่วน standards repo เป็น `always`
+ระหว่าง bootstrap (ดู `ruleset-standards-repo.README.md`)
 
-| Prerequisite | Why |
-|---|---|
-| Every target repo defaults to `main` | `branch-naming` excludes only `refs/heads/main`, so a `master` default is rejected by its own rule. `apply-rulesets.sh repo` refuses such a repo. |
-| Team `devops` exists | `bypass_actors` currently bootstraps with `OrganizationAdmin` (actor_id 1); swap for `{"actor_type":"Team","actor_id":<id>}` once created. |
+**หมายเหตุเรื่อง `actor_id`** — id ของ team ผูกกับ org นี้เท่านั้น ถ้าย้าย org
+ต้องอ่านค่าใหม่: `gh api orgs/<org>/teams/devops --jq .id`
 
-The required status check contexts are `compliance / <job name>` — the caller
-job in `templates/ci.yml` is named `compliance`, and GitHub reports a reusable
-workflow's checks as `<caller job id> / <job name>`. A bare job name never
-matches and therefore blocks nothing.
+### required status check ต้องมี prefix
+
+ชื่อ context ที่ GitHub รายงานคือ `compliance / <ชื่อ job>` เพราะ job ใน
+`templates/ci.yml` ชื่อ `compliance` และ GitHub ตั้งชื่อ check ของ reusable
+workflow เป็น `<caller job id> / <job name>` ใส่ชื่อ job เปล่า ๆ จะไม่ match
+อะไรเลย และไม่บล็อกอะไรทั้งสิ้น — ยืนยันจากผลรันจริงบน PR #1 และ #2 ของ
+`csmju-equipment`
+
+## Allowed Actions ที่ตั้งไว้จริง
+
+```json
+{
+  "github_owned_allowed": true,
+  "verified_allowed": false,
+  "patterns_allowed": ["pnpm/action-setup@*", "dorny/paths-filter@*", "CSMJU2030/*"]
+}
+```
+
+`actions/checkout` และ `actions/setup-node` อยู่ใต้ `github_owned_allowed`
+ส่วน `pnpm/action-setup@v4` ต้องอยู่ใน `patterns_allowed` ไม่งั้น job
+**API Contract Sync** และ **Code Quality** จะพังตั้งแต่ step ติดตั้ง toolchain
+— ทดสอบแล้วบน PR #2 ว่าตั้งค่านี้แล้วทั้ง 8 job ยังผ่าน
 
 ## Rollout order
 

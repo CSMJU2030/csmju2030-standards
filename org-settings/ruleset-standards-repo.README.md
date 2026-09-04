@@ -11,10 +11,13 @@
 ทางเลือกถ้าต้องการบังคับจริง: ถอด `paths:` ออกจาก `self-test.yml` ให้ยิงทุก PR
 ก่อน แล้วค่อยเพิ่ม `{ "context": "Run fixture self-test" }` เข้ามา
 
-**`bypass_mode` เป็น `always` ไม่ใช่ `pull_request`** — ระหว่างช่วง bootstrap
-org มีสมาชิกคนเดียวและยังไม่มี team ถ้าตั้งเป็น `pull_request` เจ้าของ org จะ
-push ตรงเข้า main ไม่ได้เลย ซึ่งจำเป็นอยู่ตอนตั้งระบบ ทุกคนที่ไม่ใช่ org admin
-ยังต้องผ่าน PR ตามปกติ
+**`bypass_mode` เป็น `always` ไม่ใช่ `pull_request`** — bypass ให้ team
+`devops` และ `OrganizationAdmin` ระหว่างช่วง bootstrap org ยังมีสมาชิกจริง
+คนเดียว ถ้าตั้งเป็น `pull_request` จะ push ตรงเข้า main ไม่ได้เลย ซึ่งจำเป็นอยู่
+ตอนตั้งระบบ ทุกคนที่ไม่อยู่ใน devops ยังต้องผ่าน PR ตามปกติ
+
+ต่างจาก subsystem repo ที่ตั้ง `pull_request` ไว้แล้ว เพราะที่นั่นไม่ควรมีใคร
+push ตรงเข้า `main` ได้เลยตั้งแต่ต้น
 
 **เมื่อมีสมาชิกจริงแล้วควรรัดเป็น `pull_request`** เพื่อให้ main แก้ได้ผ่าน PR
 เท่านั้น ไม่มีข้อยกเว้น
