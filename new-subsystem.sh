@@ -3,6 +3,12 @@
 #
 #   ./new-subsystem.sh payroll "ระบบเงินเดือน"
 #
+# ชื่อ repo ปกติเป็น csmju-<slug> อัตโนมัติ ถ้าต้องตั้งชื่ออื่น (เช่นของกลางที่
+# ไม่ใช่ระบบย่อย) ให้ override ด้วย REPO_NAME แต่ยังต้องส่ง slug ตัวเล็กมาด้วย
+# เพราะ slug ถูกใช้ตั้งชื่อ team และชื่อ branch ที่ ruleset บังคับรูปแบบไว้
+#
+#   REPO_NAME=CSMJU2030-BE-Core_Hub ./new-subsystem.sh core-hub "Backend Core Hub"
+#
 # ต้องมี: gh CLI ที่ login แล้ว และสิทธิ์สร้าง repo ใน org
 #
 # สิ่งที่สคริปต์นี้ทำ
@@ -26,14 +32,27 @@ STANDARDS_VERSION="$(tr -d '[:space:]' < "$SCRIPT_DIR/VERSION")"
 
 SUBSYSTEM="${1:?ระบุชื่อ subsystem เช่น payroll}"
 DISPLAY_NAME="${2:-$SUBSYSTEM}"
-REPO_NAME="csmju-${SUBSYSTEM}"
+REPO_NAME="${REPO_NAME:-csmju-${SUBSYSTEM}}"
 WORKDIR="./${REPO_NAME}"
 
-# ชื่อ subsystem ต้องเป็น kebab-case เพราะไปโผล่ในชื่อ branch ที่ ruleset บังคับ
-# ด้วย regex ^feature/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$
+# slug ต้องเป็น kebab-case เสมอ แม้ override ชื่อ repo แล้วก็ตาม เพราะมันไปโผล่
+# ในชื่อ branch ที่ ruleset บังคับด้วย regex
+#   ^feature/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$
+# และไปเป็น slug ของ team (@org/pl-<slug>) ซึ่ง GitHub บังคับตัวเล็กอยู่แล้ว
 if ! printf '%s' "$SUBSYSTEM" | grep -qE '^[a-z0-9][a-z0-9-]*$'; then
-  echo "❌ ชื่อ subsystem ต้องเป็น kebab-case ตัวเล็ก (a-z 0-9 -): '$SUBSYSTEM'" >&2
+  echo "❌ slug ต้องเป็น kebab-case ตัวเล็ก (a-z 0-9 -): '$SUBSYSTEM'" >&2
   exit 1
+fi
+
+# GitHub ยอมรับ . _ - ในชื่อ repo แต่ห้ามอย่างอื่น
+if ! printf '%s' "$REPO_NAME" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]*$'; then
+  echo "❌ ชื่อ repo ใช้อักขระที่ GitHub ไม่รับ: '$REPO_NAME'" >&2
+  exit 1
+fi
+if [ "$REPO_NAME" != "csmju-${SUBSYSTEM}" ]; then
+  echo "⚠️  ชื่อ repo '$REPO_NAME' ไม่ตรงแบบแผน csmju-<slug> ของโครงการ"
+  echo "   team และ branch จะยังใช้ slug '${SUBSYSTEM}' (pl-${SUBSYSTEM}, aie-${SUBSYSTEM},"
+  echo "   feature/${SUBSYSTEM}/<เรื่อง>) — ตรวจให้แน่ใจว่าตั้งใจแบบนี้"
 fi
 if [ -e "$WORKDIR" ]; then
   echo "❌ มี $WORKDIR อยู่แล้ว" >&2
