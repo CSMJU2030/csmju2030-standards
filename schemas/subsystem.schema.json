@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://csmju2030.ac.th/schemas/subsystem.schema.json",
+  "title": "Subsystem",
+  "type": "object",
+  "required": ["name", "standards_version"],
+  "properties": {
+    "name": { "type": "string" },
+    "standards_version": { "type": "string" },
+    "public_endpoints": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://csmju2030.ac.th/schemas/role.schema.json",
+  "title": "Role",
+  "type": "object",
+  "required": ["layer1_role"],
+  "properties": {
+    "layer1_role": {
+      "type": "string",
+      "enum": ["student", "staff", "faculty", "admin", "guest"]
+    },
+    "description": { "type": "string" }
+  },
+  "additionalProperties": false
+}

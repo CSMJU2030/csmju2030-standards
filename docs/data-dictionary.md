@@ -1,15 +1,40 @@
 # CSMJU2030 — Data Dictionary & Schemas
 
-**Version:** 1.0.0  
+**Version:** 1.0.1  
 **Scope:** Phase 1 — ใช้งานภายในสาขาเดียว
+
+> ### Errata 1.0.0 → 1.0.1 (2026-09-04)
+>
+> ฉบับ 1.0.0 กำหนดชื่อฟิลด์ identity กลางเป็น `user_id` ซึ่งขัดกับ
+> `auth-contract.md` ข้อ 11 ที่กำหนดเป็น `username` และผูกไว้กับ JWT claim
+> (`sub` ต้องมีค่าเท่ากับ `username`) เอกสารทั้งสองฉบับอ้างอิงกันไปกลับ
+> โดยที่ค่าไม่ตรงกัน ทำให้ระบบย่อยที่ทำตามฉบับใดฉบับหนึ่งถูก CI ตีตก
+>
+> **มติ: ยึด `username`** เพราะเป็น contract ที่ข้ามขอบเขตไปหา Core แล้ว
+> (gateway ออก token ด้วยชื่อนี้) และเพราะ `user_id` เป็นชื่อสามัญที่จะชนกับ
+> foreign key ของตาราง local ทำให้กลไก forbidden-alias ตรวจแยกไม่ออก
+>
+> รายการที่แก้ในฉบับนี้
+>
+> | ข้อ | เดิม | ใหม่ |
+> |---|---|---|
+> | 1, 3, 4, 7 | `user_id` | `username` |
+> | 1, 3 | — | เพิ่มฟิลด์ `faculty` ที่ `auth-contract.md` บังคับเป็น required แต่ฉบับ 1.0.0 ไม่มี |
+> | 9 | canonical เป็น `user_id` | canonical เป็น `username`, `user_id` ย้ายไปอยู่ในลิสต์ alias ต้องห้าม |
+> | 13 | `*.schema.yaml` | `*.schema.json` (ตามไฟล์จริงใน `schemas/`) |
+> | 14 | `auth-contract.md` | `auth-contract.md` |
+>
+> `layer1_role` ไม่ถูกแก้ — ฉบับ 1.0.0 ถูกต้องแล้ว (`student, staff, alumni,
+> admin`) ที่ผิดคือสคริปต์ `check-field-aliases.sh` ซึ่งแก้ไปพร้อมกัน
 
 ## 1. Shared Data Contract
 
 | Table | Field | Type | Required | Source | Rule |
 |---|---|---|---|---|---|
-| `users` | `user_id` | string | Yes | Core | รหัสนักศึกษา / รหัสอาจารย์ / รหัสบุคลากร ใช้อ้างอิง User กลาง |
+| `users` | `username` | string | Yes | Core | รหัสนักศึกษา / รหัสอาจารย์ / รหัสบุคลากร ใช้อ้างอิง User กลาง (ห้ามใช้ `user_id` — ดูข้อ 9) |
 | `users` | `layer1_role` | enum | Yes | Core | `student`, `staff`, `alumni`, `admin` |
-| `users` | `department` | string/code | Yes | Core | สาขาที่ผู้ใช้สังกัด |
+| `users` | `faculty` | string | Yes | Core | รหัสคณะ — เป็น claim required ใน JWT ตาม `auth-contract.md` ข้อ 11 |
+| `users` | `department` | string/code | Yes | Core | สาขาที่ผู้ใช้สังกัด (ระดับย่อยกว่า `faculty`) |
 | `users` | `full_name` | string | Yes | Core | ชื่อ-นามสกุล; Subsystem ห้ามแก้ |
 | `users` | `email` | string | Yes | Core | อีเมลมหาวิทยาลัย |
 | `users` | `is_active` | boolean | No | Core/Owner | `true` / `false` |
@@ -29,7 +54,7 @@
 
 ```yaml
 User:
-  user_id:
+  username:
     type: string
     required: true
     unique: true
@@ -37,6 +62,11 @@ User:
     type: enum
     required: true
     values: [student, staff, alumni, admin]
+  faculty:
+    type: string
+    required: true
+    source: Core
+    writable: false
   department:
     type: string
     required: true
@@ -79,7 +109,7 @@ RoleMapping:
   layer2_role: Layer2Role
 
 RoleException:
-  user_id: string
+  username: string
   layer2_role: Layer2Role
   approval_required: true
 ```
@@ -139,7 +169,7 @@ Subsystem:
     type: string
   owner:
     type: string
-    reference: user_id
+    reference: username
   status:
     type: enum
     values: [proposed, staging, production, deprecated]
@@ -179,21 +209,31 @@ date: YYYY-MM-DD
 datetime: ISO 8601
 ```
 
-ห้ามสร้าง alias สำหรับ field เดียวกัน เช่น:
+ห้ามสร้าง alias สำหรับ Global Identity เดียวกัน — ชื่อต่อไปนี้ห้ามใช้ทุกที่
+ทั้งในโค้ด schema และ API payload (`check-field-aliases.sh` ตีตกทันที):
 
 ```text
 user_id
 user_code
+userId
+userCode
 student_id
 student_code
+studentId
 std_id
+stdId
 ```
 
-หากหมายถึง Global Identity เดียวกัน ให้ใช้:
+หากหมายถึง Global Identity ให้ใช้ชื่อนี้เท่านั้น:
 
 ```text
-user_id
+username
 ```
+
+หมายเหตุ: ค่าที่บรรจุอยู่เป็นรหัสนักศึกษา/บุคลากร (เช่น `64123456`) การตั้งชื่อว่า
+`username` จึงไม่ตรงความหมายตามตัวอักษร แต่เลือกไว้โดยเจตนา เพราะเป็นชื่อที่
+`auth-contract.md` ผูกกับ JWT claim ไว้แล้ว และเพราะเป็นชื่อที่ไม่ชนกับ
+foreign key ของตาราง local ซึ่งมักตั้งว่า `user_id`
 
 ## 10. Source of Truth
 
@@ -244,14 +284,15 @@ MAJOR.MINOR.PATCH
 
 ```text
 schemas/
-├── user.schema.yaml
-├── role.schema.yaml
-├── department.schema.yaml
-├── subsystem.schema.yaml
-└── common.schema.yaml
+├── user.schema.json
+├── role.schema.json
+├── department.schema.json
+├── subsystem.schema.json
+└── common.schema.json
 ```
 
-รูปแบบไฟล์ต้องยืนยันกับ PM/PL ก่อนใช้งานจริง
+ไฟล์จริงใน `csmju2030-standards/schemas/` เป็น JSON Schema (`.json`)
+ฉบับ 1.0.0 เขียนว่า `.yaml` ซึ่งไม่ตรงกับของจริง
 
 ## 14. Integration Boundary
 

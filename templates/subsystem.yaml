@@ -1,0 +1,9 @@
+name: csmju-<subsystem-name>
+standards_version: "1.3.0"
+
+public_endpoints:
+  - GET /health
+
+owners:
+  pl: "@csmju2030/pl-<subsystem-name>"
+  aie: "@csmju2030/aie-<subsystem-name>"

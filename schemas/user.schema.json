@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://csmju2030.ac.th/schemas/user.schema.json",
+  "title": "User",
+  "type": "object",
+  "required": ["username", "layer1_role"],
+  "properties": {
+    "username": { "type": "string" },
+    "layer1_role": {
+      "type": "string",
+      "enum": ["student", "staff", "faculty", "admin", "guest"]
+    },
+    "faculty_code": { "type": "string" }
+  },
+  "additionalProperties": true
+}

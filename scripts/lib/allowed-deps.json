@@ -1,0 +1,41 @@
+{
+  "_comment": [
+    "allowed_frontend / allowed_backend คุม RUNTIME dependency — เป็นการตัดสินใจเชิงสถาปัตยกรรม",
+    "allowed_dev_tooling คุม devDependencies เท่านั้น — เครื่องมือ build/lint/test ไม่ใช่สถาปัตยกรรม",
+    "dev_tooling_patterns ใช้กับ devDependencies ที่ชื่อขึ้นต้นตาม pattern (เช่น @types/*)",
+    "forbidden_everywhere ใช้กับทั้ง dependencies และ devDependencies"
+  ],
+  "allowed_frontend": [
+    "next", "react", "react-dom", "typescript",
+    "tailwindcss", "postcss", "autoprefixer",
+    "@csmju2030/design-system",
+    "zustand", "axios", "@tanstack/react-query",
+    "zod", "openapi-typescript",
+    "eslint", "prettier", "vitest", "@testing-library/react"
+  ],
+  "allowed_backend": [
+    "@nestjs/core", "@nestjs/common", "@nestjs/platform-express",
+    "@nestjs/config", "@nestjs/swagger", "@nestjs/testing",
+    "typescript", "prisma", "@prisma/client",
+    "class-validator", "class-transformer", "zod",
+    "reflect-metadata",
+    "eslint", "prettier", "jest", "supertest"
+  ],
+  "allowed_dev_tooling": [
+    "typescript", "eslint", "prettier",
+    "typescript-eslint", "@eslint/js",
+    "vitest", "jest", "supertest", "jsdom", "@testing-library/react",
+    "@nestjs/cli", "@nestjs/testing",
+    "turbo", "openapi-typescript",
+    "postcss", "autoprefixer", "tailwindcss"
+  ],
+  "dev_tooling_patterns": ["^@types/"],
+  "forbidden_everywhere": [
+    "@mui/material", "@mui/core", "antd", "@ant-design/icons",
+    "bootstrap", "react-bootstrap",
+    "@chakra-ui/react", "daisyui", "@mantine/core",
+    "express", "fastify", "koa", "hapi",
+    "mysql", "mysql2", "mongodb", "mongoose", "sequelize", "typeorm",
+    "jsonwebtoken", "jose", "passport-jwt"
+  ]
+}

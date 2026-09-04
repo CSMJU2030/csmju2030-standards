@@ -1,0 +1,21 @@
+# Secrets — ห้าม commit เด็ดขาด
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+*.pem
+*.key
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+.next/
+dist/
+build/
+coverage/
+
+# ยกเว้นไฟล์ template
+!.env.example

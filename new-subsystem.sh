@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+# new-subsystem.sh — สร้าง subsystem repo ใหม่ให้ผ่าน compliance ตั้งแต่ commit แรก
+#
+#   ./new-subsystem.sh payroll "ระบบเงินเดือน"
+#
+# ต้องมี: gh CLI ที่ login แล้ว และสิทธิ์สร้าง repo ใน org
+#
+# สิ่งที่สคริปต์นี้ทำ
+#   1. สร้างโครงไฟล์ให้ผ่านทุก check (รวม .standards-version ที่ GH-04 บังคับ)
+#   2. รัน run-all-checks.sh กับของที่สร้าง — ถ้าไม่ผ่านจะหยุด ไม่ push ขึ้นเว็บ
+#   3. สร้าง repo บน GitHub แล้ว push
+#   4. เพิ่ม standards submodule
+#
+# หมายเหตุเรื่อง visibility: subsystem repo สร้างเป็น public เพราะ
+#   (ก) GitHub Actions ให้เวลารันไม่จำกัดกับ repo public — 37 repo × 8 job
+#       ต่อ PR เกินโควตา 2,000 นาที/เดือน ของ plan Free แน่นอนถ้าเป็น private
+#   (ข) GITHUB_TOKEN ของ repo หนึ่งไม่มีสิทธิ์ actions/checkout repo พี่น้อง
+#       ที่เป็น private ซึ่งดีไซน์ reusable workflow นี้ต้องใช้
+# ถ้าต้องการ private ต้องทำ GitHub App หรือ PAT ที่ scope แคบเป็น secret แทน
+
+set -euo pipefail
+
+ORG="CSMJU2030"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STANDARDS_VERSION="$(tr -d '[:space:]' < "$SCRIPT_DIR/VERSION")"
+
+SUBSYSTEM="${1:?ระบุชื่อ subsystem เช่น payroll}"
+DISPLAY_NAME="${2:-$SUBSYSTEM}"
+REPO_NAME="csmju-${SUBSYSTEM}"
+WORKDIR="./${REPO_NAME}"
+
+# ชื่อ subsystem ต้องเป็น kebab-case เพราะไปโผล่ในชื่อ branch ที่ ruleset บังคับ
+# ด้วย regex ^feature/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$
+if ! printf '%s' "$SUBSYSTEM" | grep -qE '^[a-z0-9][a-z0-9-]*$'; then
+  echo "❌ ชื่อ subsystem ต้องเป็น kebab-case ตัวเล็ก (a-z 0-9 -): '$SUBSYSTEM'" >&2
+  exit 1
+fi
+if [ -e "$WORKDIR" ]; then
+  echo "❌ มี $WORKDIR อยู่แล้ว" >&2
+  exit 1
+fi
+
+echo "=== สร้าง $REPO_NAME (standards v$STANDARDS_VERSION) ==="
+
+mkdir -p "$WORKDIR"/{frontend/src,backend/src,.github/workflows}
+cd "$WORKDIR"
+
+# --- CI: คัดลอกจาก template แล้วแทนที่ชื่อ ไม่เขียนซ้ำด้วยมือ ---
+sed -e "s#@v[0-9]\+\.[0-9]\+\.[0-9]\+#@v${STANDARDS_VERSION}#" \
+    -e "s#csmju-<subsystem-name>#${REPO_NAME}#" \
+    "$SCRIPT_DIR/templates/ci.yml" > .github/workflows/ci.yml
+
+sed "s#<subsystem-name>#${SUBSYSTEM}#g" \
+    "$SCRIPT_DIR/templates/CODEOWNERS" > .github/CODEOWNERS
+
+cp "$SCRIPT_DIR/templates/pull_request_template.md" .github/pull_request_template.md
+cp "$SCRIPT_DIR/templates/.env.example" .env.example
+
+# --- GH-04: ไฟล์นี้คือสิ่งที่สคริปต์เดิมลืมสร้าง ทำให้ทุก repo ใหม่ fail ทันที ---
+printf '%s\n' "$STANDARDS_VERSION" > .standards-version
+
+sed -e "s#csmju-<subsystem-name>#${REPO_NAME}#" \
+    -e "s#<subsystem-name>#${SUBSYSTEM}#g" \
+    -e "s#^standards_version: .*#standards_version: \"${STANDARDS_VERSION}\"#" \
+    "$SCRIPT_DIR/templates/subsystem.yaml" > subsystem.yaml
+{
+  echo ""
+  echo "display_name: \"${DISPLAY_NAME}\""
+  echo "repo: github.com/${ORG}/${REPO_NAME}"
+  echo "status: proposed"
+} >> subsystem.yaml
+
+cat > .gitignore <<'EOF'
+.env
+.env.local
+.env.*.local
+node_modules/
+.pnpm-store/
+.next/
+dist/
+build/
+coverage/
+!.env.example
+EOF
+
+cat > pnpm-workspace.yaml <<'EOF'
+packages:
+  - 'frontend'
+  - 'backend'
+EOF
+
+cat > README.md <<EOF
+# ${REPO_NAME}
+
+${DISPLAY_NAME} — ระบบย่อยของโครงการ CSMJU2030
+
+มาตรฐานกลางอยู่ใน \`standards/\` (submodule ของ ${ORG}/csmju2030-standards)
+สร้างจาก standards v${STANDARDS_VERSION}
+
+## เริ่มทำงาน
+
+\`\`\`bash
+git submodule update --init --remote standards/
+pnpm install
+git checkout -b feature/${SUBSYSTEM}/<เรื่องที่ทำ>
+\`\`\`
+
+ก่อนเปิด PR อ่าน \`standards/docs/github-workflow.md\` ข้อ 1
+EOF
+
+touch frontend/src/.gitkeep backend/src/.gitkeep
+
+echo "✅ สร้างไฟล์เสร็จ"
+
+# --- ตรวจของที่สร้างก่อน push: ถ้าไม่ผ่านก็ไม่ต้องขึ้นเว็บ ---
+echo ""
+echo "→ ตรวจ compliance กับของที่สร้าง..."
+# ตรวจเฉพาะ check ที่ตัดสินจากเนื้อไฟล์ — ตัด check-branch-name /
+# check-commit-messages / check-ci-untouched ออก เพราะสามตัวนั้นต้องมี PR
+# context (branch ต้นทาง, base sha) ซึ่งยังไม่มีตอน scaffold
+SCAFFOLD_CHECKS=(
+  check-submodule-pointer check-no-secrets check-no-local-storage
+  check-no-jwt-verify check-db-isolation check-authorized-deps
+  check-openapi-sync check-api-conventions check-field-aliases
+  check-snake-case check-no-hardcoded-faculty check-money-fields
+  check-ui-tokens check-qa check-exceptions
+)
+SCAFFOLD_FAILED=0
+for chk in "${SCAFFOLD_CHECKS[@]}"; do
+  if ! out=$("$SCRIPT_DIR/scripts/$chk.sh" . 2>&1); then
+    echo "  ❌ $chk" >&2
+    printf '%s\n' "$out" | sed 's/^/     /' >&2
+    SCAFFOLD_FAILED=1
+  fi
+done
+if [ "$SCAFFOLD_FAILED" -ne 0 ]; then
+  echo "❌ scaffold ไม่ผ่าน compliance — ไม่ push ขึ้นเว็บ" >&2
+  exit 1
+fi
+echo "✅ scaffold ผ่าน compliance (${#SCAFFOLD_CHECKS[@]} checks)"
+
+# --- git: -b main สำคัญ ---
+# git เวอร์ชันเก่าตั้ง default เป็น master ซึ่งทำให้ ci.yml (on: pull_request
+# branches: [main]) ไม่ยิงเลย และ ruleset ที่ exclude แค่ refs/heads/main
+# จะบล็อก branch หลักของ repo เอง
+git init -q -b main 2>/dev/null || { git init -q && git symbolic-ref HEAD refs/heads/main; }
+git add .
+git commit -q -m "chore(${SUBSYSTEM}): scaffold ${REPO_NAME} from standards v${STANDARDS_VERSION}"
+
+echo "→ สร้าง repo บน GitHub..."
+gh repo create "${ORG}/${REPO_NAME}" --public --source=. --remote=origin --push
+
+echo "→ เพิ่ม standards submodule..."
+git submodule add -q "https://github.com/${ORG}/csmju2030-standards.git" standards/
+git -C standards checkout -q "v${STANDARDS_VERSION}"
+git add .gitmodules standards
+git commit -q -m "chore(${SUBSYSTEM}): pin standards submodule at v${STANDARDS_VERSION}"
+git push -q
+
+cat <<EOF
+
+✅ สร้าง ${REPO_NAME} สำเร็จ
+   https://github.com/${ORG}/${REPO_NAME}
+
+ขั้นตอนที่เหลือ (ต้องมีสิทธิ์ org admin)
+  1. สร้าง Team: pl-${SUBSYSTEM}, aie-${SUBSYSTEM} แล้วผูกเข้า repo
+  2. ตั้ง ruleset:  standards/org-settings/apply-rulesets.sh repo ${REPO_NAME}
+  3. แก้ subsystem.yaml ใส่ owner จริง
+EOF

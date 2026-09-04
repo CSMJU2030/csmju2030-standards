@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         id: tools
         with:
-          repository: Pimma783/csmju2030-standards
+          repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
       - name: Branch naming
@@ -49,7 +49,7 @@ jobs:
       - uses: actions/checkout@v4
         id: tools
         with:
-          repository: Pimma783/csmju2030-standards
+          repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
       - name: Standards submodule pointer
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@v4
         id: tools
         with:
-          repository: Pimma783/csmju2030-standards
+          repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
       - name: Secret scan
@@ -92,7 +92,7 @@ jobs:
       - uses: actions/checkout@v4
         id: tools
         with:
-          repository: Pimma783/csmju2030-standards
+          repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
       # API-01 รัน `pnpm run generate:openapi` ของ subsystem จริง จึงต้องมี
@@ -126,7 +126,7 @@ jobs:
       - uses: actions/checkout@v4
         id: tools
         with:
-          repository: Pimma783/csmju2030-standards
+          repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
       - name: Forbidden field aliases
@@ -150,7 +150,7 @@ jobs:
       - uses: actions/checkout@v4
         id: tools
         with:
-          repository: Pimma783/csmju2030-standards
+          repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
       - name: Design token usage
@@ -165,7 +165,7 @@ jobs:
       - uses: actions/checkout@v4
         id: tools
         with:
-          repository: Pimma783/csmju2030-standards
+          repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
       - uses: pnpm/action-setup@v4
@@ -193,7 +193,7 @@ jobs:
       - uses: actions/checkout@v4
         id: tools
         with:
-          repository: Pimma783/csmju2030-standards
+          repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
       - name: Validate .compliance-exceptions.yml
