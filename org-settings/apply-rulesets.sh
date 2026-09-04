@@ -4,6 +4,7 @@
 #
 #   ./apply-rulesets.sh org                 # one org ruleset covering csmju-*
 #   ./apply-rulesets.sh repo csmju-equipment [more repos...]
+#   ./apply-rulesets.sh self                # ป้องกัน main ของ standards repo เอง
 #   ./apply-rulesets.sh validate <repo>     # POST as `disabled`, then delete
 #
 # org mode needs the `admin:org` scope:
@@ -16,7 +17,7 @@ set -euo pipefail
 
 ORG="CSMJU2030"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MODE="${1:?ระบุ mode: org | repo | validate}"
+MODE="${1:?ระบุ mode: org | repo | self | validate}"
 shift || true
 
 # บล็อกกรณี default branch ยังไม่ใช่ main — ruleset exclude แค่ refs/heads/main
@@ -60,6 +61,10 @@ case "$MODE" in
       done
     done
     ;;
+  self)
+    echo "→ $ORG/csmju2030-standards (ชุดของ standards repo เอง)"
+    upsert "repos/$ORG/csmju2030-standards/rulesets" "$DIR/ruleset-standards-repo.repo.json"
+    ;;
   validate)
     repo="${1:?ระบุ repo}"
     echo "→ validate payload บน $ORG/$repo (สร้างแบบ disabled แล้วลบ)"
@@ -74,7 +79,7 @@ case "$MODE" in
     echo "  ลบ ruleset ทดสอบเรียบร้อย"
     ;;
   *)
-    echo "mode ไม่รู้จัก: $MODE (org | repo | validate)" >&2; exit 1 ;;
+    echo "mode ไม่รู้จัก: $MODE (org | repo | self | validate)" >&2; exit 1 ;;
 esac
 
 echo "✅ เสร็จ"
