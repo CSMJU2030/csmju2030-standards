@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.4.0 — 2026-09-07
+
+Adds the design-system layer (`DS-01..22`) to the compliance gate, contributed by
+the UX/UI team (PM1). Until now `ui-design-system.md` had only four enforced rules
+(`UI-01..04`, all `grep`-based), so most of that document was documentation rather
+than an enforced standard.
+
+### Added
+
+- `scripts/check-ui-designsystem.sh` — runs `csmju-ui-lint`, shipped with
+  `@csmju2030/design-system`, which parses the App Router tree instead of grepping.
+  It covers the rules that need file structure and AST knowledge:
+  missing `loading.tsx`/`error.tsx` per segment, root layout not wrapped in
+  `<CsmjuAppShell>`, forked components, `<IconButton>` without a label, and the
+  OAuth rules below.
+- `DS-21` / `DS-22` enforce `auth-contract.md` §22 ("ห้ามแต่ละ AIE ออกแบบ Refresh
+  Flow เอง"), which had no automated check before. `DS-21` fails a subsystem that
+  calls `/oauth/token` itself; `DS-22` fails one missing the shared route handler.
+- Wired into the `ui-token-compliance` job of `subsystem-compliance.yml`.
+  The step needs `NODE_AUTH_TOKEN` to read `@csmju2030` from GitHub Packages.
+- `__fixtures__/DS-22/{pass,fail}` and a `self-test.sh` case. The check fails closed:
+  if the package cannot be fetched it reports "cannot verify", never "passed".
+
+### Changed
+
+- `docs/ui-design-system.md` §16.1 now matches the structure every script actually
+  looks for. It described `web/` + `api/` + `npm install`, but every check script
+  searches `frontend/` and `backend/`, and `QA-05` rejects `package-lock.json`.
+  A subsystem following the old text would have had its checks silently pass by
+  finding no files. The tree also gains `.standards-version`, `pnpm-workspace.yaml`
+  and `app/auth/[csmju]/route.ts`.
+- `ci-compliance-spec.md` → 1.1.0: `DS-01..22` added to the §7.1 table, the file
+  tree in §8, and the ownership table in §12.
+
+
 ## 1.3.0 — 2026-09-04
 
 First version published to the `CSMJU2030` organization. v1.0.0–v1.2.0 existed

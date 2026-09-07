@@ -157,6 +157,20 @@ jobs:
         if: always() && steps.tools.outcome == 'success'
         run: bash .compliance-tools/scripts/check-ui-tokens.sh .
 
+      # DS-01..22 ต้องดึง CLI จาก GitHub Packages จึงต้องตั้ง registry + token ก่อน
+      - uses: actions/setup-node@v4
+        if: always() && steps.tools.outcome == 'success'
+        with:
+          node-version: "20"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@csmju2030"
+
+      - name: Design system compliance
+        if: always() && steps.tools.outcome == 'success'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .compliance-tools/scripts/check-ui-designsystem.sh .
+
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest

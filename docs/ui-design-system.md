@@ -160,8 +160,10 @@
 ติดตั้ง:
 
 ```bash
-npm install @csmju2030/design-system
+pnpm add @csmju2030/design-system
 ```
+
+> 🔴 ใช้ **pnpm** เท่านั้น — `QA-05` ตีตก PR ที่มี `package-lock.json` หรือ `yarn.lock`
 
 ```ts
 // app/layout.tsx (หรือ main.tsx)
@@ -875,7 +877,9 @@ Light mode คือประสบการณ์หลัก dark mode เป�
 ```
 csmju-<subsystem-name>/
 ├── subsystem.yaml              # 🔴 manifest (auth-contract §4, api-conventions §7)
-├── web/                        # Next.js
+├── .standards-version          # 🔴 ต้องตรงกับ standards_version ใน subsystem.yaml
+├── pnpm-workspace.yaml         # 🔴 packages: frontend, backend  (QA-05)
+├── frontend/                   # Next.js
 │   └── src/
 │       ├── app/
 │       │   ├── layout.tsx      # 🔴 ครอบด้วย <CsmjuAppShell> ที่นี่ที่เดียว
@@ -883,20 +887,27 @@ csmju-<subsystem-name>/
 │       │   ├── loading.tsx     # 🔴 skeleton
 │       │   ├── error.tsx       # 🔴 ErrorState
 │       │   ├── not-found.tsx   # 🔴 EmptyState
+│       │   ├── auth/[csmju]/
+│       │   │   └── route.ts    # 🔴 createCsmjuAuthRoutes() — ห้ามเขียน OAuth เอง
 │       │   └── <resource>/     # โฟลเดอร์ = kebab-case ตรงกับ path ของ API
 │       ├── components/
 │       │   ├── features/       # component เฉพาะโดเมนของระบบนี้
 │       │   └── shared/         # ใช้ซ้ำภายในระบบนี้
 │       ├── lib/
-│       │   ├── api.ts          # ห่อ fetch + envelope + error mapping
 │       │   └── permissions.ts  # mapping Layer 2 ของระบบนี้
-│       └── styles/globals.css  # import ของ design system เท่านั้น
-└── api/                        # NestJS
+│       └── app/globals.css     # import ของ design system เท่านั้น
+└── backend/                    # NestJS
     └── src/
         ├── main.ts
         ├── common/             # filter, interceptor, guard ที่มาจาก template ส่วนกลาง
         └── modules/<resource>/ # controller + service + dto + entity
 ```
+
+> 🔴 ชื่อโฟลเดอร์ต้องเป็น `frontend/` และ `backend/` เท่านั้น — สคริปต์ตรวจทุกตัวใน
+> `csmju2030-standards/scripts/` ค้นจากสองชื่อนี้ ถ้าตั้งชื่ออื่นการตรวจจะ "ผ่าน" เพราะหาไฟล์ไม่เจอ
+
+> 🔴 ไม่ต้องเขียน `lib/api.ts` เอง — `csmjuFetch` / `useApi` จาก design system
+> ห่อ envelope, map error, แนบ `Authorization: Bearer` และ refresh 401 ให้แล้ว (§16.2 ข้อ 5/7)
 
 > ❌ **ห้ามมีโฟลเดอร์ `components/ui/`** ที่สร้าง Button/Card/Modal ของตัวเอง — นั่นคือสัญญาณว่ากำลัง fork design system
 

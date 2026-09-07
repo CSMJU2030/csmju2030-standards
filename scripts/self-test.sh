@@ -70,6 +70,10 @@ run_fixture_case "API-02"   "check-api-conventions.sh"
 # before anyone could write code. pass-only fixture.
 run_fixture_case "API-02-EMPTY" "check-api-conventions.sh"
 run_fixture_case "UI-01"     "check-ui-tokens.sh"
+# DS-01..22 — pass-fixture ไม่มี frontend/ จึงข้ามการตรวจและได้ 0 เสมอ
+# ส่วน fail-fixture มี frontend/ จึงได้ 1 ทั้งตอนมีเน็ต (csmju-ui-lint ฟ้อง DS-01/DS-22)
+# และตอนไม่มีเน็ต (ดึง package ไม่ได้ = ตรวจไม่ได้ ไม่ใช่ผ่าน)
+run_fixture_case "DS-22" "check-ui-designsystem.sh"
 run_fixture_case "QA-05"     "check-qa.sh"
 run_fixture_case "EXC-01"    "check-exceptions.sh"
 

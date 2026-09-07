@@ -1,6 +1,6 @@
 # ci-compliance-spec.md
 
-**เวอร์ชัน:** 1.0.0
+**เวอร์ชัน:** 1.1.0
 **ดูแลโดย:** ทีม Infrastructure & DevOps (GitHub Governance)
 **บังคับใช้กับ:** ทุก subsystem repository ในองค์กร `csmju2030`
 **อ้างอิงจาก:** `github-workflow.md`, `tech-stack.md`, `api-conventions.md`, `data-dictionary.md`, `auth-contract.md`, `ui-design-system.md`
@@ -339,6 +339,21 @@ jobs:
 | `UI-02` | ไม่มีค่า spacing/radius นอก scale ที่กำหนด | ⚠️ Warn | ui-prompt-template.md |
 | `UI-03` | ไม่มี `div onClick` / `outline:none` / `!important` | ⚠️ Warn | ui-prompt-template.md 5 |
 | `UI-04` | ไม่มี emoji ในหน้าจอระบบ | ⚠️ Warn | ui-prompt-template.md 8 |
+| `DS-01` | Root layout ครอบด้วย `<CsmjuAppShell>` | ❌ Fail | ui-design-system.md 5.1 |
+| `DS-02` | ทุก route segment มี `loading.tsx` | ❌ Fail | ui-design-system.md 9.1 |
+| `DS-03` | ทุก route segment มี `error.tsx` | ❌ Fail | ui-design-system.md 9.2 |
+| `DS-04` | มี `not-found.tsx` ที่ราก `app/` | ❌ Fail | ui-design-system.md 9.2 |
+| `DS-05` | `<IconButton>` มี prop `label` | ❌ Fail | ui-design-system.md 12 |
+| `DS-06` | `<Button disabled>` มี `disabledReason` | ⚠️ Warn | ui-design-system.md 8 |
+| `DS-07` | ทุก page export `metadata` ด้วย `csmjuTitle()` | ⚠️ Warn | ui-design-system.md 16.1.1 |
+| `DS-08` | ไม่ใช้ `next/font/google` | ❌ Fail | ui-design-system.md 15 |
+| `DS-13` | มี `@csmju2030/design-system` ใน dependencies | ❌ Fail | ui-design-system.md 6 |
+| `DS-14` | ไม่ fork component ของ design system | ❌ Fail | ui-design-system.md 17.4 |
+| `DS-16` | Root layout ไม่มี `"use client"` | ❌ Fail | ui-design-system.md 16.1.1 |
+| `DS-19` | `design_system_version` ตรงกับ `.standards-version` | ❌ Fail | ui-design-system.md 17.5 |
+| `DS-20` | ไม่เขียน logic refresh token เอง | ❌ Fail | auth-contract.md 22 |
+| `DS-21` | ไม่เรียก `/oauth/token` ของ Core เอง | ❌ Fail | auth-contract.md 4, 19, 22 |
+| `DS-22` | มี route handler `/auth` ที่ใช้ `createCsmjuAuthRoutes()` | ❌ Fail | auth-contract.md 3-8, 18-23 |
 | `QA-01` | ESLint + Prettier ผ่านทั้ง frontend และ backend | ❌ Fail | github-workflow.md 3.1 |
 | `QA-02` | `tsc --noEmit` ผ่านทั้งสองฝั่ง | ❌ Fail | github-workflow.md 3.2 |
 | `QA-03` | Unit test ผ่าน + coverage ≥ เกณฑ์ที่ทีมกำหนด | ❌ Fail | github-workflow.md 3.3 |
@@ -613,6 +628,7 @@ csmju2030-standards/
 │   ├── check-snake-case.ts              # DD-03
 │   ├── check-no-hardcoded-faculty.sh    # DD-04
 │   ├── check-ui-tokens.sh               # UI-01..04
+│   ├── check-ui-designsystem.sh         # DS-01..22
 │   └── lib/
 │       ├── report.sh                    # ฟังก์ชันแสดง error รูปแบบมาตรฐาน
 │       └── allowed-deps.json            # whitelist ตามข้อ 7.3
@@ -983,6 +999,7 @@ exceptions:
 | ตั้ง Branch Protection + Ruleset จริง | DevOps |
 | เขียนสคริปต์ `API-01..06`, `DD-01..05` | DevOps |
 | เขียนสคริปต์ `UI-01..04`, `QA-01..05` | DevOps |
+| เขียนสคริปต์ `DS-01..22` (ผ่าน `csmju-ui-lint`) | PM1 / ทีม UX-UI |
 | tag `v1.0.0` ของ standards | PM + DevOps |
 
 ### สัปดาห์ที่ 5-6 — ขยายทุกระบบย่อย
