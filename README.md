@@ -30,6 +30,7 @@ repo นี้เป็นแหล่งความจริงเพียง
 | ลงทะเบียนระบบย่อยกับ Core Hub | [`docs/subsystem-registry.md`](docs/subsystem-registry.md) |
 | เกณฑ์ผ่าน/ไม่ผ่าน และวิธีรัน | [`docs/conformance.md`](docs/conformance.md) |
 | วิธีแตก branch, ตั้งชื่อ commit, เปิด PR | [`docs/github-workflow.md`](docs/github-workflow.md) ข้อ 1 |
+| กฎของ Core Hub และข้อยกเว้น (ทีม Core Hub เท่านั้น) | [`docs/core-hub-rules.md`](docs/core-hub-rules.md) |
 | ใช้ AI ช่วยเขียนโค้ด | [`ai/AGENTS.md`](ai/AGENTS.md) · [`ai/TASK_TEMPLATE.md`](ai/TASK_TEMPLATE.md) |
 
 ขั้นตอนทำงานปกติ
@@ -49,6 +50,9 @@ gh pr create --base main
 ./standards/scripts/run-all-checks.sh .        # static — ได้ผลเหมือน CI ทุกข้อ
 node standards/conformance/run.js              # runtime — ยิงระบบที่รันอยู่จริง
 ```
+
+> ทีม Core Hub ใช้ `./scripts/run-core-hub-checks.sh /path/to/csmju-core-hub` แทน — มันตั้ง
+> `CSMJU_PROFILE=core-hub` และข้ามกฎที่ขัดกับหน้าที่ของ Core Hub ตาม [`docs/core-hub-rules.md`](docs/core-hub-rules.md)
 
 การตรวจมี **สองชั้น** และต้องผ่านทั้งคู่:
 
@@ -122,14 +126,14 @@ docs/              เอกสารมาตรฐาน — คนอ่า�
 ai/                กติกา + เทมเพลตสั่งงาน AI + checklist ส่งงาน
 contracts/         สัญญาที่เครื่องอ่านได้ (jwt · error-codes · vocabulary · log-events · openapi)
 conformance/       ชุดทดสอบ runtime แบบ black-box (Node 20+ ไม่มี dependency)
-scripts/           กฎที่บังคับจริง (check-*.sh) + self-test + run-all-checks
+scripts/           กฎที่บังคับจริง (check-*.sh) + self-test + run-all-checks + run-core-hub-checks
 scripts/lib/       allowed-deps.json — whitelist dependency
 schemas/           JSON Schema ของ shared data + subsystem.yaml
 fixtures/          บัญชี dev ของ Core Hub + manifest ตัวอย่าง (ใช้กับ conformance)
 templates/         ไฟล์ที่ทุก subsystem repo ต้องมีเหมือนกัน (subsystem.yaml, ci.yml, …)
 org-settings/      ruleset + checklist ที่ต้องตั้งในหน้า Settings ของ GitHub
 __fixtures__/      ตัวอย่าง pass/fail สำหรับ self-test
-.github/workflows/ subsystem-compliance.yml (reusable) · conformance-nightly.yml · self-test.yml
+.github/workflows/ subsystem-compliance.yml · core-hub-compliance.yml (reusable) · conformance-nightly.yml · self-test.yml
 ```
 
 > `docs/` คนอ่าน · `contracts/` เครื่องอ่าน · ถ้าสองอย่างขัดกันให้ยึด `contracts/` แล้วแจ้ง PL

@@ -22,6 +22,11 @@ ALLOWED_DEPS="$SCRIPT_DIR/lib/allowed-deps.json"
 TARGET_DIR="${1:-.}"
 cd "$TARGET_DIR"
 
+# profile=core-hub เปิดใช้ allowed_core_hub เพิ่มจาก allowed_backend
+# csmju-core-hub เป็นผู้ออก token เอง จึงต้องมีไลบรารีเซ็น/ตรวจของตัวเอง
+# (ดู docs/core-hub-rules.md) — ระบบย่อยห้ามใช้ profile นี้
+PROFILE="${CSMJU_PROFILE:-subsystem}"
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "✅ [ARC-02/03] ข้ามการตรวจ (ไม่พบ jq ในเครื่อง)"
   exit 0
@@ -30,10 +35,23 @@ fi
 VIOLATION=0
 
 is_forbidden() {
+  # profile=core-hub: dependency ที่อยู่ใน allowed_core_hub ชนะรายการห้ามทั่วไป
+  # (เช่น passport-jwt ที่ระบบย่อยห้ามใช้ แต่ Core Hub ใช้ตรวจ token ของตัวเอง)
+  if [[ "$PROFILE" == "core-hub" ]] \
+    && [[ "$(jq --arg d "$1" '.allowed_core_hub | index($d) != null' "$ALLOWED_DEPS")" == "true" ]]; then
+    return 1
+  fi
   [[ "$(jq --arg d "$1" '.forbidden_everywhere | index($d) != null' "$ALLOWED_DEPS")" == "true" ]]
 }
 in_list() {
-  [[ "$(jq --arg d "$1" --arg k "$2" '.[$k] | index($d) != null' "$ALLOWED_DEPS")" == "true" ]]
+  if [[ "$(jq --arg d "$1" --arg k "$2" '.[$k] | index($d) != null' "$ALLOWED_DEPS")" == "true" ]]; then
+    return 0
+  fi
+  if [[ "$PROFILE" == "core-hub" ]]; then
+    [[ "$(jq --arg d "$1" '.allowed_core_hub | index($d) != null' "$ALLOWED_DEPS")" == "true" ]]
+    return
+  fi
+  return 1
 }
 matches_dev_pattern() {
   [[ "$(jq -r --arg d "$1" '[.dev_tooling_patterns[] | select($d | test(.))] | length > 0' "$ALLOWED_DEPS")" == "true" ]]

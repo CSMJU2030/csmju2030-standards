@@ -20,6 +20,7 @@
 5. [Layer 2 — CODEOWNERS](#5-layer-2--codeowners)
 6. [Layer 3 — CI Compliance Gate](#6-layer-3--ci-compliance-gate)
 7. [รายการ Compliance Check ทั้งหมด](#7-รายการ-compliance-check-ทั้งหมด)
+7.3 [Profile: Core Hub](#73-profile-core-hub)
 8. [โครงสร้างไฟล์ที่ต้องมี](#8-โครงสร้างไฟล์ที่ต้องมี)
 9. [Repository Ruleset ระดับองค์กร](#9-repository-ruleset-ระดับองค์กร)
 10. [การจัดการ Secrets](#10-การจัดการ-secrets)
@@ -347,6 +348,23 @@ jobs:
 | `QA-05` | ใช้ pnpm workspace (ไม่มี `package-lock.json`) | ❌ Fail | github-workflow.md 2 |
 
 **ระดับ:** `❌ Fail` = block merge ทันที | `⚠️ Warn` = แสดงเตือนใน PR comment แต่ merge ได้ (PL ใช้ดุลพินิจ)
+
+### 7.3 Profile: Core Hub
+
+ตารางใน 7.1 คือกฎของ **ระบบย่อย** `csmju-core-hub` ไม่ใช่ระบบย่อย จึงมีชุดกฎแยกที่ยกเว้นเฉพาะข้อที่
+ขัดกับหน้าที่ของมันเอง (เป็นผู้ออก token · ถือ private key · เป็นหน้า login กลาง · เป็นเจ้าของตาราง `users`)
+
+กลไกคือตัวแปรแวดล้อม `CSMJU_PROFILE` ค่าเริ่มต้น `subsystem`:
+
+| profile | ตัวเรียก | ผลต่อการตรวจ |
+|---|---|---|
+| `subsystem` | `run-all-checks.sh` · `subsystem-compliance.yml` | ตรวจครบทุกข้อในตาราง 7.1 |
+| `core-hub` | `run-core-hub-checks.sh` · `core-hub-compliance.yml` | ยกเว้น `GH-03` `GH-04` `SEC-04` `SEC-05` `API-01` `API-06` `UI-01..04` · `DD-01` ถูกข้ามในสคริปต์ · `ARC-02` ขยาย whitelist ด้วยคีย์ `allowed_core_hub` |
+
+ระบบย่อยตั้ง `CSMJU_PROFILE=core-hub` เองไม่ได้ — workflow ของระบบย่อยไม่ได้ส่งค่านี้ และ `GH-03`
+ห้ามทีมแก้ไฟล์ workflow อยู่แล้ว
+
+รายละเอียดพร้อมเหตุผลรายข้อ: [`docs/core-hub-rules.md`](docs/core-hub-rules.md)
 
 ### 7.2 รายละเอียดสคริปต์สำคัญ
 
@@ -1065,7 +1083,9 @@ Subsystem repo (ทำซ้ำทุก repo)
 > ทุกข้อความ fail ต้องบอกไฟล์ บรรทัด ค่าที่ผิด ค่าที่ถูก เอกสารอ้างอิง และวิธีแก้
 
 > **4. ไม่มีข้อยกเว้นถาวร**
-> ทุก exception มีวันหมดอายุ และมีร่องรอยการอนุมัติที่ตรวจสอบย้อนหลังได้
+> ทุก exception ใน `.compliance-exceptions.yml` มีวันหมดอายุ และมีร่องรอยการอนุมัติที่ตรวจสอบย้อนหลังได้
+> ข้อยกเว้นเชิงสถาปัตยกรรมของ Core Hub (ข้อ 7.3) เป็นคนละเรื่อง — มันอยู่ในเอกสารมาตรฐาน ไม่ใช่ในไฟล์
+> exception ของทีม และเปลี่ยนได้เฉพาะผ่าน PR ที่ขึ้นเวอร์ชัน standards
 
 > **5. เริ่มจากเตือน แล้วค่อยบล็อก**
 > ทุก check ใหม่ต้องผ่านช่วง warn-only ก่อนเปลี่ยนเป็น blocking เพื่อวัด false positive

@@ -1,22 +1,23 @@
-name: CSMJU2030 Subsystem Compliance (Reusable)
+name: CSMJU2030 Core Hub Compliance (Reusable)
 
-# Called from every csmju-<subsystem> repo's .github/workflows/ci.yml,
-# pinned by tag/SHA (see templates/ci.yml). Each job checks out the calling
-# repo (default, into ".") plus this standards repo pinned to the same ref
-# the caller pinned in its `uses:` line (into ".compliance-tools"), so the
-# scripts that actually enforce the rules always come from the untouchable
-# central source, never from the subsystem repo being checked.
+# เรียกจาก csmju-core-hub/.github/workflows/ci.yml โดย pin ด้วย tag
+#
+# ต่างจาก subsystem-compliance.yml ตรงที่:
+#   1. ตั้ง CSMJU_PROFILE=core-hub ให้ทุก job (repo ปลายทางตั้งเองไม่ได้)
+#   2. ไม่รัน SEC-04/SEC-05, GH-03, GH-04, UI tokens และ openapi-sync
+# เหตุผลของแต่ละข้อยกเว้นอยู่ใน docs/core-hub-rules.md §3 — ห้ามแก้ไฟล์นี้
+# โดยไม่แก้เอกสารและ scripts/run-core-hub-checks.sh ให้ตรงกัน
 
 on:
   workflow_call:
     inputs:
-      subsystem_name:
-        required: true
-        type: string
       node_version:
         required: false
         type: string
         default: '22'   # tech-stack.md ข้อ 1.1 ล็อก Node 22.x
+
+env:
+  CSMJU_PROFILE: core-hub
 
 jobs:
   convention-check:
@@ -37,24 +38,7 @@ jobs:
       - name: Commit messages
         if: always() && steps.tools.outcome == 'success'
         run: bash .compliance-tools/scripts/check-commit-messages.sh . "${{ github.event.pull_request.base.sha }}"
-      - name: Guard CI files
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-ci-untouched.sh . "${{ github.event.pull_request.base.sha }}"
-
-  standards-version-check:
-    name: Standards Version Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        id: tools
-        with:
-          repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
-          path: .compliance-tools
-      - name: Standards submodule pointer
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-submodule-pointer.sh .
+      # GH-03 (guard CI files) / GH-04 (standards submodule) ยกเว้น — ดู core-hub-rules.md §3
 
   security-scan:
     name: Security & Stack Scan
@@ -74,18 +58,16 @@ jobs:
       - name: No token in localStorage
         if: always() && steps.tools.outcome == 'success'
         run: bash .compliance-tools/scripts/check-no-local-storage.sh .
-      - name: No self-rolled JWT verify / login
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-no-jwt-verify.sh .
       - name: DB isolation
         if: always() && steps.tools.outcome == 'success'
         run: bash .compliance-tools/scripts/check-db-isolation.sh .
-      - name: Authorized dependencies
+      # SEC-04/SEC-05 ยกเว้น — Core Hub เป็นผู้ออก token และเป็นหน้า login กลาง
+      - name: Authorized dependencies (core-hub whitelist)
         if: always() && steps.tools.outcome == 'success'
         run: bash .compliance-tools/scripts/check-authorized-deps.sh .
 
-  api-contract-sync:
-    name: API Contract Sync
+  api-contract:
+    name: API Contract
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -95,25 +77,6 @@ jobs:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
-      # API-01 รัน `pnpm run generate:openapi` ของ subsystem จริง จึงต้องมี
-      # toolchain ใน job นี้ด้วย ไม่ใช่แค่ใน Code Quality — ไม่มีแล้ว check
-      # จะ skip เงียบ ๆ ทั้งที่ดูเหมือนผ่าน
-      # ไม่ระบุ version — pnpm/action-setup อ่าน "packageManager" ใน package.json
-      # ของ repo ที่เรียก ถ้าฮาร์ดโค้ดไว้แล้วไม่ตรงกัน action จะ error ทันที
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ inputs.node_version }}
-      - name: Install (only when a pnpm lockfile is committed)
-        run: |
-          if [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile
-          else
-            echo "ไม่พบ pnpm-lock.yaml — ข้ามการติดตั้ง (API-01 จะถูก skip)"
-          fi
-      - name: openapi.json sync
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-openapi-sync.sh .
       - name: API conventions
         if: always() && steps.tools.outcome == 'success'
         run: bash .compliance-tools/scripts/check-api-conventions.sh .
@@ -129,6 +92,7 @@ jobs:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
+      # DD-01 ถูกข้ามภายในสคริปต์เองเมื่อ CSMJU_PROFILE=core-hub
       - name: Forbidden field aliases
         if: always() && steps.tools.outcome == 'success'
         run: bash .compliance-tools/scripts/check-field-aliases.sh .
@@ -142,21 +106,6 @@ jobs:
         if: always() && steps.tools.outcome == 'success'
         run: bash .compliance-tools/scripts/check-money-fields.sh .
 
-  ui-token-compliance:
-    name: UI Token Compliance
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        id: tools
-        with:
-          repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
-          path: .compliance-tools
-      - name: Design token usage
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-ui-tokens.sh .
-
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
@@ -169,7 +118,6 @@ jobs:
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
       # ไม่ระบุ version — pnpm/action-setup อ่าน "packageManager" ใน package.json
-      # ของ repo ที่เรียก ถ้าฮาร์ดโค้ดไว้แล้วไม่ตรงกัน action จะ error ทันที
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

@@ -14,6 +14,10 @@ set -euo pipefail
 TARGET_DIR="${1:-.}"
 cd "$TARGET_DIR"
 
+# profile=core-hub ข้าม DD-01 เพราะ Core Hub เป็นเจ้าของตาราง users เอง
+# `user_id` ในนั้นคือ foreign key ปกติ ไม่ใช่ alias ของ Global Identity
+PROFILE="${CSMJU_PROFILE:-subsystem}"
+
 VIOLATION=0
 
 # alias ที่ห้ามใช้แทน Global Identity
@@ -21,7 +25,13 @@ FORBIDDEN_ALIASES=(
   'user_id' 'userId' 'user_code' 'userCode' 'std_id' 'stdId'
 )
 
+if [[ "$PROFILE" == "core-hub" ]]; then
+  echo "⏭️  [DD-01] ข้าม — Core Hub เป็นเจ้าของตาราง users (ดู docs/core-hub-rules.md)"
+  FORBIDDEN_ALIASES=("")
+fi
+
 for ALIAS in "${FORBIDDEN_ALIASES[@]}"; do
+  [[ -z "$ALIAS" ]] && continue
   RESULT=$(grep -rn --word-regexp "$ALIAS" \
     frontend/src backend/src prisma/ backend/prisma/ 2>/dev/null \
     --include='*.ts' --include='*.tsx' --include='*.prisma' \

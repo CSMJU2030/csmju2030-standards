@@ -16,8 +16,21 @@ BACKEND_TS=$(find backend/src -name '*.ts' -not -path '*/node_modules/*' 2>/dev/
 if [[ -d backend/src && -n "$BACKEND_TS" ]]; then
   # API-02: route segments must be kebab-case (no camelCase / underscores),
   # and a /v1 global prefix must be declared somewhere in main.ts.
-  BAD_ROUTES=$(grep -rnE "@(Controller|Get|Post|Put|Patch|Delete)\(['\"][^'\"]*[A-Z_][^'\"]*['\"]" \
+  # ชื่อ path parameter (:exceptionId) เป็นตัวแปรใน TypeScript ไม่ใช่ส่วนของ URL
+  # จริง — NestJS ใช้ camelCase ตามปกติ จึงตัด :param ออกก่อนตรวจ kebab-case
+  ROUTE_HITS=$(grep -rnE "@(Controller|Get|Post|Put|Patch|Delete)\(\s*['\"][^'\"]*['\"]" \
     backend/src --include='*.ts' 2>/dev/null || true)
+  BAD_ROUTES=""
+  while IFS= read -r LINE; do
+    [[ -z "$LINE" ]] && continue
+    PATH_LITERAL=$(echo "$LINE" \
+      | sed -E "s/.*@(Controller|Get|Post|Put|Patch|Delete)\(\s*['\"]([^'\"]*)['\"].*/\2/")
+    STRIPPED=$(echo "$PATH_LITERAL" | sed -E 's/:[A-Za-z0-9_]+//g')
+    if echo "$STRIPPED" | grep -qE '[A-Z_]'; then
+      BAD_ROUTES="${BAD_ROUTES}${LINE}
+"
+    fi
+  done <<< "$ROUTE_HITS"
   if [[ -n "$BAD_ROUTES" ]]; then
     echo "❌ [API-02] Route path ไม่ใช่ kebab-case"
     echo "$BAD_ROUTES" | sed 's/^/   /'

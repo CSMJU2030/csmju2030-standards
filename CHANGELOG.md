@@ -61,6 +61,22 @@
 - `contracts/` — สัญญาที่เครื่องอ่านได้ (JWT · error code · vocabulary · log event · OpenAPI)
 - `ai/` — `AGENTS.md`, `TASK_TEMPLATE.md`, `CHECKLIST.md` สำหรับสั่งงาน AI ให้ได้ผลตรงกันข้ามโมเดล
 
+### Profile `core-hub` (`docs/core-hub-rules.md` — ใหม่)
+
+- `csmju-core-hub` ไม่ใช่ระบบย่อย จึงมี workflow แยก `core-hub-compliance.yml` ที่ตั้ง `CSMJU_PROFILE=core-hub`
+- ยกเว้นเฉพาะกฎที่ขัดกับหน้าที่ของมันเอง: `SEC-04` `SEC-05` `GH-03` `GH-04` `API-01` `API-06` `UI-01..04`
+  · `DD-01` ถูกข้ามในสคริปต์ · `ARC-02` ขยาย whitelist ด้วยคีย์ `allowed_core_hub`
+- กฎที่เหลือ 19 ข้อยังบังคับเต็มเหมือนระบบย่อย และมี 3 ข้อที่เข้มกว่า (JWKS ดิบ · สัญญา JWT ห้ามเปลี่ยน · ตรวจ `callback_url`)
+- self-test ยืนยันทั้งสองทิศทาง: fixture เดียวกันต้องตกใน profile `subsystem` และผ่านใน `core-hub`
+  รวมถึงยืนยันว่าค่าเริ่มต้นคือ `subsystem` และ workflow ของระบบย่อยไม่ส่ง profile นี้ (45 assertions)
+
+### แก้บั๊กในเครื่องมือตรวจเอง
+
+- `API-02` เคยตีตกชื่อ path parameter แบบ camelCase (`:exceptionId`) ทั้งที่ URL จริงยังเป็น kebab-case
+- `pnpm/action-setup` ฮาร์ดโค้ด `version: 9` ซึ่งชนกับ `packageManager` ใน `package.json` ของ repo ที่เรียก
+- `node_version` ค่าเริ่มต้นเป็น `20` ทั้งที่ `tech-stack.md` ล็อก Node 22
+- `run-all-checks.sh` ใช้ associative array ซึ่ง bash 3.2 (ค่าเริ่มต้นของ macOS) ไม่รองรับ
+
 ### กฎ CI ที่แก้ให้ตรงกับสถาปัตยกรรมจริง
 
 | รหัส | เดิม | ใหม่ |

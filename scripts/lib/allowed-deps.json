@@ -5,7 +5,8 @@
     "dev_tooling_patterns ใช้กับ devDependencies ที่ชื่อขึ้นต้นตาม pattern (เช่น @types/*)",
     "forbidden_everywhere ใช้กับทั้ง dependencies และ devDependencies",
     "allowed_backend รวม dependency ที่สัญญา v1.0 บังคับ: @prisma/adapter-pg + pg (Prisma 7 driver adapter), jose (ตรวจ JWKS+kid)",
-    "jsonwebtoken / passport-jwt ยังห้าม เพราะไม่รองรับ JWKS + kid ตาม auth-contract.md ข้อ 4 — ให้ใช้ jose"
+    "jsonwebtoken / passport-jwt ยังห้าม เพราะไม่รองรับ JWKS + kid ตาม auth-contract.md ข้อ 4 — ให้ใช้ jose",
+    "allowed_core_hub ใช้เพิ่มจาก allowed_backend เฉพาะ profile=core-hub (csmju-core-hub เป็นผู้ออก token จึงต้องมีไลบรารีเซ็น/ตรวจของตัวเอง)"
   ],
   "allowed_frontend": [
     "next",
@@ -102,5 +103,14 @@
     "typeorm",
     "jsonwebtoken",
     "passport-jwt"
+  ],
+  "allowed_core_hub": [
+    "@nestjs/jwt",
+    "@nestjs/passport",
+    "passport",
+    "passport-jwt",
+    "bcrypt",
+    "@types/bcrypt",
+    "@types/passport-jwt"
   ]
 }
