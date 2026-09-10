@@ -9,6 +9,10 @@ repo นี้เป็นแหล่งความจริงเพียง
 
 **เวอร์ชันปัจจุบัน:** ดู [`VERSION`](VERSION) · การเปลี่ยนแปลง: [`CHANGELOG.md`](CHANGELOG.md)
 
+มาตรฐาน v1.0 เขียนจาก **ระบบที่ทำงานได้จริง** ไม่ใช่จากการออกแบบล่วงหน้า:
+`csmju-core-hub` (Core Hub จริง) และ `demo-student-subsystem`
+(reference implementation ที่ผ่าน conformance L3 · 62/62)
+
 ---
 
 ## ถ้าคุณเป็น AIE (คนเขียนโค้ดระบบย่อย)
@@ -17,9 +21,16 @@ repo นี้เป็นแหล่งความจริงเพียง
 
 | อ่านเพื่อ | ไฟล์ |
 |---|---|
-| วิธีแตก branch, ตั้งชื่อ commit, เปิด PR | [`docs/github-workflow.md`](docs/github-workflow.md) ข้อ 1 |
-| stack ที่อนุญาต และกฎ Database Isolation | [`docs/tech-stack.md`](docs/tech-stack.md) |
+| **เริ่มที่นี่** — ภาพรวมและสถานะจริงของสถาปัตยกรรม | [`docs/overview.md`](docs/overview.md) |
+| JWT · JWKS · SSO · callback | [`docs/auth-contract.md`](docs/auth-contract.md) |
+| role mapping · permission · 401/403 | [`docs/authorization.md`](docs/authorization.md) |
+| stack ที่บังคับ + เวอร์ชัน และกฎ Database Isolation | [`docs/tech-stack.md`](docs/tech-stack.md) |
 | รูปแบบ API ที่ต้องทำตาม | [`docs/api-conventions.md`](docs/api-conventions.md) |
+| ชื่อตาราง/คอลัมน์ · migration | [`docs/data-dictionary.md`](docs/data-dictionary.md) |
+| ลงทะเบียนระบบย่อยกับ Core Hub | [`docs/subsystem-registry.md`](docs/subsystem-registry.md) |
+| เกณฑ์ผ่าน/ไม่ผ่าน และวิธีรัน | [`docs/conformance.md`](docs/conformance.md) |
+| วิธีแตก branch, ตั้งชื่อ commit, เปิด PR | [`docs/github-workflow.md`](docs/github-workflow.md) ข้อ 1 |
+| ใช้ AI ช่วยเขียนโค้ด | [`ai/AGENTS.md`](ai/AGENTS.md) · [`ai/TASK_TEMPLATE.md`](ai/TASK_TEMPLATE.md) |
 
 ขั้นตอนทำงานปกติ
 
@@ -35,9 +46,18 @@ gh pr create --base main
 ### ตรวจเองก่อนเปิด PR (ไม่ต้องรอ CI)
 
 ```bash
-./standards/scripts/run-all-checks.sh .
+./standards/scripts/run-all-checks.sh .        # static — ได้ผลเหมือน CI ทุกข้อ
+node standards/conformance/run.js              # runtime — ยิงระบบที่รันอยู่จริง
 ```
-ได้ผลเหมือน CI ทุกข้อ แต่เร็วกว่า และไม่ต้องรอคิว runner
+
+การตรวจมี **สองชั้น** และต้องผ่านทั้งคู่:
+
+| ชั้น | ตรวจอะไร | รันเมื่อไร |
+|---|---|---|
+| `scripts/` (static) | ซอร์สโค้ด: naming · dependency · secret · commit · openapi sync | ทุก PR |
+| `conformance/` (runtime) | พฤติกรรมจริงผ่าน HTTP ตามสัญญา (L1/L2/L3) | nightly + ก่อน release |
+
+CI ตรวจว่า "เขียนถูกกฎ" · conformance ตรวจว่า "ทำงานได้จริงตามสัญญา"
 
 ---
 
@@ -98,15 +118,21 @@ gh pr create --base main
 ## โครงสร้าง repo
 
 ```
-docs/              เอกสารมาตรฐาน — คนอ่าน ไม่มีสคริปต์ไหนอ่านไฟล์พวกนี้
+docs/              เอกสารมาตรฐาน — คนอ่าน
+ai/                กติกา + เทมเพลตสั่งงาน AI + checklist ส่งงาน
+contracts/         สัญญาที่เครื่องอ่านได้ (jwt · error-codes · vocabulary · log-events · openapi)
+conformance/       ชุดทดสอบ runtime แบบ black-box (Node 20+ ไม่มี dependency)
 scripts/           กฎที่บังคับจริง (check-*.sh) + self-test + run-all-checks
 scripts/lib/       allowed-deps.json — whitelist dependency
-schemas/           JSON Schema ของ shared data
-templates/         ไฟล์ที่ทุก subsystem repo ต้องมีเหมือนกัน (ci.yml, CODEOWNERS, …)
+schemas/           JSON Schema ของ shared data + subsystem.yaml
+fixtures/          บัญชี dev ของ Core Hub + manifest ตัวอย่าง (ใช้กับ conformance)
+templates/         ไฟล์ที่ทุก subsystem repo ต้องมีเหมือนกัน (subsystem.yaml, ci.yml, …)
 org-settings/      ruleset + checklist ที่ต้องตั้งในหน้า Settings ของ GitHub
 __fixtures__/      ตัวอย่าง pass/fail สำหรับ self-test
-.github/workflows/ subsystem-compliance.yml (reusable) + self-test.yml
+.github/workflows/ subsystem-compliance.yml (reusable) · conformance-nightly.yml · self-test.yml
 ```
+
+> `docs/` คนอ่าน · `contracts/` เครื่องอ่าน · ถ้าสองอย่างขัดกันให้ยึด `contracts/` แล้วแจ้ง PL
 
 **จุดที่มักเข้าใจสลับกัน:** ไฟล์ `.yml` รายงานผ่าน/ไม่ผ่านได้เท่านั้น
 มันห้าม merge ไม่ได้ด้วยตัวเอง สิ่งที่ห้ามได้จริงคือ required status checks
@@ -117,8 +143,9 @@ __fixtures__/      ตัวอย่าง pass/fail สำหรับ self-te
 ## จะแก้กฎหรือเอกสาร ทำอย่างไร
 
 กฎอยู่ใน `scripts/` เอกสารอยู่ใน `docs/` — สองอย่างนี้ต้องตรงกันเสมอ
-ถ้าไม่ตรง จะเกิดสภาพ "ทำตามเอกสารแล้ว CI ตีตก" ซึ่งเคยเกิดจริงมาแล้ว 4 จุด
-(ดู `CHANGELOG.md` 1.0.0)
+ถ้าไม่ตรง จะเกิดสภาพ "ทำตามเอกสารแล้ว CI ตีตก" หรือแย่กว่านั้นคือ
+"ทำตามเอกสารแล้วต่อกับ Core Hub จริงไม่ได้" ซึ่งเป็นเหตุผลที่ v1.0 เขียนใหม่
+จากระบบที่รันได้จริงทั้งหมด (ดู `CHANGELOG.md` 1.0.0)
 
 ลำดับที่ต้องทำใน PR เดียว
 
