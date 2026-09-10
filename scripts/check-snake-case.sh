@@ -13,7 +13,11 @@ set -euo pipefail
 TARGET_DIR="${1:-.}"
 cd "$TARGET_DIR"
 
-SCHEMAS=$(find . -name 'schema.prisma' -not -path '*/node_modules/*' 2>/dev/null || true)
+SCHEMAS=$(find . -name 'schema.prisma' \
+  -not -path '*/node_modules/*' \
+  -not -path './standards/*' \
+  -not -path './.compliance-tools/*' \
+  -not -path '*/.git/*' 2>/dev/null || true)
 if [[ -z "$SCHEMAS" ]]; then
   echo "⚠️  [DD-03] ไม่พบ prisma/schema.prisma — ข้ามการตรวจ"
   exit 0
