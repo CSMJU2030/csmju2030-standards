@@ -29,16 +29,32 @@
 
 ## 1. Shared Data Contract
 
-| Table | Field | Type | Required | Source | Rule |
-|---|---|---|---|---|---|
-| `users` | `username` | string | Yes | Core | รหัสนักศึกษา / รหัสอาจารย์ / รหัสบุคลากร ใช้อ้างอิง User กลาง (ห้ามใช้ `user_id` — ดูข้อ 9) |
-| `users` | `layer1_role` | enum | Yes | Core | `student`, `staff`, `alumni`, `admin` |
-| `users` | `faculty` | string | Yes | Core | รหัสคณะ — เป็น claim required ใน JWT ตาม `auth-contract.md` ข้อ 11 |
-| `users` | `department` | string/code | Yes | Core | สาขาที่ผู้ใช้สังกัด (ระดับย่อยกว่า `faculty`) |
-| `users` | `full_name` | string | Yes | Core | ชื่อ-นามสกุล; Subsystem ห้ามแก้ |
-| `users` | `email` | string | Yes | Core | อีเมลมหาวิทยาลัย |
-| `users` | `is_active` | boolean | No | Core/Owner | `true` / `false` |
-| `users` | `visibility` | enum | No | Owner | `public`, `internal`, `private` |
+ตารางนี้คือข้อมูลที่ **Core Hub เป็นเจ้าของ** และสิ่งที่ระบบย่อยได้รับจริงในเวอร์ชัน 1.0
+
+### 1.1 สิ่งที่มาใน access token (ใช้ได้ทันที)
+
+| ชื่อใน token | ชื่อในระบบย่อย (DB / TS) | Type | ความหมาย |
+|---|---|---|---|
+| `sub` | `core_user_id` / `coreUserId` | string | **Global Identity** — id ผู้ใช้ของ Core Hub เช่น `user-002` |
+| `email` | `email` | string | อีเมลของผู้ใช้ |
+| `role` | `core_role` / `coreRole` | enum | `student` · `alumni` · `staff` · `admin` |
+| `sid` | — | string | session id ของ Core Hub (ไม่ต้องเก็บ) |
+
+### 1.2 สิ่งที่ Core Hub มีแต่ **ไม่ได้ส่งมาใน token**
+
+| field | สถานะใน v1.0 |
+|---|---|
+| `username` | มีในฐานข้อมูล Core Hub แต่ไม่อยู่ใน token · ดึงได้เฉพาะผ่าน `GET /api/v1/users/:id` ซึ่งต้องมี permission |
+
+### 1.3 สิ่งที่ **ยังไม่มี** ใน Core Hub v1.0
+
+```text
+faculty · department · full_name · is_active · visibility
+```
+
+ห้ามออกแบบระบบโดยสมมติว่าได้ field เหล่านี้จาก Core Hub หรือจาก token
+ถ้าระบบย่อยจำเป็นต้องใช้ ให้เก็บเป็น **local data ของตัวเอง** และระบุไว้ใน `REPORT.md`
+จนกว่าจะมี Change Process เพิ่มเข้าสัญญากลาง (ดูข้อ 11)
 
 ## 2. Core Rules
 
@@ -50,69 +66,59 @@
 - Shared Contract เปลี่ยนได้ผ่าน Change Process เท่านั้น
 - Breaking Change → Major Version
 
-## 3. User Schema
+## 3. Identity ที่ระบบย่อยเก็บได้
+
+ระบบย่อย **ห้าม**สร้างตาราง user ของตัวเองที่ซ้ำกับ Core Hub และ **ห้าม**เก็บรหัสผ่าน
+ให้เก็บเพียง external reference:
+
+```prisma
+model Student {
+  id         String  @id @default(uuid())
+  coreUserId String? @unique @map("core_user_id")   // ← ค่า sub จาก token เท่านั้น
+  // ...ข้อมูลธุรกิจของระบบย่อยเอง
+}
+```
 
 ```yaml
-User:
-  username:
+CoreIdentityReference:
+  core_user_id:
     type: string
-    required: true
+    required: false        # อาจยังไม่ผูกกับผู้ใช้ Core Hub ในตอนสร้างข้อมูล
     unique: true
-  layer1_role:
+    source: Core (JWT claim `sub`)
+    writable: false        # ระบบย่อยห้ามแก้ค่านี้เอง
+  core_role:
     type: enum
-    required: true
-    values: [student, staff, alumni, admin]
-  faculty:
-    type: string
-    required: true
-    source: Core
+    values: [student, alumni, staff, admin]
+    source: Core (JWT claim `role`)
     writable: false
-  department:
-    type: string
-    required: true
-  full_name:
-    type: string
-    required: true
-    source: Core
-    writable: false
-  email:
-    type: string
-    required: true
-    source: Core
-    writable: false
-  is_active:
-    type: boolean
-    required: false
-  visibility:
-    type: enum
-    required: false
-    values: [public, internal, private]
 ```
 
 ## 4. Role Schema
 
 ```yaml
-Layer1Role:
+CoreRole:                    # claim `role` ใน access token (Layer 1)
   type: enum
-  values:
-    - student
-    - staff
-    - alumni
-    - admin
+  source: Core Hub
+  values: [student, alumni, staff, admin]
 
-Layer2Role:
+SubsystemRole:               # role ภายในระบบย่อย (Layer 2) — แต่ละระบบตั้งเอง
   type: string
   scope: subsystem
+  example: [STUDENT, ALUMNI, STAFF, ADMIN, USER]
 
-RoleMapping:
-  layer1_role: Layer1Role
-  layer2_role: Layer2Role
+RoleMapping:                 # ประกาศทั้งใน Registry (default_role_mapping) และในโค้ดระบบย่อย
+  core_role: CoreRole
+  subsystem_role: SubsystemRole
 
-RoleException:
-  username: string
-  layer2_role: Layer2Role
+RoleException:               # ขอผ่าน Subsystem Registry เท่านั้น ห้าม hardcode
+  username: string           # username ของผู้ใช้ใน Core Hub
+  subsystem_role: SubsystemRole
   approval_required: true
 ```
+
+> key ของ `default_role_mapping` ในทะเบียน = รายชื่อ core role ที่เข้าระบบนั้นได้
+> Core Hub ใช้ตรวจตั้งแต่ก่อน redirect (ดู [`authorization.md`](authorization.md) ข้อ 3)
 
 ## 5. Department Schema
 
@@ -160,21 +166,33 @@ Visibility:
 
 ## 7. Subsystem Schema
 
+ตรงกับตาราง `subsystems` ของ Core Hub และ `subsystem.yaml` ในระบบย่อย
+(ดู [`subsystem-registry.md`](subsystem-registry.md))
+
 ```yaml
 Subsystem:
-  subsystem_name:
+  name:
     type: string
-    format: kebab-case
+    format: kebab-case         # ต้องตรงกับ subsystem.yaml และ data.service ของ /api/health
   display_name:
     type: string
   owner:
     type: string
-    reference: username
+    reference: username        # username ของผู้ใช้ใน Core Hub
+  repo:
+    type: string
+  standards_version:
+    type: semver               # เวอร์ชันมาตรฐานที่ผ่าน conformance จริง
+  default_role_mapping:
+    type: object               # core role → subsystem role
+  callback_url:
+    type: url                  # https เท่านั้น ยกเว้น localhost ตอน dev
+  approval_status:
+    type: enum
+    values: [PENDING, APPROVED, REJECTED]
   status:
     type: enum
-    values: [proposed, staging, production, deprecated]
-  standards_version:
-    type: semver
+    values: [ACTIVE, INACTIVE, SUSPENDED]
 ```
 
 ## 8. Table / Schema Boundary
@@ -201,39 +219,64 @@ Local Data ไม่ต้องเพิ่มใน Data Dictionary กลา�
 
 ## 9. Naming
 
-```text
-field: snake_case
-table: plural snake_case
-enum value: lowercase
-date: YYYY-MM-DD
-datetime: ISO 8601
-```
-
-ห้ามสร้าง alias สำหรับ Global Identity เดียวกัน — ชื่อต่อไปนี้ห้ามใช้ทุกที่
-ทั้งในโค้ด schema และ API payload (`check-field-aliases.sh` ตีตกทันที):
+### 9.1 กฎรวม
 
 ```text
-user_id
-user_code
-userId
-userCode
-student_id
-student_code
-studentId
-std_id
-stdId
+ตาราง           : plural snake_case      (students, borrow_records)
+คอลัมน์          : snake_case             (student_code, created_at)
+field ใน Prisma  : camelCase              (studentCode, createdAt)
+field ใน JSON    : camelCase              (studentCode, createdAt)
+enum ใน Prisma   : PascalCase  ค่า UPPER_SNAKE_CASE   (enum BorrowStatus { BORROWED })
+boolean          : ขึ้นต้น is_ หรือ has_  (is_active, has_returned)
+primary key      : id (UUID v4)
+foreign key      : <entity>_id            (student_id, course_id)
+timestamp        : created_at, updated_at (ทุกตาราง)
+ชื่อ database    : <subsystem>_db
+date             : YYYY-MM-DD
+datetime         : ISO 8601 UTC ลงท้าย Z
 ```
 
-หากหมายถึง Global Identity ให้ใช้ชื่อนี้เท่านั้น:
+ฐานข้อมูลเป็น `snake_case` ส่วนโค้ดเป็น `camelCase` — เชื่อมกันด้วย `@map` / `@@map`
+ไม่ใช่การตั้งชื่อสองแบบมั่ว ๆ แต่เป็นการแยกชั้น **DB ↔ application** อย่างตั้งใจ
+
+```prisma
+model Student {
+  id          String   @id @default(uuid())
+  coreUserId  String?  @unique @map("core_user_id")
+  studentCode String   @unique @map("student_code")
+  firstName   String   @map("first_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt      @map("updated_at")
+
+  @@map("students")
+}
+```
+
+### 9.2 ห้ามสร้าง alias ของ Global Identity
+
+Global Identity คือค่า `sub` จาก token · ในระบบย่อยต้องตั้งชื่อว่า **`core_user_id` / `coreUserId`** เท่านั้น
+ชื่อต่อไปนี้ห้ามใช้เรียกค่านี้ (กฎ `DD-01`):
 
 ```text
-username
+user_id · userId · user_code · userCode · std_id · stdId · username
 ```
 
-หมายเหตุ: ค่าที่บรรจุอยู่เป็นรหัสนักศึกษา/บุคลากร (เช่น `64123456`) การตั้งชื่อว่า
-`username` จึงไม่ตรงความหมายตามตัวอักษร แต่เลือกไว้โดยเจตนา เพราะเป็นชื่อที่
-`auth-contract.md` ผูกกับ JWT claim ไว้แล้ว และเพราะเป็นชื่อที่ไม่ชนกับ
-foreign key ของตาราง local ซึ่งมักตั้งว่า `user_id`
+> หมายเหตุ: `student_code`, `studentId` ฯลฯ **ใช้ได้** ถ้าเป็นข้อมูลธุรกิจของระบบย่อยเอง
+> (เช่น รหัสนักศึกษาในทะเบียนของระบบ หรือ foreign key ไปยังตาราง `students` ของตัวเอง)
+> เพราะ Global Identity ในสถาปัตยกรรมนี้คือ `sub` ไม่ใช่รหัสนักศึกษา
+
+### 9.3 Migration
+
+- ใช้ Prisma Migrate และ commit `prisma/migrations/` เข้า git
+- **ห้าม**ลบหรือ squash migration เดิม — ประวัติต้องรันบนฐานข้อมูลเปล่าได้เสมอ
+- เปลี่ยนชื่อคอลัมน์ **ต้อง**เขียน `ALTER TABLE … RENAME COLUMN` เอง พร้อม rename index/constraint
+  เพราะ `prisma migrate dev` จะสร้างเป็น drop + add ซึ่งทำให้ **ข้อมูลหาย**
+- หลังแก้ schema ต้องตรวจว่าไม่มี drift:
+
+```bash
+npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+# ต้องได้: No difference detected.
+```
 
 ## 10. Source of Truth
 
