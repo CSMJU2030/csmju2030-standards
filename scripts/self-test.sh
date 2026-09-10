@@ -58,6 +58,14 @@ run_fixture_case "DD-02"     "check-field-aliases.sh"
 # DD-04/DD-05 fixtures are regression cases: both shapes below used to
 # slip through (a SCREAMING_CASE faculty const, and a money field with a
 # type annotation or a prisma Float column).
+echo ""
+echo "== DD-03: database naming (prisma @map) =="
+run_fixture_case "DD-03"     "check-snake-case.sh"
+
+echo ""
+echo "== SEC-04: JWT verification ตามสัญญา =="
+run_fixture_case "SEC-04"    "check-no-jwt-verify.sh"
+
 run_fixture_case "DD-04"     "check-no-hardcoded-faculty.sh"
 run_fixture_case "DD-05"     "check-money-fields.sh"
 # API-02 is a regression case: the prefix check demanded exactly
