@@ -15,17 +15,8 @@
 > foreign key ของตาราง local ทำให้กลไก forbidden-alias ตรวจแยกไม่ออก
 >
 > รายการที่แก้ในฉบับนี้
->
-> | ข้อ | เดิม | ใหม่ |
-> |---|---|---|
-> | 1, 3, 4, 7 | `user_id` | `username` |
-> | 1, 3 | — | เพิ่มฟิลด์ `faculty` ที่ `auth-contract.md` บังคับเป็น required แต่ฉบับ 1.0.0 ไม่มี |
-> | 9 | canonical เป็น `user_id` | canonical เป็น `username`, `user_id` ย้ายไปอยู่ในลิสต์ alias ต้องห้าม |
-> | 13 | `*.schema.yaml` | `*.schema.json` (ตามไฟล์จริงใน `schemas/`) |
-> | 14 | `auth-contract.md` | `auth-contract.md` |
->
-> `layer1_role` ไม่ถูกแก้ — ฉบับ 1.0.0 ถูกต้องแล้ว (`student, staff, alumni,
-> admin`) ที่ผิดคือสคริปต์ `check-field-aliases.sh` ซึ่งแก้ไปพร้อมกัน
+> **ฉบับ 1.0** — ปรับให้ตรงกับข้อมูลที่ Core Hub ส่งให้จริง (`sub` · `email` · `role` · `sid`)
+> ประวัติการเปลี่ยนแปลงอยู่ใน [`../CHANGELOG.md`](../CHANGELOG.md)
 
 ## 1. Shared Data Contract
 

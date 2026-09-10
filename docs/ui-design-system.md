@@ -434,10 +434,10 @@ export default function Layout({ children }) {
 | องค์ประกอบ | รายละเอียด |
 |---|---|
 | Top bar | โลโก้ CSMJU, ชื่อระบบย่อย, ปุ่ม "← กลับหน้าหลัก" (ไป Dashboard ของ Core), ค้นหา, กระดิ่งแจ้งเตือน, เมนูผู้ใช้ |
-| เมนูผู้ใช้ | ชื่อ-สกุล (`full_name`), รหัส (`username`), บทบาท (`layer1_role`), ลิงก์โปรไฟล์, **ปุ่มออกจากระบบ** |
+| เมนูผู้ใช้ | อีเมล (`email`), บทบาท (`role`), ลิงก์โปรไฟล์, **ปุ่มออกจากระบบ**<br>*(หมายเหตุ v1.0: token ให้เฉพาะ `sub`, `email`, `role` — ยังไม่มี `full_name` / `username`)* |
 | Sidebar | เมนูของระบบย่อย (จาก prop `nav`) + สถานะ active + collapse |
 | Breadcrumb | สร้างอัตโนมัติจาก route |
-| 401 handling | ดักจับ token หมดอายุ → refresh เงียบ → ถ้าไม่สำเร็จ redirect ไป Core (ตาม `auth-contract.md` §6) |
+| 401 handling | ดักจับ token หมดอายุ → พาไปเริ่ม SSO ใหม่ที่ Core Hub (ตาม `auth-contract.md` ข้อ 7)<br>*(silent re-SSO เป็นแผน v1.1)* |
 | Toast container | จุดแสดง toast มาตรฐาน |
 | Error boundary | จับ error ที่หลุดมาแล้วแสดงหน้า error มาตรฐาน |
 | Skip link | "ข้ามไปยังเนื้อหาหลัก" สำหรับผู้ใช้คีย์บอร์ด |
@@ -709,7 +709,7 @@ const { username, layer1Role, layer2Role, faculty } = useCsmjuUser();
 ### 10.3 การแสดงบทบาทผู้ใช้
 
 - ใช้ `<RoleBadge>` เท่านั้น เพื่อให้สีและคำเรียกตรงกันทุกระบบ
-- คำเรียกภาษาไทยมาตรฐานของ `layer1_role` (🔴 ห้ามแปลเอง):
+- คำเรียกภาษาไทยมาตรฐานของ core role (claim `role`) (🔴 ห้ามแปลเอง):
 
 | ค่า | คำที่แสดง |
 |---|---|
@@ -1246,8 +1246,8 @@ Accessibility (บังคับ):
 <เช่น "ให้นักศึกษาค้นหาครุภัณฑ์ที่ว่างและกดยืม">
 
 ผู้ใช้ที่เข้าถึงได้และเห็นอะไร:
-- layer2_role = admin  : เห็นทุกอย่าง + ปุ่มเพิ่ม/แก้ไข/ลบ
-- layer2_role = editor : เห็นทุกอย่าง + ปุ่มแก้ไข
+- subsystem role = admin  : เห็นทุกอย่าง + ปุ่มเพิ่ม/แก้ไข/ลบ
+- subsystem role = editor : เห็นทุกอย่าง + ปุ่มแก้ไข
 - layer2_role = guest  : เห็นเฉพาะรายการ + ปุ่มยืม
 
 ข้อมูลที่ใช้ (endpoint ตาม api-conventions.md):
