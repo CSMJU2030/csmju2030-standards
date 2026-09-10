@@ -10,17 +10,59 @@
 
 ไม่อนุญาตให้ติดตั้ง Framework นอกเหนือจากนี้:
 
-### 1.1 Frontend Stack
-*   **Core Framework:** **Next.js** (App Router)
+เวอร์ชันด้านล่างคือเวอร์ชันที่ Core Hub และ reference implementation ใช้จริงและทดสอบผ่านแล้ว
+
+### 1.1 Runtime และเครื่องมือร่วม
+
+| รายการ | เวอร์ชัน | หมายเหตุ |
+|---|---|---|
+| **Node.js** | `22.x` | ตรงกับ Core Hub |
+| **TypeScript** | `^5.9` | เปิด `strictNullChecks` อย่างน้อย |
+| **package manager** | **pnpm** | ต้อง commit `pnpm-lock.yaml` · ห้ามมี `package-lock.json` / `yarn.lock` (กฎ `QA-05`) |
+| **Docker + docker compose** | — | ต้องมี `Dockerfile` และ `docker-compose.yml` |
+
+### 1.2 Frontend Stack
+*   **Core Framework:** **Next.js** (App Router) — `15+`
 *   **Language:** **TypeScript**
 *   **Styling:** **Tailwind CSS** (ใช้งานร่วมกับ `@csmju2030/design-system` ของ Core)
 *   **State / Data Fetching:** Zustand, React Context, Axios หรือ React Query
+*   ห้ามมีหน้า login ของตัวเอง — ต้องเข้าผ่าน Core Hub SSO (`auth-contract.md` ข้อ 5)
 
-### 1.2 Backend Stack
-*   **Core Framework:** **NestJS**
-*   **Language:** **TypeScript**
-*   **Database:** **PostgreSQL** (Frontend ห้ามเชื่อมต่อ Database ตรงเด็ดขาด ต้องผ่าน API Gateway และ Backend)
-*   **ORM:** **Prisma** 
+### 1.3 Backend Stack
+
+| รายการ | เวอร์ชัน | หมายเหตุ |
+|---|---|---|
+| **NestJS** | `^11` | `@nestjs/common`, `@nestjs/core`, `@nestjs/platform-express` |
+| **@nestjs/config** | `^4.0.4` | |
+| **Prisma** | **`7.9.1` (pin เป๊ะ ห้ามใส่ `^`)** | `prisma`, `@prisma/client`, `@prisma/adapter-pg` ต้องเป็นเลขเดียวกันทั้งสามตัว |
+| **pg** | `^8.23` | driver ที่ `@prisma/adapter-pg` ต้องใช้ |
+| **PostgreSQL** | `16+` | ห้ามใช้ MySQL / MongoDB / SQLite |
+| **class-validator / class-transformer** | `^0.15.1` / `^0.5.1` | ใช้กับ `ValidationPipe` |
+| **jose** | `^5.10` | ตรวจ JWT ผ่าน JWKS — **ห้ามใช้ `passport-jwt` ในระบบย่อย** เพราะไม่รองรับ JWKS + `kid` ตามสัญญา |
+| **Jest / ts-jest / supertest** | `^30` / `^29.4` / `^7` | |
+
+*   **Database:** Frontend ห้ามเชื่อมต่อ PostgreSQL ตรงเด็ดขาด ต้องผ่าน Backend ของระบบย่อยเท่านั้น (กฎ `ARC-01`)
+*   **ORM:** ใช้ Prisma 7 แบบ **driver adapter** (`PrismaPg`) ตาม reference implementation
+
+---
+
+### 1.4 Dependency whitelist
+
+CI (`ARC-02`) ตรวจ dependency ทุกตัวกับรายการที่อนุญาตใน
+[`../scripts/lib/allowed-deps.json`](../scripts/lib/allowed-deps.json)
+
+ต้องการไลบรารีนอกรายการ → เปิด issue ขอเพิ่ม พร้อมเหตุผลว่าแก้ปัญหาอะไร
+**ห้าม**แก้ไฟล์ whitelist เองใน PR ของระบบย่อย
+
+### 1.5 ข้อยกเว้นของ Core Hub
+
+`csmju-core-hub` **ไม่ใช่**ระบบย่อย จึงไม่อยู่ใต้กฎบางข้อ เพราะเป็นผู้ให้ identity เอง:
+
+| กฎ | Core Hub |
+|---|---|
+| `SEC-04` ห้ามตรวจ/ออก JWT เอง | ยกเว้น — Core Hub เป็นผู้ออก token และถือกุญแจส่วนตัว |
+| `SEC-05` ห้ามมีหน้า login | ยกเว้น — Core Hub คือหน้า login กลาง |
+| health path | ใช้ `/api/v1/health` (มีเวอร์ชัน) ต่างจากระบบย่อยที่ใช้ `/api/health` |
 
 ---
 
@@ -36,8 +78,12 @@ csmju-<subsystem-name>/
 ├── frontend/                         # โค้ด Next.js
 ├── backend/                          # โค้ด NestJS
 ├── standards/                        # Git Submodule ดึงไฟล์มาตรฐาน (csmju2030-standards)
-└── subsystem.yaml
+├── subsystem.yaml                    # manifest: name · standards_version · callback · probes
+├── .standards-version                # เวอร์ชันมาตรฐานที่ผูกอยู่
+└── docker-compose.yml
 ```
+
+รายละเอียดโครงภายใน `backend/` และกฎ branch/commit ดู [`repo-structure.md`](repo-structure.md)
 
 ---
 
@@ -65,6 +111,11 @@ csmju-<subsystem-name>/
    - โค้ดฝั่ง Frontend ห้ามมี Connection String หรือเชื่อมต่อ PostgreSQL ตรงเด็ดขาด
 3. Git Submodule: 
    - รับทราบว่าโฟลเดอร์ `standards/` เป็น Submodule ห้าม AI แนะนำให้แก้ไขไฟล์ในนั้นเด็ดขาด
+   - ห้ามแก้ไฟล์ใน standards/conformance/ และ standards/contracts/ เพื่อให้ผ่านการตรวจ
+5. Authentication:
+   - ระบบย่อยต้องตรวจ JWT เองผ่าน JWKS ของ Core Hub ด้วย jose (ยังไม่มี API Gateway)
+   - ห้ามสร้าง login/register/refresh ของตัวเอง และห้ามใช้ HS256 หรือกุญแจฮาร์ดโค้ด
+   - ให้คัดลอกชั้น auth จาก reference implementation ตาม ai/AGENTS.md ข้อ 2
 4. API Contract:
    - เมื่อแก้ backend endpoint ต้องอัปเดต openapi.json ให้ตรงกับโค้ดเสมอ และฝั่ง frontend ต้องใช้ type ที่ generate จาก openapi.json นั้น ห้าม define type ของ API response เอง
 ```

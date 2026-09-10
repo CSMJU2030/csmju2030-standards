@@ -1,130 +1,179 @@
 # api-conventions.md
 
-**เวอร์ชัน:** 1.0.0
-**ดูแลโดย:** PM3 (API Gateway & Infrastructure)
-**บังคับใช้กับ:** ทุก API ที่ระบบย่อยเปิดให้เรียก (ทั้งจาก frontend ของตัวเองและจากระบบย่อยอื่น/Core)
+**เวอร์ชัน:** 1.0 · **บังคับใช้กับ:** ทุก API ที่ระบบย่อยเปิดให้เรียก
 
-> เอกสารนี้กำหนดรูปแบบ API ให้เหมือนกันทุกระบบย่อย เพื่อให้ automated compliance check ตรวจสอบได้ และให้ AI ที่ใช้พัฒนาแต่ละระบบสร้าง API ออกมาในรูปแบบเดียวกัน แม้เป็น AI คนละตัว
+> เอกสารนี้กำหนดรูปแบบ API ให้เหมือนกันทุกระบบย่อย เพื่อให้ automated check ตรวจได้
+> และให้ AI คนละตัวสร้าง API ออกมาในรูปแบบเดียวกัน
+> ทุกข้อในเอกสารนี้มีการตรวจจริงใน `conformance/` ระดับ L2
 
 ---
 
 ## 1. โครงสร้าง URL
 
+```text
+https://<subsystem-domain>/api/v1/<resource>[/<id>][/<sub-resource>]
 ```
-https://<subsystem-domain>/api/<resource>[/<id>][/<sub-resource>]
-```
 
-- ใช้ **noun พหูพจน์** เสมอ (`/equipment-items` ไม่ใช่ `/getEquipment`)
-- ใช้ **kebab-case** สำหรับชื่อ path (`/borrow-records` ไม่ใช่ `/borrowRecords`)
-- ห้ามใส่ verb ใน path (`/equipment-items/123/return` ❌ ให้ใช้ `POST /borrow-records/123` พร้อม body ระบุ action แทน หรือออกแบบเป็น resource ใหม่)
-- ระบุเวอร์ชัน API ไว้ที่ prefix เสมอ: `/api/v1/...`
-
-## 2. HTTP Method
-
-| Method | ใช้เมื่อ |
+| กฎ | รายละเอียด |
 |---|---|
-| `GET` | อ่านข้อมูล ไม่มีผลข้างเคียง |
-| `POST` | สร้างข้อมูลใหม่ |
-| `PUT` | แก้ไขข้อมูลทั้ง object |
-| `PATCH` | แก้ไขข้อมูลบางฟิลด์ |
-| `DELETE` | ลบข้อมูล |
+| prefix | endpoint ธุรกิจทุกตัวอยู่ใต้ `/api/v1/` |
+| ชื่อ resource | **noun พหูพจน์ + kebab-case** — `/api/v1/borrow-records` ไม่ใช่ `/borrowRecords` หรือ `/getEquipment` |
+| ห้ามใส่กริยาใน path | ใช้ `POST /api/v1/enrollments` ไม่ใช่ `/api/v1/createEnrollment` |
+| การกระทำพิเศษ | ให้เป็น sub-resource ของ id เช่น `POST /api/v1/borrow-records/:id/return` |
+| ความลึก | ซ้อนได้ไม่เกิน **1 ระดับ** เช่น `/api/v1/students/:id/enrollments` |
+| trailing slash | ห้ามมี |
+| path parameter | เป็น UUID v4 · ค่าที่ไม่ใช่ UUID ต้องตอบ `400` |
+| query parameter | `camelCase` เช่น `?studentId=&status=&page=&limit=` |
 
-## 3. รูปแบบ Response — กรณีสำเร็จ
+**เส้นทางที่อยู่นอก `/api/v1`** (มีแค่ 2 เส้นทาง):
 
-ทุก endpoint ต้องห่อ response ด้วย envelope นี้เสมอ:
+| Path | เหตุผล |
+|---|---|
+| `GET /api/health` | ใช้ monitor · ไม่ผูกกับเวอร์ชัน API · public |
+| `GET /auth/callback` | ต้องตรงกับ `callback_url` ที่ลงทะเบียนกับ Core Hub · public |
+
+**การขึ้นเวอร์ชัน**: การเปลี่ยนที่ทำให้ client เดิมพัง (ลบ/เปลี่ยนความหมาย field, เปลี่ยน status)
+ต้องออกเป็น `/api/v2` และคง `v1` ไว้อย่างน้อย 1 ภาคการศึกษา · การ **เพิ่ม** field/endpoint ไม่ใช่ breaking change
+
+---
+
+## 2. HTTP Method และ status ที่ต้องคืน
+
+| Method | ใช้กับ | สำเร็จ | หมายเหตุ |
+|---|---|---|---|
+| `GET /api/v1/<res>` | รายการ | `200` + `data[]` + `meta` | ต้องมีลำดับที่แน่นอนเสมอ |
+| `GET /api/v1/<res>/:id` | รายการเดียว | `200` + `data{}` | ไม่พบ → `404` |
+| `POST /api/v1/<res>` | สร้าง | **`201`** + `data{}` ของที่สร้าง | ชนกฎธุรกิจ → `409` |
+| `PATCH /api/v1/<res>/:id` | แก้บางฟิลด์ | `200` + `data{}` หลังแก้ | |
+| `DELETE /api/v1/<res>/:id` | ลบ | `200` + `data{ id, deleted: true }` | **ห้ามตอบ `204`** เพราะต้องมี envelope เสมอ |
+| `PUT` | แทนทั้ง object | `200` | **ควรเลี่ยง** ใช้ `PATCH` แทน |
+
+---
+
+## 3. Response — กรณีสำเร็จ
+
+```json
+{ "success": true, "data": { } }
+```
+
+คอลเลกชันต้องมี `meta` เสมอ:
 
 ```json
 {
   "success": true,
-  "data": { "...": "..." },
-  "meta": { "...": "optional เช่น pagination" }
+  "data": [ ],
+  "meta": { "total": 42, "page": 1, "limit": 20, "totalPages": 3 }
 }
 ```
 
-ตัวอย่าง list พร้อม pagination:
+top-level key มีได้เฉพาะ `success`, `data`, `meta`
 
-```json
-{
-  "success": true,
-  "data": [
-    { "id": "eq_001", "name": "โปรเจกเตอร์", "status": "available" }
-  ],
-  "meta": {
-    "page": 1,
-    "per_page": 20,
-    "total": 134
-  }
-}
-```
+---
 
-## 4. รูปแบบ Response — กรณี error
+## 4. Response — กรณี error
 
 ```json
 {
   "success": false,
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "ฟิลด์ quantity ต้องมากกว่า 0",
-    "details": { "field": "quantity" }
+    "message": "Request validation failed",
+    "details": ["quantity must be greater than 0"]
   }
 }
 ```
 
-`error.code` ใช้ SCREAMING_SNAKE_CASE และต้องอยู่ในรายการมาตรฐานต่อไปนี้ (เพิ่มค่าใหม่ต้องเสนอ PM3):
+`error.code` เป็น SCREAMING_SNAKE_CASE และต้องอยู่ในรายการปิดนี้เท่านั้น
+(ค่าจริงที่ CI/conformance อ่าน: [`../contracts/error-codes.json`](../contracts/error-codes.json))
 
-| code | HTTP status | ความหมาย |
+| code | HTTP | ความหมาย |
 |---|---|---|
-| `UNAUTHORIZED` | 401 | ไม่มี/token หมดอายุ |
-| `FORBIDDEN` | 403 | มี token แต่ไม่มีสิทธิ์ (Layer 2) |
+| `BAD_REQUEST` | 400 | request ไม่ถูกต้องทั่วไป |
+| `VALIDATION_ERROR` | **400** | body/query ไม่ผ่าน validation · ใส่รายละเอียดใน `details` เป็น array of string |
+| `UNAUTHORIZED` | 401 | ไม่รู้ว่าเป็นใคร (ไม่มี token / token ใช้ไม่ได้) |
+| `FORBIDDEN` | 403 | รู้แล้วว่าเป็นใคร แต่สิทธิ์ไม่พอ |
 | `NOT_FOUND` | 404 | ไม่พบ resource |
-| `VALIDATION_ERROR` | 422 | ข้อมูล request ไม่ถูกต้อง |
-| `CONFLICT` | 409 | ข้อมูลขัดแย้ง (เช่น ของถูกยืมไปแล้ว) |
-| `INTERNAL_ERROR` | 500 | ข้อผิดพลาดฝั่งเซิร์ฟเวอร์ |
+| `CONFLICT` | 409 | ชนกฎธุรกิจ เช่น ค่าซ้ำ หรือสถานะไม่อนุญาต |
+| `INTERNAL_ERROR` | 500 | ข้อผิดพลาดภายใน |
+
+> `VALIDATION_ERROR` ใช้ **400** ไม่ใช่ 422 เพื่อให้ตรงกับพฤติกรรมเริ่มต้นของ `ValidationPipe` ใน NestJS
+> ระบบย่อยจึงไม่ต้องเขียน exception filter พิเศษเพื่อฝืนมาตรฐาน
+
+**ห้าม**ส่ง stack trace, ชื่อไฟล์, ข้อความจาก ORM หรือ SQL ออกไปใน response
+
+---
 
 ## 5. Pagination
 
-Query parameter มาตรฐาน: `?page=1&per_page=20` (ค่าเริ่มต้น `per_page=20`, สูงสุด `100`)
+```text
+?page=1&limit=20      ค่าเริ่มต้น page=1, limit=20, สูงสุด limit=100
+```
 
-## 6. Field naming ภายใน response
+- `limit` ที่ไม่ใช่ตัวเลขหรือเกินช่วง → `400 VALIDATION_ERROR`
+- คอลเลกชันว่างคืน `data: []` + `meta.total: 0` (**ไม่ใช่** `null` และไม่ใช่ `404`)
 
-- ใช้ `snake_case` ทุกฟิลด์ (`created_at` ไม่ใช่ `createdAt`)
-- วันเวลาใช้ ISO 8601 เสมอ: `"2026-08-11T09:30:00+07:00"`
-- ฟิลด์ที่ตรงกับตัวแปรกลาง (username, faculty ฯลฯ) ต้องใช้ชื่อและ type ตาม `data-dictionary.md` เป๊ะ ห้ามตั้งชื่อเอง
+---
 
-## 7. การประกาศ Public / Protected endpoint
+## 6. Field naming ใน response
 
-ทุกระบบย่อยต้องประกาศไว้ใน `subsystem.yaml` (ดูตัวอย่างใน registry) ว่า endpoint ไหนเข้าถึงได้โดยไม่ต้องมี token:
+| ชั้น | รูปแบบ | ตัวอย่าง |
+|---|---|---|
+| JSON ที่ส่งออก API | **camelCase** | `studentCode`, `createdAt`, `coreUserId` |
+| ฟิลด์ตามสัญญา OAuth | `snake_case` (ตามมาตรฐานสากล) | `access_token`, `token_type`, `expires_in`, `callback_url`, `state` |
+| คอลัมน์ในฐานข้อมูล | **snake_case** | `student_code`, `created_at` — ดู [`data-dictionary.md`](data-dictionary.md) ข้อ 9 |
+
+- วันเวลาใช้ **ISO 8601 UTC** ลงท้าย `Z` เช่น `"2026-09-11T09:30:00.000Z"`
+- id ทุกตัวเป็น **UUID v4**
+- ฟิลด์ที่ตรงกับตัวแปรกลางต้องใช้ชื่อตาม `data-dictionary.md` เป๊ะ
+
+---
+
+## 7. Public / Protected endpoint
+
+ทุก route ใต้ `/api/v1/` **ต้อง**ผ่านการตรวจ token ไม่มีข้อยกเว้น
+endpoint ที่เข้าถึงได้โดยไม่มี token ต้องประกาศไว้ใน `subsystem.yaml`:
 
 ```yaml
 public_endpoints:
-  - "GET /api/v1/announcements"
-  - "GET /health"
+  - GET /api/health
+  - GET /auth/callback
 ```
 
-Endpoint ที่ไม่ได้ประกาศในนี้ ถือเป็น **protected โดย default** — gateway จะบังคับตรวจ token ก่อนส่งต่อเสมอ (ดูรายละเอียดการแนบ token ใน `auth-contract.md`)
+---
 
 ## 8. Health check (บังคับทุกระบบย่อย)
 
-```
-GET /health  →  200 OK
-{ "status": "ok", "version": "1.4.2" }
-```
-
-ใช้โดย gateway/monitoring เพื่อเช็คว่าระบบย่อยยังทำงานอยู่ ไม่ต้องแนบ token
-
-## 9. Rate limit header (gateway แนบมาให้ทุก response)
-
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 87
-X-RateLimit-Reset: 1754900400
+```http
+GET /api/health        (public — ไม่ต้องมี token)
 ```
 
-## 10. Checklist ก่อนขอ merge PR (AIE ตรวจเองก่อนส่ง PL review)
+```json
+{ "success": true, "data": { "status": "ok", "service": "csmju-equipment" } }
+```
 
-- [ ] URL เป็น noun พหูพจน์ + kebab-case + มี `/v1/` prefix
-- [ ] Response ทุก endpoint ห่อด้วย envelope `{ success, data/error, meta }`
-- [ ] error.code อยู่ในรายการมาตรฐาน (ข้อ 4)
-- [ ] field ทุกตัวเป็น snake_case และตรงกับ data-dictionary.md
-- [ ] มี `/health` endpoint
-- [ ] ประกาศ public_endpoints ใน subsystem.yaml ครบ
+`data.service` ต้องเท่ากับ `name` ใน `subsystem.yaml` และเท่ากับ `name` ในทะเบียนของ Core Hub
+
+> Core Hub เองใช้ `/api/v1/health` (มีเวอร์ชัน) ซึ่งเป็นข้อยกเว้นของ Core Hub เท่านั้น
+
+---
+
+## 9. สิ่งที่ยังไม่มีในสถาปัตยกรรมปัจจุบัน
+
+| หัวข้อ | สถานะ |
+|---|---|
+| API Gateway / rate limit header (`X-RateLimit-*`) | ❌ ยังไม่มี — อย่าออกแบบโดยสมมติว่ามี |
+| การเรียกข้ามระบบย่อย (service-to-service) | ❌ ยังไม่มีสัญญา — ต้องเสนอผ่าน Change Process ก่อน |
+
+---
+
+## 10. Checklist ก่อนขอ merge PR
+
+- [ ] URL เป็น noun พหูพจน์ + kebab-case + อยู่ใต้ `/api/v1/`
+- [ ] `POST` คืน `201` · `DELETE` คืน `200` + `{id, deleted:true}`
+- [ ] response ทุกตัวห่อด้วย envelope `{ success, data[, meta] }` / `{ success:false, error }`
+- [ ] `error.code` อยู่ในรายการปิด และ `VALIDATION_ERROR` เป็น 400
+- [ ] คอลเลกชันมี `meta{total,page,limit,totalPages}` และรองรับ `?page=&limit=`
+- [ ] field ใน JSON เป็น camelCase · คอลัมน์ใน DB เป็น snake_case
+- [ ] มี `GET /api/health` ที่ `data.service` ตรงกับชื่อระบบ
+- [ ] ประกาศ `public_endpoints` ใน `subsystem.yaml` ครบ
+- [ ] `node standards/conformance/run.js` ผ่านระดับ L2 ขึ้นไป
