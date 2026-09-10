@@ -1,0 +1,42 @@
+{
+  "$comment": "Immutable Core Hub token contract. A subsystem MUST validate every field listed here.",
+  "standardsVersion": "1.0",
+  "algorithm": "RS256",
+  "issuer": "core-hub",
+  "audience": "csmju2030",
+  "kid": "core-hub-2026",
+  "jwksPath": "/api/v1/.well-known/jwks.json",
+  "jwksFormat": "RFC 7517 - the response body MUST be {\"keys\":[...]} with no wrapper",
+  "loginPath": "/api/v1/auth/login",
+  "ssoAuthorizePath": "/api/v1/auth/sso/authorize",
+  "ssoHandoffPath": "/api/v1/auth/sso/handoff",
+  "accessTokenLifetime": "15m",
+  "claims": {
+    "sub": "Core Hub user id - the only identity a subsystem may trust",
+    "email": "Core Hub email",
+    "role": "Core Hub core role (student | alumni | staff | admin)",
+    "sid": "Core Hub session id",
+    "iss": "core-hub",
+    "aud": "csmju2030",
+    "iat": "issued at (epoch seconds)",
+    "exp": "expires at (epoch seconds)"
+  },
+  "mustValidate": [
+    "signature",
+    "alg",
+    "kid",
+    "iss",
+    "aud",
+    "exp",
+    "sub"
+  ],
+  "mustReject": [
+    "alg=none",
+    "HS256",
+    "any algorithm other than RS256",
+    "unknown kid after one JWKS refresh"
+  ],
+  "plannedChanges": {
+    "v1.1": "aud will become the subsystem name (for example: student-service). Subsystems SHOULD accept a list of audiences during the transition."
+  }
+}

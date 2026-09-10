@@ -1,0 +1,135 @@
+{
+  "$comment": "คำศัพท์ปิด - subsystem ห้ามคิดค่าใหม่นอกรายการนี้",
+  "standardsVersion": "1.0",
+  "coreRoles": [
+    "student",
+    "alumni",
+    "staff",
+    "admin"
+  ],
+  "permissionFormat": "<resource>:<action>[:own|:any]",
+  "permissionExamples": [
+    "student:read:own",
+    "student:read:any",
+    "course:create",
+    "course:delete",
+    "enrollment:update:own"
+  ],
+  "requiredEnvVars": [
+    "PORT",
+    "DATABASE_URL",
+    "CORE_HUB_URL",
+    "CORE_HUB_JWKS_URL",
+    "CORE_HUB_ISSUER",
+    "CORE_HUB_AUDIENCE",
+    "SUBSYSTEM_ID"
+  ],
+  "requiredRoutes": {
+    "health": "GET /api/health",
+    "me": "GET /api/v1/me",
+    "ssoCallback": "GET /auth/callback"
+  },
+  "ssoCookieName": "core_hub_access_token",
+  "ssoQueryParams": [
+    "access_token",
+    "token_type",
+    "expires_in",
+    "state"
+  ],
+  "subsystemStatus": {
+    "approvalStatus": [
+      "PENDING",
+      "APPROVED",
+      "REJECTED"
+    ],
+    "status": [
+      "ACTIVE",
+      "INACTIVE",
+      "SUSPENDED"
+    ]
+  },
+  "conventions": {
+    "fieldCase": "camelCase",
+    "snakeCaseExceptions": [
+      "access_token",
+      "token_type",
+      "expires_in",
+      "callback_url",
+      "state"
+    ],
+    "idFormat": "uuid-v4",
+    "dateFormat": "ISO-8601 UTC (suffix Z)",
+    "paginationQuery": "?page=<1..>&limit=<1..100>",
+    "paginationDefaults": {
+      "page": 1,
+      "limit": 20
+    },
+    "collectionMeta": [
+      "total",
+      "page",
+      "limit",
+      "totalPages"
+    ],
+    "ownershipRule": "record.coreUserId === token.sub",
+    "clockSkewSeconds": 60,
+    "jwksCacheTtlMinutes": 10
+  },
+  "stack": {
+    "mandatory": true,
+    "runtime": "node@22.x",
+    "language": "typescript@^5.9",
+    "framework": "@nestjs/*@^11 (platform-express)",
+    "config": "@nestjs/config@^4.0.4",
+    "orm": {
+      "prisma": "7.9.1",
+      "@prisma/client": "7.9.1",
+      "@prisma/adapter-pg": "7.9.1",
+      "pg": "^8.23"
+    },
+    "database": "postgresql@16+",
+    "validation": {
+      "class-validator": "^0.15.1",
+      "class-transformer": "^0.5.1"
+    },
+    "jwt": "jose@^5.10 (ห้ามใช้ passport-jwt ในฝั่ง subsystem)",
+    "testing": {
+      "jest": "^30",
+      "ts-jest": "^29.4",
+      "supertest": "^7"
+    },
+    "frontend": "next@15+ (App Router) — pin เมื่อสร้าง frontend ตัวแรก",
+    "packageManager": "npm (ต้อง commit package-lock.json)"
+  },
+  "naming": {
+    "database": {
+      "table": "plural snake_case ผ่าน @@map",
+      "column": "snake_case ผ่าน @map",
+      "prismaField": "camelCase",
+      "primaryKey": "id (uuid v4)",
+      "foreignKey": "<entity>_id",
+      "timestamps": [
+        "created_at",
+        "updated_at"
+      ],
+      "boolean": "is_* / has_*",
+      "enumName": "PascalCase",
+      "enumValue": "UPPER_SNAKE_CASE",
+      "databaseName": "<subsystem>_db"
+    },
+    "api": {
+      "prefix": "/api/v1",
+      "healthPath": "/api/health (ไม่มี version)",
+      "ssoCallbackPath": "/auth/callback (นอก prefix /api)",
+      "resource": "plural kebab-case",
+      "maxNestingDepth": 1,
+      "trailingSlash": false,
+      "pathParam": "uuid v4",
+      "queryParam": "camelCase",
+      "createStatus": 201,
+      "deleteResponse": "200 + { id, deleted: true }",
+      "avoidMethods": [
+        "PUT"
+      ]
+    }
+  }
+}

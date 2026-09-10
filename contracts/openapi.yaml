@@ -1,0 +1,137 @@
+openapi: 3.0.3
+info:
+  title: CSMJU2030 Subsystem — Required Surface
+  version: "1.0"
+  description: >
+    ส่วนของ API ที่ทุก subsystem ต้องมีเหมือนกัน (บังคับ).
+    endpoint ของ business domain เป็นอิสระของแต่ละทีม แต่ต้องใช้ envelope และ error code เดียวกัน.
+
+servers:
+  - url: http://localhost:3001
+    description: ตัวอย่าง subsystem ที่รันในเครื่อง
+
+paths:
+  /api/health:
+    get:
+      summary: Health check (public)
+      security: []
+      responses:
+        "200":
+          description: ระบบพร้อมใช้งาน
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    required: [status, service]
+                    properties:
+                      status: { type: string, enum: [ok] }
+                      service: { type: string, example: student-service }
+
+  /auth/callback:
+    get:
+      summary: Central SSO callback (public, อยู่นอก prefix /api)
+      security: []
+      parameters:
+        - { in: query, name: access_token, required: true, schema: { type: string } }
+        - { in: query, name: token_type, required: false, schema: { type: string, enum: [Bearer] } }
+        - { in: query, name: expires_in, required: false, schema: { type: string } }
+        - { in: query, name: state, required: false, schema: { type: string } }
+      responses:
+        "200":
+          description: ตรวจ token ผ่าน และตั้ง session cookie
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: core_hub_access_token=…; HttpOnly; SameSite=Lax; Path=/
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MeEnvelope" }
+        "302":
+          description: ตรวจ token ผ่าน และพาไปหน้า UI ของ subsystem (ทางเลือกสำหรับระบบที่มี frontend)
+        "400":
+          description: ไม่มี access_token
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+        "401":
+          description: token ใช้ไม่ได้ — ต้องไม่มี Set-Cookie
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+
+  /api/v1/me:
+    get:
+      summary: ตัวตนของผู้ใช้ปัจจุบัน (จาก Core Hub token ที่ตรวจแล้ว)
+      responses:
+        "200":
+          content: { application/json: { schema: { $ref: "#/components/schemas/MeEnvelope" } } }
+        "401":
+          description: ไม่มี token / token ใช้ไม่ได้
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+        "403":
+          description: core role ที่ subsystem นี้ไม่รับ
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+
+components:
+  securitySchemes:
+    coreHubBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ssoCookie:
+      type: apiKey
+      in: cookie
+      name: core_hub_access_token
+
+  schemas:
+    MeEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [id, email, coreRole, subsystemRole]
+          properties:
+            id: { type: string, description: "ค่า sub จาก Core Hub token" }
+            email: { type: string, format: email }
+            coreRole: { type: string, enum: [student, alumni, staff, admin] }
+            subsystemRole: { type: string, description: "ผลของ role mapping ของ subsystem" }
+
+    Collection:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { type: array, items: { type: object } }
+        meta:
+          type: object
+          required: [total, page, limit, totalPages]
+          properties:
+            total: { type: integer }
+            page: { type: integer }
+            limit: { type: integer }
+            totalPages: { type: integer }
+
+    Error:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [BAD_REQUEST, VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, INTERNAL_ERROR]
+            message: { type: string }
+            details:
+              type: array
+              items: { type: string }
+              description: ใช้กับ VALIDATION_ERROR
+
+security:
+  - coreHubBearer: []
+  - ssoCookie: []
