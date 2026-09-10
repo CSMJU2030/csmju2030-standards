@@ -1248,7 +1248,7 @@ Accessibility (บังคับ):
 ผู้ใช้ที่เข้าถึงได้และเห็นอะไร:
 - subsystem role = admin  : เห็นทุกอย่าง + ปุ่มเพิ่ม/แก้ไข/ลบ
 - subsystem role = editor : เห็นทุกอย่าง + ปุ่มแก้ไข
-- layer2_role = guest  : เห็นเฉพาะรายการ + ปุ่มยืม
+- subsystem role = guest  : เห็นเฉพาะรายการ + ปุ่มยืม
 
 ข้อมูลที่ใช้ (endpoint ตาม api-conventions.md):
 - GET /api/v1/equipment-items?page=1&per_page=20&status=available
