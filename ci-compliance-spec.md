@@ -346,6 +346,7 @@ jobs:
 | `QA-03` | Unit test ผ่าน + coverage ≥ เกณฑ์ที่ทีมกำหนด | ❌ Fail | github-workflow.md 3.3 |
 | `QA-04` | `next build` และ `nest build` ผ่านทั้งคู่ | ❌ Fail | github-workflow.md 3.7 |
 | `QA-05` | ใช้ pnpm workspace (ไม่มี `package-lock.json`) | ❌ Fail | github-workflow.md 2 |
+| `QA-06` | ชื่อ package ใน workspace ไม่ซ้ำ และ `--filter` ใน script ที่รากชี้ไปยัง package ที่มีจริง | ❌ Fail | repo-structure.md 3 |
 
 **ระดับ:** `❌ Fail` = block merge ทันที | `⚠️ Warn` = แสดงเตือนใน PR comment แต่ merge ได้ (PL ใช้ดุลพินิจ)
 

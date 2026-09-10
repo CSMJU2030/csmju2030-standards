@@ -81,6 +81,10 @@ csmju-<subsystem>/
 | `README.md` | วิธีติดตั้ง/รัน/ทดสอบ ที่คำสั่งใช้ได้จริงทุกบรรทัด |
 | `REPORT.md` | ส่งพร้อมงาน (ดู [`../ai/AGENTS.md`](../ai/AGENTS.md) ข้อ 6) |
 
+**ชื่อ package ในแต่ละ workspace ต้องไม่ซ้ำกัน** (`package.json` → `"name"`) — เช่น `csmju-<subsystem>`
+ที่ราก · `backend` · `frontend` ถ้าชื่อซ้ำ `pnpm --filter backend test` จะไม่ match package ใดเลย
+แล้วคืน exit 0 เงียบ ๆ ทำให้ script ที่รากดู "ผ่าน" ทั้งที่ไม่ได้รันอะไร (กฎ `QA-06`)
+
 ## 4. ไฟล์ที่ห้ามอยู่ใน git
 
 ```text

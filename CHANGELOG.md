@@ -70,6 +70,12 @@
 - self-test ยืนยันทั้งสองทิศทาง: fixture เดียวกันต้องตกใน profile `subsystem` และผ่านใน `core-hub`
   รวมถึงยืนยันว่าค่าเริ่มต้นคือ `subsystem` และ workflow ของระบบย่อยไม่ส่ง profile นี้ (45 assertions)
 
+### กฎใหม่
+
+- `QA-06` — ชื่อ package ในแต่ละ workspace ต้องไม่ซ้ำ และ `--filter <name>` ใน script ที่รากต้องชี้ไปยัง
+  package ที่มีอยู่จริง มิฉะนั้น pnpm จะไม่รันอะไรเลยแต่คืน exit 0 ทำให้ script ที่รากดูเหมือนผ่าน
+  (พบจริงใน `demo-student-subsystem` — root กับ backend ตั้งชื่อซ้ำกัน `pnpm test` ที่รากจึงไม่ได้รันเทสต์)
+
 ### แก้บั๊กในเครื่องมือตรวจเอง
 
 - `API-02` เคยตีตกชื่อ path parameter แบบ camelCase (`:exceptionId`) ทั้งที่ URL จริงยังเป็น kebab-case

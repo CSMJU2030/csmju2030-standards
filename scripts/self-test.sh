@@ -181,6 +181,11 @@ setup_and_run_gh03 "fail"
 assert_exit "GH-03 fail (workflow file changed)" 1 "$?"
 
 echo ""
+echo "== QA-06: workspace filter ต้องชี้ถูก =="
+# ชื่อ package ซ้ำ / --filter ชี้ผิด ทำให้ pnpm ไม่รันอะไรเลยแต่คืน exit 0
+run_fixture_case "QA-06"     "check-qa.sh"
+
+echo ""
 echo "== Profile: core-hub (docs/core-hub-rules.md) =="
 # fixture เดียวกัน ต้องให้ผลตรงข้ามกันตาม CSMJU_PROFILE — ถ้า profile หลุด
 # ระบบย่อยจะแอบใช้ passport-jwt/user_id ได้ทันที จึงต้องยืนยันทั้งสองทิศทาง

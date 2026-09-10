@@ -29,6 +29,50 @@ if [[ ! -f pnpm-workspace.yaml ]]; then
   echo "⚠️  [QA-05] ไม่พบ pnpm-workspace.yaml ที่ root"
 fi
 
+# QA-06: ชื่อ package ใน workspace ต้องไม่ซ้ำ และ `--filter <name>` ใน script
+# ที่รากต้องชี้ไปยัง package ที่มีอยู่จริง — ถ้าชี้ผิด pnpm จะไม่รันอะไรเลยแต่
+# คืน exit 0 ทำให้ `pnpm test` ที่รากดูเหมือนผ่านทั้งที่ไม่ได้รันเทสต์สักตัว
+if command -v jq >/dev/null 2>&1 && [[ -f package.json ]]; then
+  PKG_FILES=$(find . -maxdepth 3 -name 'package.json' \
+    -not -path '*/node_modules/*' -not -path './.compliance-tools/*' \
+    -not -path './standards/*' 2>/dev/null || true)
+  ALL_NAMES=""
+  while IFS= read -r PKG; do
+    [[ -z "$PKG" ]] && continue
+    NAME=$(jq -r '.name // empty' "$PKG" 2>/dev/null || true)
+    [[ -z "$NAME" ]] && continue
+    ALL_NAMES="${ALL_NAMES}${NAME}
+"
+  done <<< "$PKG_FILES"
+
+  DUPES=$(echo "$ALL_NAMES" | grep -v '^$' | sort | uniq -d || true)
+  if [[ -n "$DUPES" ]]; then
+    cat <<EOF
+❌ [QA-06] มี package ใน workspace ใช้ชื่อซ้ำกัน
+$(echo "$DUPES" | sed 's/^/   /')
+   ผลคือ pnpm --filter <ชื่อนั้น> จะไม่ match package ใดเลย แล้ว exit 0 เงียบ ๆ
+   อ้างอิง: repo-structure.md ข้อ 3
+   วิธีแก้: ตั้งชื่อ "name" ใน package.json ของแต่ละ workspace ให้ไม่ซ้ำกัน
+EOF
+    VIOLATION=1
+  fi
+
+  FILTERS=$(jq -r '.scripts // {} | to_entries[] | .value' package.json 2>/dev/null \
+    | grep -oE '\-\-filter[= ]+[A-Za-z0-9@/_.-]+' | sed -E 's/^--filter[= ]+//' | sort -u || true)
+  while IFS= read -r F; do
+    [[ -z "$F" ]] && continue
+    if ! echo "$ALL_NAMES" | grep -qx "$F"; then
+      cat <<EOF
+❌ [QA-06] script ที่รากอ้าง --filter $F แต่ไม่มี package ชื่อนี้ใน workspace
+   pnpm จะไม่รันอะไรเลยแล้วคืน exit 0 — ทำให้ CI/สคริปต์ดูเหมือนผ่าน
+   อ้างอิง: repo-structure.md ข้อ 3
+   วิธีแก้: แก้ชื่อใน --filter ให้ตรงกับ "name" ของ package นั้น
+EOF
+      VIOLATION=1
+    fi
+  done <<< "$FILTERS"
+fi
+
 # QA-01..04: best-effort — only run if pnpm + installed deps are present
 if command -v pnpm >/dev/null 2>&1 && [[ -d node_modules ]]; then
   if ! pnpm -r lint; then
@@ -54,4 +98,4 @@ fi
 if [[ "$VIOLATION" -eq 1 ]]; then
   exit 1
 fi
-echo "✅ [QA-05] ผ่านการตรวจ package manager"
+echo "✅ [QA-05/06] ผ่านการตรวจ package manager และ workspace filter"
