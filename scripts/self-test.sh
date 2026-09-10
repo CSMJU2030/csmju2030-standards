@@ -58,6 +58,14 @@ run_fixture_case "DD-02"     "check-field-aliases.sh"
 # DD-04/DD-05 fixtures are regression cases: both shapes below used to
 # slip through (a SCREAMING_CASE faculty const, and a money field with a
 # type annotation or a prisma Float column).
+echo ""
+echo "== DD-03: database naming (prisma @map) =="
+run_fixture_case "DD-03"     "check-snake-case.sh"
+
+echo ""
+echo "== SEC-04: JWT verification ตามสัญญา =="
+run_fixture_case "SEC-04"    "check-no-jwt-verify.sh"
+
 run_fixture_case "DD-04"     "check-no-hardcoded-faculty.sh"
 run_fixture_case "DD-05"     "check-money-fields.sh"
 # API-02 is a regression case: the prefix check demanded exactly
@@ -171,6 +179,44 @@ setup_and_run_gh03 "pass"
 assert_exit "GH-03 pass (only README changed)" 0 "$?"
 setup_and_run_gh03 "fail"
 assert_exit "GH-03 fail (workflow file changed)" 1 "$?"
+
+echo ""
+echo "== QA-06: workspace filter ต้องชี้ถูก =="
+# ชื่อ package ซ้ำ / --filter ชี้ผิด ทำให้ pnpm ไม่รันอะไรเลยแต่คืน exit 0
+run_fixture_case "QA-06"     "check-qa.sh"
+
+echo ""
+echo "== Profile: core-hub (docs/core-hub-rules.md) =="
+# fixture เดียวกัน ต้องให้ผลตรงข้ามกันตาม CSMJU_PROFILE — ถ้า profile หลุด
+# ระบบย่อยจะแอบใช้ passport-jwt/user_id ได้ทันที จึงต้องยืนยันทั้งสองทิศทาง
+PROFILE_FIXTURE="$FIXTURES_DIR/PROFILE-CORE-HUB"
+
+CSMJU_PROFILE=subsystem "$SCRIPT_DIR/check-authorized-deps.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1
+assert_exit "ARC-02 subsystem ตี passport-jwt/@nestjs/jwt ตก" 1 "$?"
+CSMJU_PROFILE=core-hub  "$SCRIPT_DIR/check-authorized-deps.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1
+assert_exit "ARC-02 core-hub อนุญาต allowed_core_hub" 0 "$?"
+
+CSMJU_PROFILE=subsystem "$SCRIPT_DIR/check-field-aliases.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1
+assert_exit "DD-01 subsystem ตี user_id ตก" 1 "$?"
+CSMJU_PROFILE=core-hub  "$SCRIPT_DIR/check-field-aliases.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1
+assert_exit "DD-01 core-hub ข้าม (เจ้าของตาราง users)" 0 "$?"
+
+# ค่าเริ่มต้นต้องเป็น subsystem เสมอ — ห้าม profile รั่วเป็น core-hub เมื่อไม่ได้ตั้งค่า
+(unset CSMJU_PROFILE; "$SCRIPT_DIR/check-field-aliases.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1)
+assert_exit "ค่าเริ่มต้นของ CSMJU_PROFILE คือ subsystem" 1 "$?"
+
+# subsystem-compliance.yml ต้องไม่ส่ง profile core-hub ให้ระบบย่อย
+if grep -q "CSMJU_PROFILE" "$SCRIPT_DIR/../.github/workflows/subsystem-compliance.yml"; then
+  assert_exit "subsystem workflow ไม่ตั้ง CSMJU_PROFILE" 0 1
+else
+  assert_exit "subsystem workflow ไม่ตั้ง CSMJU_PROFILE" 0 0
+fi
+# core-hub-compliance.yml ต้องตั้ง profile ให้เอง
+if grep -q "CSMJU_PROFILE: core-hub" "$SCRIPT_DIR/../.github/workflows/core-hub-compliance.yml"; then
+  assert_exit "core-hub workflow ตั้ง CSMJU_PROFILE=core-hub" 0 0
+else
+  assert_exit "core-hub workflow ตั้ง CSMJU_PROFILE=core-hub" 0 1
+fi
 
 echo
 echo "=================================================================="

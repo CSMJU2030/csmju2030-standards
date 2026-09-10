@@ -1,0 +1,29 @@
+{
+  "$comment": "Closed enum. A subsystem MUST NOT invent error codes outside this list.",
+  "standardsVersion": "1.0",
+  "codes": [
+    "BAD_REQUEST",
+    "VALIDATION_ERROR",
+    "UNAUTHORIZED",
+    "FORBIDDEN",
+    "NOT_FOUND",
+    "CONFLICT",
+    "INTERNAL_ERROR"
+  ],
+  "httpMapping": {
+    "BAD_REQUEST": 400,
+    "VALIDATION_ERROR": 400,
+    "UNAUTHORIZED": 401,
+    "FORBIDDEN": 403,
+    "NOT_FOUND": 404,
+    "CONFLICT": 409,
+    "INTERNAL_ERROR": 500
+  },
+  "meaning": {
+    "UNAUTHORIZED": "ยังไม่รู้ว่าเป็นใคร - ไม่มี token / token ใช้ไม่ได้",
+    "FORBIDDEN": "รู้ว่าเป็นใครแล้ว แต่สิทธิ์ไม่พอ",
+    "VALIDATION_ERROR": "body/query ไม่ผ่าน validation (ต้องมี error.details เป็น array ของข้อความ)",
+    "CONFLICT": "ชนกฎธุรกิจ เช่น ค่าซ้ำ หรือสถานะไม่อนุญาต",
+    "INTERNAL_ERROR": "ข้อผิดพลาดภายใน - ห้ามเปิดเผยรายละเอียดภายในใน response"
+  }
+}

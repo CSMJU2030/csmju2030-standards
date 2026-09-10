@@ -20,6 +20,7 @@
 5. [Layer 2 — CODEOWNERS](#5-layer-2--codeowners)
 6. [Layer 3 — CI Compliance Gate](#6-layer-3--ci-compliance-gate)
 7. [รายการ Compliance Check ทั้งหมด](#7-รายการ-compliance-check-ทั้งหมด)
+7.3 [Profile: Core Hub](#73-profile-core-hub)
 8. [โครงสร้างไฟล์ที่ต้องมี](#8-โครงสร้างไฟล์ที่ต้องมี)
 9. [Repository Ruleset ระดับองค์กร](#9-repository-ruleset-ระดับองค์กร)
 10. [การจัดการ Secrets](#10-การจัดการ-secrets)
@@ -296,7 +297,7 @@ jobs:
 ตัวอย่างจริง
 
 ```text
-❌ [DD-01] ใช้ชื่อ field ที่ห้ามใช้แทน username
+❌ [DD-01] ใช้ชื่อ field ที่ห้ามใช้แทน core_user_id
    ไฟล์: backend/src/borrow/borrow.entity.ts:14
    พบ: student_id
    ต้องเป็น: username
@@ -319,20 +320,21 @@ jobs:
 | `SEC-01` | ไม่มี hardcoded connection string / API key / secret | ❌ Fail | github-workflow.md 4 |
 | `SEC-02` | ไม่มีไฟล์ `.env` ที่มีค่าจริงใน repo | ❌ Fail | github-workflow.md 4 |
 | `SEC-03` | ไม่มี token เก็บใน `localStorage` | ❌ Fail | ui-prompt-template.md 9 |
-| `SEC-04` | ไม่มีโค้ด verify JWT signature เองใน subsystem | ❌ Fail | auth-contract.md 3 |
-| `SEC-05` | ไม่มีหน้า login / form username-password ในระบบย่อย | ❌ Fail | auth-contract.md 1 |
+| `SEC-04` | ตรวจ JWT ตามสัญญา: RS256 + JWKS + `kid` · ห้าม HS256/alg=none/กุญแจฝังในโค้ด/ออก token เอง/ใช้ jsonwebtoken-passport-jwt | ❌ Fail | auth-contract.md 4, 9 |
+| `SEC-05` | ไม่มีหน้า login / form username-password ในระบบย่อย | ❌ Fail | auth-contract.md 1, 9 |
 | `ARC-01` | ไม่มี Prisma client / `pg` import ใน `frontend/` | ❌ Fail | tech-stack.md 1.2 |
 | `ARC-02` | Dependency ทั้งหมดอยู่ใน whitelist ของ stack | ❌ Fail | tech-stack.md 1 |
 | `ARC-03` | ไม่มี UI library ต้องห้าม (MUI/Antd/Bootstrap ฯลฯ) | ❌ Fail | ui-prompt-template.md 2 |
 | `API-01` | `openapi.json` sync กับโค้ด backend | ❌ Fail | tech-stack.md 3 |
 | `API-02` | URL เป็น kebab-case + noun พหูพจน์ + มี `/v1/` | ❌ Fail | api-conventions.md 1 |
 | `API-03` | ทุก endpoint ห่อ response ด้วย envelope มาตรฐาน | ❌ Fail | api-conventions.md 3 |
-| `API-04` | `error.code` อยู่ในรายการมาตรฐาน 6 ค่า | ❌ Fail | api-conventions.md 4 |
-| `API-05` | มี endpoint `GET /health` | ❌ Fail | api-conventions.md 8 |
+| `API-04` | `error.code` อยู่ในรายการมาตรฐาน 7 ค่า | ❌ Fail | api-conventions.md 4 |
+| `API-05` | มี endpoint `GET /api/health` | ❌ Fail | api-conventions.md 8 |
+| `API-07` | pagination ใช้ `?page=&limit=` (ห้าม `per_page`) | ❌ Fail | api-conventions.md 5 |
 | `API-06` | ประกาศ `public_endpoints` ใน `subsystem.yaml` | ⚠️ Warn | api-conventions.md 7 |
-| `DD-01` | ไม่ใช้ alias ต้องห้าม (`student_id`, `user_id` ฯลฯ) | ❌ Fail | data-dictionary.md 1 |
-| `DD-02` | `layer1_role` ใช้ค่าจาก enum ที่กำหนดเท่านั้น | ❌ Fail | data-dictionary.md 1 |
-| `DD-03` | Field ทั้งหมดใน response เป็น `snake_case` | ❌ Fail | api-conventions.md 6 |
+| `DD-01` | Global Identity ใช้ชื่อ `core_user_id`/`coreUserId` · ห้าม alias (`user_id`, `userId`, `user_code`, `userCode`, `std_id`, `stdId`) | ❌ Fail | data-dictionary.md 9.2 |
+| `DD-02` | core role (`coreRole`/`core_role`) ใช้ค่าจาก enum `student\|alumni\|staff\|admin` | ❌ Fail | data-dictionary.md 4 |
+| `DD-03` | ตาราง/คอลัมน์ในฐานข้อมูลเป็น `snake_case` ผ่าน `@map`/`@@map` (field ใน TS/JSON เป็น camelCase) | ❌ Fail | data-dictionary.md 9.1 |
 | `DD-04` | ไม่ hardcode รายชื่อคณะ (ต้องเรียก `/v1/faculties`) | ❌ Fail | data-dictionary.md 3 |
 | `DD-05` | ฟิลด์เงินเป็น integer ไม่ใช่ float | ❌ Fail | data-dictionary.md 5 |
 | `UI-01` | ไม่มี hex color ดิบ (ต้องใช้ `--csmju-*` token) | ❌ Fail | ui-prompt-template.md 1 |
@@ -344,8 +346,26 @@ jobs:
 | `QA-03` | Unit test ผ่าน + coverage ≥ เกณฑ์ที่ทีมกำหนด | ❌ Fail | github-workflow.md 3.3 |
 | `QA-04` | `next build` และ `nest build` ผ่านทั้งคู่ | ❌ Fail | github-workflow.md 3.7 |
 | `QA-05` | ใช้ pnpm workspace (ไม่มี `package-lock.json`) | ❌ Fail | github-workflow.md 2 |
+| `QA-06` | ชื่อ package ใน workspace ไม่ซ้ำ และ `--filter` ใน script ที่รากชี้ไปยัง package ที่มีจริง | ❌ Fail | repo-structure.md 3 |
 
 **ระดับ:** `❌ Fail` = block merge ทันที | `⚠️ Warn` = แสดงเตือนใน PR comment แต่ merge ได้ (PL ใช้ดุลพินิจ)
+
+### 7.3 Profile: Core Hub
+
+ตารางใน 7.1 คือกฎของ **ระบบย่อย** `csmju-core-hub` ไม่ใช่ระบบย่อย จึงมีชุดกฎแยกที่ยกเว้นเฉพาะข้อที่
+ขัดกับหน้าที่ของมันเอง (เป็นผู้ออก token · ถือ private key · เป็นหน้า login กลาง · เป็นเจ้าของตาราง `users`)
+
+กลไกคือตัวแปรแวดล้อม `CSMJU_PROFILE` ค่าเริ่มต้น `subsystem`:
+
+| profile | ตัวเรียก | ผลต่อการตรวจ |
+|---|---|---|
+| `subsystem` | `run-all-checks.sh` · `subsystem-compliance.yml` | ตรวจครบทุกข้อในตาราง 7.1 |
+| `core-hub` | `run-core-hub-checks.sh` · `core-hub-compliance.yml` | ยกเว้น `GH-03` `GH-04` `SEC-04` `SEC-05` `API-01` `API-06` `UI-01..04` · `DD-01` ถูกข้ามในสคริปต์ · `ARC-02` ขยาย whitelist ด้วยคีย์ `allowed_core_hub` |
+
+ระบบย่อยตั้ง `CSMJU_PROFILE=core-hub` เองไม่ได้ — workflow ของระบบย่อยไม่ได้ส่งค่านี้ และ `GH-03`
+ห้ามทีมแก้ไฟล์ workflow อยู่แล้ว
+
+รายละเอียดพร้อมเหตุผลรายข้อ: [`docs/core-hub-rules.md`](docs/core-hub-rules.md)
 
 ### 7.2 รายละเอียดสคริปต์สำคัญ
 
@@ -451,7 +471,7 @@ fi
 echo "✅ [ARC-01] Database isolation ผ่าน"
 ```
 
-#### `DD-01` — Forbidden field aliases
+#### `DD-01` — Forbidden aliases ของ Global Identity (`core_user_id`)
 
 ```bash
 #!/usr/bin/env bash
@@ -471,7 +491,7 @@ for ALIAS in "${FORBIDDEN_ALIASES[@]}"; do
     --include='*.ts' --include='*.tsx' --include='*.prisma' \
     --exclude-dir=node_modules || true)
   if [[ -n "$RESULT" ]]; then
-    echo "❌ [DD-01] ใช้ชื่อ field ที่ห้ามใช้แทน username: $ALIAS"
+    echo "❌ [DD-01] ใช้ชื่อ field ที่ห้ามใช้แทน core_user_id: $ALIAS"
     echo "$RESULT" | sed 's/^/   /'
     VIOLATION=1
   fi
@@ -485,7 +505,7 @@ if [[ "$VIOLATION" -eq 1 ]]; then
 EOF
   exit 1
 fi
-echo "✅ [DD-01] ไม่พบ forbidden alias"
+echo "✅ [DD-01/02] ไม่พบ alias ต้องห้าม และ core role อยู่ใน enum"
 ```
 
 #### `API-01` — OpenAPI sync
@@ -610,7 +630,7 @@ csmju2030-standards/
 │   ├── check-openapi-sync.sh            # API-01
 │   ├── check-api-conventions.ts         # API-02..05
 │   ├── check-field-aliases.sh           # DD-01,02
-│   ├── check-snake-case.ts              # DD-03
+│   ├── check-snake-case.sh              # DD-03
 │   ├── check-no-hardcoded-faculty.sh    # DD-04
 │   ├── check-ui-tokens.sh               # UI-01..04
 │   └── lib/
@@ -1064,7 +1084,9 @@ Subsystem repo (ทำซ้ำทุก repo)
 > ทุกข้อความ fail ต้องบอกไฟล์ บรรทัด ค่าที่ผิด ค่าที่ถูก เอกสารอ้างอิง และวิธีแก้
 
 > **4. ไม่มีข้อยกเว้นถาวร**
-> ทุก exception มีวันหมดอายุ และมีร่องรอยการอนุมัติที่ตรวจสอบย้อนหลังได้
+> ทุก exception ใน `.compliance-exceptions.yml` มีวันหมดอายุ และมีร่องรอยการอนุมัติที่ตรวจสอบย้อนหลังได้
+> ข้อยกเว้นเชิงสถาปัตยกรรมของ Core Hub (ข้อ 7.3) เป็นคนละเรื่อง — มันอยู่ในเอกสารมาตรฐาน ไม่ใช่ในไฟล์
+> exception ของทีม และเปลี่ยนได้เฉพาะผ่าน PR ที่ขึ้นเวอร์ชัน standards
 
 > **5. เริ่มจากเตือน แล้วค่อยบล็อก**
 > ทุก check ใหม่ต้องผ่านช่วง warn-only ก่อนเปลี่ยนเป็น blocking เพื่อวัด false positive

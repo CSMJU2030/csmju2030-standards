@@ -16,21 +16,42 @@ BACKEND_TS=$(find backend/src -name '*.ts' -not -path '*/node_modules/*' 2>/dev/
 if [[ -d backend/src && -n "$BACKEND_TS" ]]; then
   # API-02: route segments must be kebab-case (no camelCase / underscores),
   # and a /v1 global prefix must be declared somewhere in main.ts.
-  BAD_ROUTES=$(grep -rnE "@(Controller|Get|Post|Put|Patch|Delete)\(['\"][^'\"]*[A-Z_][^'\"]*['\"]" \
+  # ชื่อ path parameter (:exceptionId) เป็นตัวแปรใน TypeScript ไม่ใช่ส่วนของ URL
+  # จริง — NestJS ใช้ camelCase ตามปกติ จึงตัด :param ออกก่อนตรวจ kebab-case
+  ROUTE_HITS=$(grep -rnE "@(Controller|Get|Post|Put|Patch|Delete)\(\s*['\"][^'\"]*['\"]" \
     backend/src --include='*.ts' 2>/dev/null || true)
+  BAD_ROUTES=""
+  while IFS= read -r LINE; do
+    [[ -z "$LINE" ]] && continue
+    PATH_LITERAL=$(echo "$LINE" \
+      | sed -E "s/.*@(Controller|Get|Post|Put|Patch|Delete)\(\s*['\"]([^'\"]*)['\"].*/\2/")
+    STRIPPED=$(echo "$PATH_LITERAL" | sed -E 's/:[A-Za-z0-9_]+//g')
+    if echo "$STRIPPED" | grep -qE '[A-Z_]'; then
+      BAD_ROUTES="${BAD_ROUTES}${LINE}
+"
+    fi
+  done <<< "$ROUTE_HITS"
   if [[ -n "$BAD_ROUTES" ]]; then
     echo "❌ [API-02] Route path ไม่ใช่ kebab-case"
     echo "$BAD_ROUTES" | sed 's/^/   /'
     VIOLATION=1
   fi
-  # api-conventions.md ข้อ 1 กำหนด URL เป็น /api/<resource> พร้อม prefix /api/v1
-  # จึงต้องรับทั้ง setGlobalPrefix('api/v1') และรูปสั้น setGlobalPrefix('v1')
-  # และไม่ปิดท้ายที่ ")" เพราะ Nest มักส่ง option ตัวที่สองมาด้วย เช่น
-  #   setGlobalPrefix('api/v1', { exclude: ['health'] })
-  # ซึ่งจำเป็น เพราะ /health ต้องอยู่นอก prefix ตามข้อ 8
-  if [[ -f backend/src/main.ts ]] && ! grep -qE "setGlobalPrefix\(\s*['\"](api/)?v1['\"]" backend/src/main.ts; then
-    echo "❌ [API-02] ไม่พบการตั้ง global prefix 'api/v1' (หรือ 'v1') ใน backend/src/main.ts"
-    VIOLATION=1
+  # api-conventions.md ข้อ 1: endpoint ธุรกิจอยู่ใต้ /api/v1 ส่วน /api/health และ
+  # /auth/callback อยู่นอก v1 จึงรับได้ 3 รูปแบบ
+  #   setGlobalPrefix('api/v1', ...)          เวอร์ชันอยู่ใน prefix
+  #   setGlobalPrefix('api', ...) + @Controller('v1/...')   เวอร์ชันอยู่ใน controller
+  #   setGlobalPrefix('api', ...) + enableVersioning(...)   เวอร์ชันแบบ Nest
+  if [[ -f backend/src/main.ts ]]; then
+    HAS_PREFIX=$(grep -cE "setGlobalPrefix\(\s*['\"](api(/v1)?|v1)['\"]" backend/src/main.ts || true)
+    HAS_V1=$(grep -rlE "setGlobalPrefix\(\s*['\"]api/v1['\"]|enableVersioning\(|@Controller\(\s*['\"]v1/" \
+      backend/src --include='*.ts' 2>/dev/null || true)
+    if [[ "$HAS_PREFIX" -eq 0 ]]; then
+      echo "❌ [API-02] ไม่พบการตั้ง global prefix 'api' หรือ 'api/v1' ใน backend/src/main.ts"
+      VIOLATION=1
+    elif [[ -z "$HAS_V1" ]]; then
+      echo "❌ [API-02] ไม่พบเวอร์ชัน v1 — endpoint ธุรกิจต้องอยู่ใต้ /api/v1"
+      VIOLATION=1
+    fi
   fi
 
   # API-03: response envelope { success, data/error, meta }
@@ -41,18 +62,29 @@ if [[ -d backend/src && -n "$BACKEND_TS" ]]; then
   fi
 
   # API-04: error.code must be one of the 6 standard values
-  ALLOWED_CODES="VALIDATION_ERROR|NOT_FOUND|UNAUTHORIZED|FORBIDDEN|CONFLICT|INTERNAL_ERROR"
+  ALLOWED_CODES="BAD_REQUEST|VALIDATION_ERROR|NOT_FOUND|UNAUTHORIZED|FORBIDDEN|CONFLICT|INTERNAL_ERROR"
   BAD_CODES=$(grep -rnE "code\s*:\s*['\"][A-Z_]+['\"]" backend/src --include='*.ts' 2>/dev/null \
     | grep -vE "code\s*:\s*['\"]($ALLOWED_CODES)['\"]" || true)
   if [[ -n "$BAD_CODES" ]]; then
-    echo "❌ [API-04] error.code ไม่อยู่ในรายการมาตรฐาน 6 ค่า ($ALLOWED_CODES)"
+    echo "❌ [API-04] error.code ไม่อยู่ในรายการมาตรฐาน 7 ค่า ($ALLOWED_CODES)"
     echo "$BAD_CODES" | sed 's/^/   /'
     VIOLATION=1
   fi
 
-  # API-05: GET /health endpoint must exist
-  if ! grep -rqE "@Get\(['\"]health['\"]\)" backend/src --include='*.ts' 2>/dev/null; then
-    echo "❌ [API-05] ไม่พบ endpoint GET /health"
+  # API-05: ต้องมี GET /api/health (public) — รับทั้ง @Get('health')
+  # และ @Controller('health') + @Get()
+  if ! grep -rqE "@Get\(\s*['\"]health['\"]\s*\)|@Controller\(\s*['\"]health['\"]|@Controller\(\s*\{[^}]*path:\s*['\"]health['\"]" \
+    backend/src --include='*.ts' 2>/dev/null; then
+    echo "❌ [API-05] ไม่พบ endpoint GET /api/health"
+    VIOLATION=1
+  fi
+
+  # API-07: pagination ต้องใช้ page/limit ไม่ใช่ per_page (api-conventions.md ข้อ 5)
+  PER_PAGE=$(grep -rnE "\bper_page\b|\bperPage\b" backend/src --include='*.ts' \
+    --exclude-dir=node_modules 2>/dev/null || true)
+  if [[ -n "$PER_PAGE" ]]; then
+    echo "❌ [API-07] pagination ต้องใช้ ?page= และ ?limit= ไม่ใช่ per_page/perPage"
+    echo "$PER_PAGE" | sed 's/^/   /'
     VIOLATION=1
   fi
 fi
@@ -64,10 +96,11 @@ fi
 
 if [[ "$VIOLATION" -eq 1 ]]; then
   cat <<EOF
-   อ้างอิง: api-conventions.md ข้อ 1, 3, 4, 8
+   อ้างอิง: api-conventions.md ข้อ 1, 2, 3, 4, 5, 8
    วิธีแก้: ปรับ route ให้เป็น kebab-case พหูพจน์ใต้ /api/v1/, ห่อ response ด้วย envelope มาตรฐาน,
-            ใช้ error.code จากรายการที่กำหนด, และเพิ่ม endpoint GET /health
+            ใช้ error.code จากรายการ 7 ค่า, ใช้ page/limit สำหรับ pagination
+            และเพิ่ม endpoint GET /api/health
 EOF
   exit 1
 fi
-echo "✅ [API-02..06] ผ่านการตรวจ API conventions"
+echo "✅ [API-02..07] ผ่านการตรวจ API conventions"

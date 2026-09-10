@@ -1,6 +1,5 @@
-// 'alumni' อยู่ใน enum ตาม data-dictionary.md ข้อ 4 — เคยถูกตีตกเพราะ
-// สคริปต์ลอกลิสต์ผิดมาเป็น student|staff|faculty|admin|guest
+// 'alumni' อยู่ใน enum ตาม data-dictionary.md ข้อ 4
 export const DEFAULT_USER = {
-  username: '64123456',
-  layer1_role: 'alumni',
+  coreUserId: 'user-002',
+  coreRole: 'alumni',
 };

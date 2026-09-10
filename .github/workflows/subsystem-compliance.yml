@@ -16,7 +16,7 @@ on:
       node_version:
         required: false
         type: string
-        default: '20'
+        default: '22'   # tech-stack.md ข้อ 1.1 ล็อก Node 22.x
 
 jobs:
   convention-check:
@@ -98,9 +98,9 @@ jobs:
       # API-01 รัน `pnpm run generate:openapi` ของ subsystem จริง จึงต้องมี
       # toolchain ใน job นี้ด้วย ไม่ใช่แค่ใน Code Quality — ไม่มีแล้ว check
       # จะ skip เงียบ ๆ ทั้งที่ดูเหมือนผ่าน
+      # ไม่ระบุ version — pnpm/action-setup อ่าน "packageManager" ใน package.json
+      # ของ repo ที่เรียก ถ้าฮาร์ดโค้ดไว้แล้วไม่ตรงกัน action จะ error ทันที
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}
@@ -168,9 +168,9 @@ jobs:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
           path: .compliance-tools
+      # ไม่ระบุ version — pnpm/action-setup อ่าน "packageManager" ใน package.json
+      # ของ repo ที่เรียก ถ้าฮาร์ดโค้ดไว้แล้วไม่ตรงกัน action จะ error ทันที
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}

@@ -31,7 +31,8 @@ declare -a JOBS=(
   "Exception Validation|check-exceptions.sh"
 )
 
-declare -A JOB_STATUS
+# bash 3.2 (macOS default) ไม่มี associative array — ใช้ indexed array คู่ขนานกับ JOBS
+declare -a JOB_STATUS=()
 FAIL_COUNT=0
 TOTAL=0
 
@@ -40,6 +41,7 @@ echo " CSMJU2030 Subsystem Compliance — local run"
 echo " target: $TARGET_DIR"
 echo "=================================================================="
 
+IDX=0
 for ENTRY in "${JOBS[@]}"; do
   JOB="${ENTRY%%|*}"
   SCRIPT="${ENTRY##*|}"
@@ -51,20 +53,23 @@ for ENTRY in "${JOBS[@]}"; do
   echo "$OUTPUT"
   if [[ "$CODE" -ne 0 ]]; then
     FAIL_COUNT=$((FAIL_COUNT + 1))
-    JOB_STATUS["$SCRIPT"]="❌ FAIL"
+    JOB_STATUS[$IDX]="❌ FAIL"
   else
-    JOB_STATUS["$SCRIPT"]="✅ PASS"
+    JOB_STATUS[$IDX]="✅ PASS"
   fi
+  IDX=$((IDX + 1))
 done
 
 echo
 echo "=================================================================="
 echo " Summary"
 echo "=================================================================="
+IDX=0
 for ENTRY in "${JOBS[@]}"; do
   JOB="${ENTRY%%|*}"
   SCRIPT="${ENTRY##*|}"
-  printf "  %-8s  %-26s  %s\n" "${JOB_STATUS[$SCRIPT]}" "$JOB" "$SCRIPT"
+  printf "  %-8s  %-26s  %s\n" "${JOB_STATUS[$IDX]}" "$JOB" "$SCRIPT"
+  IDX=$((IDX + 1))
 done
 
 echo
