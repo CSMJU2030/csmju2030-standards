@@ -95,8 +95,10 @@ fix(equipment): correct due-date calculation timezone bug
 เนื่องจากแต่ละ repo บรรจุทั้ง `frontend/` และ `backend/` ไว้ด้วยกัน (monorepo ระดับ subsystem) ต้องมีเครื่องมือจัดการเพื่อไม่ให้ CI ช้าและ dependency ปนกัน:
 
 *   **Package manager:** ใช้ **pnpm** พร้อม `pnpm-workspace.yaml` แยก workspace ระหว่าง `frontend` และ `backend` (ห้ามใช้ `npm install` เดี่ยวๆ ที่ root)
-*   **Task runner:** ใช้ **Turborepo** เพื่อทำ caching และ run เฉพาะ workspace ที่มีไฟล์เปลี่ยน (`turbo run build --filter=...`)
-*   **CI จะรันเฉพาะส่วนที่แก้:** ใช้ `turbo`'s affected-detection หรือ `dorny/paths-filter` action เพื่อ skip build/test ของ workspace ที่ไม่ได้ถูกแตะ
+*   **Task runner:** ใช้ `pnpm -r <script>` และ `pnpm --filter <workspace> <script>` เป็นพื้นฐาน — ทั้ง Core Hub และ
+    reference implementation ใช้แค่นี้ **Turborepo ใช้ได้แต่ไม่บังคับ** (อยู่ใน whitelist) เพิ่มเมื่อ repo โตจนเวลา CI เป็นปัญหาจริง
+*   **ชื่อ workspace ต้องไม่ซ้ำกัน** — ถ้า `name` ใน `package.json` ที่รากซ้ำกับของ `backend/`
+    `pnpm --filter backend test` จะไม่ match อะไรเลยแล้วคืน exit 0 (กฎ `QA-06` ดู [`repo-structure.md`](repo-structure.md) ข้อ 3)
 
 ---
 
@@ -111,6 +113,11 @@ fix(equipment): correct due-date calculation timezone bug
 5. **Secret/DB-Isolation Scan:** grep หา connection string หรือ `pg`/`prisma client` import ใน `frontend/` — ถ้าเจอ ให้ CI fail ทันที
 6. **Submodule Check:** ตรวจว่า `standards/` submodule pointer ตรงกับ commit ล่าสุดที่ PL อนุมัติ 
 7. **Build:** `next build` และ `nest build` ต้องผ่านทั้งคู่ก่อน merge ได้
+
+> **PR แรกของ repo (bootstrap) เป็นข้อยกเว้นของกฎ `GH-03`**
+> PR ที่ติดตั้งมาตรฐานครั้งแรกจำเป็นต้องเพิ่ม `.github/workflows/ci.yml`, `CODEOWNERS` และ submodule
+> `standards/` ซึ่งเป็นไฟล์ที่ `GH-03` ห้ามแตะ — PR นี้จึงต้องให้ DevOps เป็นผู้ merge โดย override
+> ผลของ `GH-03` หลังจากนั้นกฎบังคับเต็มตามปกติ ไม่มีข้อยกเว้นอีก
 
 ---
 
@@ -133,7 +140,8 @@ fix(equipment): correct due-date calculation timezone bug
 1. GitHub Actions:
    - ห้ามแก้ไขไฟล์ในโฟลเดอร์ `.github/workflows/`
 2. Monorepo Tooling:
-   - ใช้ pnpm workspace + Turborepo เท่านั้นสำหรับจัดการ frontend/backend ภายใน repo เดียวกัน ห้ามรัน npm install ที่ root ตรงๆ
+   - ใช้ pnpm workspace เท่านั้นสำหรับจัดการ frontend/backend ภายใน repo เดียวกัน ห้ามใช้ npm/yarn (กฎ `QA-05`)
+   - ตั้งชื่อ `name` ใน package.json ของแต่ละ workspace ไม่ให้ซ้ำกัน (กฎ `QA-06`)
 3. Commit Convention:
    - ทุก commit และ PR title ต้องตาม Conventional Commits รูปแบบ `<type>(<subsystem-scope>): <คำอธิบาย>` เช่น `feat(equipment): add borrow-return flow`
 4. Secrets:
