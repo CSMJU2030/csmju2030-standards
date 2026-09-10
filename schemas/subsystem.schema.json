@@ -3,13 +3,107 @@
   "$id": "https://csmju2030.ac.th/schemas/subsystem.schema.json",
   "title": "Subsystem",
   "type": "object",
-  "required": ["name", "standards_version"],
+  "required": [
+    "name",
+    "standards_version"
+  ],
   "properties": {
-    "name": { "type": "string" },
-    "standards_version": { "type": "string" },
+    "name": {
+      "type": "string"
+    },
+    "standards_version": {
+      "type": "string"
+    },
     "public_endpoints": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
+    },
+    "conformance_level": {
+      "enum": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "default": "L3",
+      "description": "ระดับ conformance ที่ระบบย่อยต้องผ่าน"
+    },
+    "base_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL ของระบบย่อยตอนรัน (conformance ใช้)"
+    },
+    "core_hub_url": {
+      "type": "string",
+      "format": "uri",
+      "default": "http://localhost:3000"
+    },
+    "callback_path": {
+      "type": "string",
+      "default": "/auth/callback",
+      "description": "ต้องตรงกับ callback_url ในทะเบียนของ Core Hub"
+    },
+    "probes": {
+      "type": "object",
+      "description": "endpoint ที่ conformance ใช้ตรวจสัญญา API (ระดับ L2 ขึ้นไป)",
+      "properties": {
+        "collection": {
+          "type": "string"
+        },
+        "not_found": {
+          "type": "string"
+        },
+        "invalid_id": {
+          "type": "string"
+        },
+        "create": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "allowed_role": {
+              "enum": [
+                "student",
+                "alumni",
+                "staff",
+                "admin"
+              ],
+              "default": "staff"
+            },
+            "denied_role": {
+              "enum": [
+                "student",
+                "alumni",
+                "staff",
+                "admin"
+              ],
+              "default": "student"
+            },
+            "invalid_body": {
+              "type": "object"
+            },
+            "valid_body": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "owners": {
+      "type": "object",
+      "properties": {
+        "pl": {
+          "type": "string"
+        },
+        "aie": {
+          "type": "string"
+        }
+      }
     }
   },
   "additionalProperties": true

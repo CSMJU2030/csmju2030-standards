@@ -99,6 +99,9 @@ node_modules/
 dist/
 build/
 coverage/
+generated/
+*.pem
+*.key
 !.env.example
 EOF
 
