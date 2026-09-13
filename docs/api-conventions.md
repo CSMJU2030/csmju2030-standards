@@ -1,76 +1,133 @@
 # api-conventions.md
 
-**เวอร์ชัน:** 1.0 · **บังคับใช้กับ:** ทุก API ที่ระบบย่อยเปิดให้เรียก
+**Version:** 1.1 · **Applies to:** All APIs exposed by every subsystem
 
-> เอกสารนี้กำหนดรูปแบบ API ให้เหมือนกันทุกระบบย่อย เพื่อให้ automated check ตรวจได้
-> และให้ AI คนละตัวสร้าง API ออกมาในรูปแบบเดียวกัน
-> ทุกข้อในเอกสารนี้มีการตรวจจริงใน `conformance/` ระดับ L2
+> This document standardises API conventions across all subsystems so automated checks can verify compliance
+> and every AI Engineer produces APIs in a consistent shape.
+> Every rule here is enforced in `conformance/` at level L2.
 
 ---
 
-## 1. โครงสร้าง URL
+## ⚡ Quick Reference (Start here — the full picture at a glance)
+
+| Topic | Rule |
+|---|---|
+| **URL** | `/api/v1/<noun-plural-kebab>` e.g. `/api/v1/borrow-records` |
+| **Create** | `POST` → `201` |
+| **List** | `GET` → `200` + `data[]` + `meta{}` |
+| **Single item** | `GET /:id` → `200` + `data{}` |
+| **Update** | `PATCH /:id` → `200` + `data{}` |
+| **Delete** | `DELETE /:id` → `200` + `{ id, deleted: true }` (**never `204`**) |
+| **JSON fields** | Always `camelCase` (`studentCode`, `createdAt`) |
+| **Timestamps** | ISO 8601 UTC ending in `Z` e.g. `"2026-09-11T09:30:00.000Z"` |
+| **Every response** | Wrapped in `{ success, data }` — no exceptions |
+| **Error** | `{ success: false, error: { code, message, details } }` |
+| **Pagination** | `?page=1&limit=20` · max `limit=100` |
+| **Public endpoints** | `GET /api/health` and `GET /auth/callback` only |
+| **Auth header** | `Authorization: Bearer <token>` |
+| **No token** | `401 UNAUTHORIZED` |
+| **Wrong permission** | `403 FORBIDDEN` |
+
+---
+
+## 1. URL Structure
 
 ```text
 https://<subsystem-domain>/api/v1/<resource>[/<id>][/<sub-resource>]
 ```
 
-| กฎ | รายละเอียด |
+### URL Rules
+
+| Rule | ✅ Correct | ❌ Wrong |
+|---|---|---|
+| Plural noun + kebab-case | `/api/v1/borrow-records` | `/api/v1/borrowRecord`, `/api/v1/getBorrowRecord` |
+| No verbs in path | `POST /api/v1/enrollments` | `POST /api/v1/createEnrollment` |
+| Special actions → sub-resource of id | `POST /api/v1/borrow-records/:id/return` | `POST /api/v1/returnBorrowRecord` |
+| Max 1 level of nesting | `/api/v1/students/:id/enrollments` | `/api/v1/students/:id/courses/:id/grades` |
+| No trailing slash | `/api/v1/students` | `/api/v1/students/` |
+| Path params must be UUID v4 | `/api/v1/students/550e8400-...` | `/api/v1/students/12345` → must respond `400` |
+| Query params in camelCase | `?studentId=&status=&page=` | `?student_id=&Status=` |
+
+### Endpoints outside `/api/v1/` (exactly 2 paths)
+
+| Path | Reason |
 |---|---|
-| prefix | endpoint ธุรกิจทุกตัวอยู่ใต้ `/api/v1/` |
-| ชื่อ resource | **noun พหูพจน์ + kebab-case** — `/api/v1/borrow-records` ไม่ใช่ `/borrowRecords` หรือ `/getEquipment` |
-| ห้ามใส่กริยาใน path | ใช้ `POST /api/v1/enrollments` ไม่ใช่ `/api/v1/createEnrollment` |
-| การกระทำพิเศษ | ให้เป็น sub-resource ของ id เช่น `POST /api/v1/borrow-records/:id/return` |
-| ความลึก | ซ้อนได้ไม่เกิน **1 ระดับ** เช่น `/api/v1/students/:id/enrollments` |
-| trailing slash | ห้ามมี |
-| path parameter | เป็น UUID v4 · ค่าที่ไม่ใช่ UUID ต้องตอบ `400` |
-| query parameter | `camelCase` เช่น `?studentId=&status=&page=&limit=` |
+| `GET /api/health` | Used for monitoring · not version-bound · public |
+| `GET /auth/callback` | Must match the `callback_url` registered with Core Hub · public |
 
-**เส้นทางที่อยู่นอก `/api/v1`** (มีแค่ 2 เส้นทาง):
+### Versioning
 
-| Path | เหตุผล |
-|---|---|
-| `GET /api/health` | ใช้ monitor · ไม่ผูกกับเวอร์ชัน API · public |
-| `GET /auth/callback` | ต้องตรงกับ `callback_url` ที่ลงทะเบียนกับ Core Hub · public |
-
-**การขึ้นเวอร์ชัน**: การเปลี่ยนที่ทำให้ client เดิมพัง (ลบ/เปลี่ยนความหมาย field, เปลี่ยน status)
-ต้องออกเป็น `/api/v2` และคง `v1` ไว้อย่างน้อย 1 ภาคการศึกษา · การ **เพิ่ม** field/endpoint ไม่ใช่ breaking change
+- **Breaking change** (removing/renaming a field, changing status semantics) → release as `/api/v2` and keep `v1` alive for at least 1 semester
+- **Non-breaking change** (adding a field or endpoint) → ship directly, no version bump needed
 
 ---
 
-## 2. HTTP Method และ status ที่ต้องคืน
+## 2. HTTP Methods and Status Codes
 
-| Method | ใช้กับ | สำเร็จ | หมายเหตุ |
+| Method | Purpose | Success status | Notes |
 |---|---|---|---|
-| `GET /api/v1/<res>` | รายการ | `200` + `data[]` + `meta` | ต้องมีลำดับที่แน่นอนเสมอ |
-| `GET /api/v1/<res>/:id` | รายการเดียว | `200` + `data{}` | ไม่พบ → `404` |
-| `POST /api/v1/<res>` | สร้าง | **`201`** + `data{}` ของที่สร้าง | ชนกฎธุรกิจ → `409` |
-| `PATCH /api/v1/<res>/:id` | แก้บางฟิลด์ | `200` + `data{}` หลังแก้ | |
-| `DELETE /api/v1/<res>/:id` | ลบ | `200` + `data{ id, deleted: true }` | **ห้ามตอบ `204`** เพราะต้องมี envelope เสมอ |
-| `PUT` | แทนทั้ง object | `200` | **ควรเลี่ยง** ใช้ `PATCH` แทน |
+| `GET /api/v1/<res>` | List | `200` | Must have a deterministic sort order |
+| `GET /api/v1/<res>/:id` | Single item | `200` | Not found → `404` |
+| `POST /api/v1/<res>` | Create | **`201`** | Business rule conflict → `409` |
+| `PATCH /api/v1/<res>/:id` | Partial update | `200` | Send only fields you want to change |
+| `DELETE /api/v1/<res>/:id` | Delete | `200` | **Never `204`** — envelope is always required |
+| `PUT` | Full replacement | `200` | **Avoid** — prefer `PATCH` |
 
 ---
 
-## 3. Response — กรณีสำเร็จ
+## 3. Response Format — Success
 
-```json
-{ "success": true, "data": { } }
-```
+**Every response must be wrapped in the envelope** — regardless of whether it's GET, POST, or DELETE.
 
-คอลเลกชันต้องมี `meta` เสมอ:
+### Single object
 
 ```json
 {
   "success": true,
-  "data": [ ],
-  "meta": { "total": 42, "page": 1, "limit": 20, "totalPages": 3 }
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "studentCode": "64010001",
+    "fullName": "John Doe",
+    "createdAt": "2026-09-11T09:30:00.000Z"
+  }
 }
 ```
 
-top-level key มีได้เฉพาะ `success`, `data`, `meta`
+### Collection (must always include `meta`)
+
+```json
+{
+  "success": true,
+  "data": [
+    { "id": "550e8400-...", "studentCode": "64010001" },
+    { "id": "661f9511-...", "studentCode": "64010002" }
+  ],
+  "meta": {
+    "total": 42,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 3
+  }
+}
+```
+
+### Successful DELETE
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "deleted": true
+  }
+}
+```
+
+> Allowed top-level keys: `success`, `data`, `meta` only.
 
 ---
 
-## 4. Response — กรณี error
+## 4. Response Format — Error
 
 ```json
 {
@@ -78,60 +135,179 @@ top-level key มีได้เฉพาะ `success`, `data`, `meta`
   "error": {
     "code": "VALIDATION_ERROR",
     "message": "Request validation failed",
-    "details": ["quantity must be greater than 0"]
+    "details": [
+      "quantity must be greater than 0",
+      "returnDate must be a valid ISO 8601 date"
+    ]
   }
 }
 ```
 
-`error.code` เป็น SCREAMING_SNAKE_CASE และต้องอยู่ในรายการปิดนี้เท่านั้น
-(ค่าจริงที่ CI/conformance อ่าน: [`../contracts/error-codes.json`](../contracts/error-codes.json))
+### Error Codes (closed list — use only these)
 
-| code | HTTP | ความหมาย |
-|---|---|---|
-| `BAD_REQUEST` | 400 | request ไม่ถูกต้องทั่วไป |
-| `VALIDATION_ERROR` | **400** | body/query ไม่ผ่าน validation · ใส่รายละเอียดใน `details` เป็น array of string |
-| `UNAUTHORIZED` | 401 | ไม่รู้ว่าเป็นใคร (ไม่มี token / token ใช้ไม่ได้) |
-| `FORBIDDEN` | 403 | รู้แล้วว่าเป็นใคร แต่สิทธิ์ไม่พอ |
-| `NOT_FOUND` | 404 | ไม่พบ resource |
-| `CONFLICT` | 409 | ชนกฎธุรกิจ เช่น ค่าซ้ำ หรือสถานะไม่อนุญาต |
-| `INTERNAL_ERROR` | 500 | ข้อผิดพลาดภายใน |
+`error.code` must be SCREAMING_SNAKE_CASE and must be one of the following values.
+(Conformance reads the canonical list from [`../contracts/error-codes.json`](../contracts/error-codes.json))
 
-> `VALIDATION_ERROR` ใช้ **400** ไม่ใช่ 422 เพื่อให้ตรงกับพฤติกรรมเริ่มต้นของ `ValidationPipe` ใน NestJS
-> ระบบย่อยจึงไม่ต้องเขียน exception filter พิเศษเพื่อฝืนมาตรฐาน
+| code | HTTP | When to use | Example |
+|---|---|---|---|
+| `BAD_REQUEST` | 400 | Malformed request in general | Wrong method, bad path |
+| `VALIDATION_ERROR` | **400** | body/query fails validation | Missing field, wrong type, value out of range |
+| `UNAUTHORIZED` | 401 | Caller identity unknown | No token / expired token |
+| `FORBIDDEN` | 403 | Identity known but insufficient permission | Student calling an admin endpoint |
+| `NOT_FOUND` | 404 | Resource does not exist | `:id` not in database |
+| `CONFLICT` | 409 | Business rule violation | Borrowing an item already on loan |
+| `INTERNAL_ERROR` | 500 | Unexpected server error | Unhandled exception |
 
-**ห้าม**ส่ง stack trace, ชื่อไฟล์, ข้อความจาก ORM หรือ SQL ออกไปใน response
+> Use `VALIDATION_ERROR` with **400**, not 422 — this matches NestJS `ValidationPipe` defaults so no custom exception filter is needed.
+
+**Never leak the following in a response:**
+- Stack traces
+- Server file paths or filenames
+- Raw ORM or SQL error messages (e.g. `duplicate key value violates unique constraint`)
 
 ---
 
 ## 5. Pagination
 
 ```text
-?page=1&limit=20      ค่าเริ่มต้น page=1, limit=20, สูงสุด limit=100
+GET /api/v1/students?page=1&limit=20
 ```
 
-- `limit` ที่ไม่ใช่ตัวเลขหรือเกินช่วง → `400 VALIDATION_ERROR`
-- คอลเลกชันว่างคืน `data: []` + `meta.total: 0` (**ไม่ใช่** `null` และไม่ใช่ `404`)
+- Defaults: `page=1`, `limit=20`
+- Maximum: `limit=100`
+- Non-numeric `limit` or value out of range → `400 VALIDATION_ERROR`
+- **Empty collection** → return `data: []` + `meta.total: 0` (never `null`, never `404`)
+
+```json
+{
+  "success": true,
+  "data": [],
+  "meta": { "total": 0, "page": 1, "limit": 20, "totalPages": 0 }
+}
+```
 
 ---
 
-## 6. Field naming ใน response
+## 6. Field Naming
 
-| ชั้น | รูปแบบ | ตัวอย่าง |
+| Layer | Format | Examples |
 |---|---|---|
-| JSON ที่ส่งออก API | **camelCase** | `studentCode`, `createdAt`, `coreUserId` |
-| ฟิลด์ตามสัญญา OAuth | `snake_case` (ตามมาตรฐานสากล) | `access_token`, `token_type`, `expires_in`, `callback_url`, `state` |
-| คอลัมน์ในฐานข้อมูล | **snake_case** | `student_code`, `created_at` — ดู [`data-dictionary.md`](data-dictionary.md) ข้อ 9 |
+| JSON output from API | **camelCase** | `studentCode`, `createdAt`, `coreUserId` |
+| OAuth fields | `snake_case` (international standard) | `access_token`, `token_type`, `expires_in` |
+| Database columns | **snake_case** | `student_code`, `created_at` |
 
-- วันเวลาใช้ **ISO 8601 UTC** ลงท้าย `Z` เช่น `"2026-09-11T09:30:00.000Z"`
-- id ทุกตัวเป็น **UUID v4**
-- ฟิลด์ที่ตรงกับตัวแปรกลางต้องใช้ชื่อตาม `data-dictionary.md` เป๊ะ
+- Timestamps must use **ISO 8601 UTC** ending in `Z` — `"2026-09-11T09:30:00.000Z"`
+- Every id must be **UUID v4**
+- Field names that match shared variables must exactly follow `data-dictionary.md` — no renaming
 
 ---
 
-## 7. Public / Protected endpoint
+## 7. Security — Authentication
 
-ทุก route ใต้ `/api/v1/` **ต้อง**ผ่านการตรวจ token ไม่มีข้อยกเว้น
-endpoint ที่เข้าถึงได้โดยไม่มี token ต้องประกาศไว้ใน `subsystem.yaml`:
+### 7.1 Token format
+
+Every request to `/api/v1/` must include a JWT token issued by Core Hub in the `Authorization` header:
+
+```http
+Authorization: Bearer <jwt-token>
+```
+
+No token, wrong format, or expired token → respond `401 UNAUTHORIZED` immediately. Do not process the request.
+
+### 7.2 How to validate the token (NestJS)
+
+Use the shared `JwtAuthGuard` from the Core Hub SDK — do not write your own JWT validation logic.
+
+```ts
+// Apply globally in main module (recommended)
+// app.module.ts
+
+import { APP_GUARD } from "@nestjs/core";
+import { JwtAuthGuard } from "@csmju/core-sdk";
+
+@Module({
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard, // protects every route by default
+    },
+  ],
+})
+export class AppModule {}
+```
+
+To make a specific route public, use the `@Public()` decorator:
+
+```ts
+import { Public } from "@csmju/core-sdk";
+
+@Public()
+@Get("/api/health")
+health() {
+  return { success: true, data: { status: "ok", service: "csmju-equipment" } };
+}
+```
+
+### 7.3 Reading the caller's identity
+
+After validation, the guard injects the decoded token into `request.user`:
+
+```ts
+import { CurrentUser, JwtPayload } from "@csmju/core-sdk";
+
+@Get("/api/v1/students")
+findAll(@CurrentUser() user: JwtPayload) {
+  console.log(user.sub);      // Core Hub user UUID
+  console.log(user.role);     // e.g. "student", "staff", "admin"
+  console.log(user.studentId); // subsystem-specific id (if present)
+}
+```
+
+### 7.4 Role-based access (FORBIDDEN vs UNAUTHORIZED)
+
+| Situation | Response |
+|---|---|
+| No token / invalid token / expired | `401 UNAUTHORIZED` — caller identity unknown |
+| Valid token but role not allowed | `403 FORBIDDEN` — identity known, permission denied |
+
+```ts
+import { Roles, RolesGuard } from "@csmju/core-sdk";
+
+@Roles("admin", "staff")      // students will get 403
+@UseGuards(RolesGuard)
+@Delete("/api/v1/students/:id")
+remove(@Param("id") id: string) { … }
+```
+
+### 7.5 Error responses
+
+**401 — No token or invalid token:**
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Missing or invalid token"
+  }
+}
+```
+
+**403 — Valid token but insufficient role:**
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "You do not have permission to perform this action"
+  }
+}
+```
+
+### 7.6 Public endpoints declaration
+
+Endpoints accessible without a token must be declared in `subsystem.yaml`:
 
 ```yaml
 public_endpoints:
@@ -139,41 +315,154 @@ public_endpoints:
   - GET /auth/callback
 ```
 
+> If not declared, conformance will fail — the system assumes the endpoint is protected.
+
 ---
 
-## 8. Health check (บังคับทุกระบบย่อย)
+## 8. Health Check (required for every subsystem)
 
 ```http
-GET /api/health        (public — ไม่ต้องมี token)
+GET /api/health
 ```
+
+**Expected response:**
 
 ```json
-{ "success": true, "data": { "status": "ok", "service": "csmju-equipment" } }
+{
+  "success": true,
+  "data": {
+    "status": "ok",
+    "service": "csmju-equipment"
+  }
+}
 ```
 
-`data.service` ต้องเท่ากับ `name` ใน `subsystem.yaml` และเท่ากับ `name` ในทะเบียนของ Core Hub
+- `data.service` must exactly match `name` in `subsystem.yaml`
+- `data.service` must exactly match the `name` registered with Core Hub
+- This endpoint is public — no token required
 
-> Core Hub เองใช้ `/api/v1/health` (มีเวอร์ชัน) ซึ่งเป็นข้อยกเว้นของ Core Hub เท่านั้น
+> Core Hub itself uses `/api/v1/health` (versioned), which is a Core Hub–only exception. All other subsystems use `/api/health`.
 
 ---
 
-## 9. สิ่งที่ยังไม่มีในสถาปัตยกรรมปัจจุบัน
+## 9. Anti-patterns — What Not to Do
 
-| หัวข้อ | สถานะ |
+Common mistakes that will cause an immediate PR rejection.
+
+### ❌ Verb in URL
+
+```text
+POST /api/v1/createEnrollment     ← wrong
+POST /api/v1/enrollments          ← correct
+```
+
+### ❌ Response without envelope
+
+```json
+// wrong — raw data with no wrapper
+{ "id": "abc", "name": "Test" }
+
+// correct
+{ "success": true, "data": { "id": "abc", "name": "Test" } }
+```
+
+### ❌ DELETE returning 204
+
+```text
+DELETE /api/v1/students/:id → 204 No Content   ← wrong
+DELETE /api/v1/students/:id → 200 + { id, deleted: true }   ← correct
+```
+
+### ❌ Empty collection returning 404
+
+```text
+GET /api/v1/students?status=inactive → 404   ← wrong (query is valid, data just doesn't exist)
+GET /api/v1/students?status=inactive → 200 + data:[] + meta   ← correct
+```
+
+### ❌ Leaking raw error messages
+
+```json
+// wrong — exposes internal structure
+{
+  "success": false,
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "duplicate key value violates unique constraint \"students_student_code_key\""
+  }
+}
+
+// correct
+{
+  "success": false,
+  "error": {
+    "code": "CONFLICT",
+    "message": "Student code already exists"
+  }
+}
+```
+
+### ❌ Writing custom JWT validation instead of using the SDK
+
+```ts
+// wrong — never do this
+const token = request.headers.authorization?.split(" ")[1];
+const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+// correct — use the shared guard from Core Hub SDK
+// JwtAuthGuard applied globally in AppModule handles this automatically
+```
+
+### ❌ Returning 403 when the token is missing
+
+```json
+// wrong — no token means identity is unknown → 401
+{ "success": false, "error": { "code": "FORBIDDEN", "message": "Access denied" } }
+
+// correct — no token → 401, wrong role → 403
+{ "success": false, "error": { "code": "UNAUTHORIZED", "message": "Missing or invalid token" } }
+```
+
+### ❌ snake_case JSON fields
+
+```json
+// wrong
+{ "student_code": "64010001", "created_at": "2026-09-11T09:30:00.000Z" }
+
+// correct
+{ "studentCode": "64010001", "createdAt": "2026-09-11T09:30:00.000Z" }
+```
+
+---
+
+## 10. Not Yet in the Current Architecture
+
+| Topic | Status |
 |---|---|
-| API Gateway / rate limit header (`X-RateLimit-*`) | ❌ ยังไม่มี — อย่าออกแบบโดยสมมติว่ามี |
-| การเรียกข้ามระบบย่อย (service-to-service) | ❌ ยังไม่มีสัญญา — ต้องเสนอผ่าน Change Process ก่อน |
+| API Gateway / rate limit headers (`X-RateLimit-*`) | ❌ Not available — do not design assuming these exist |
+| Cross-subsystem calls (service-to-service) | ❌ No contract yet — must go through the Change Process first |
 
 ---
 
-## 10. Checklist ก่อนขอ merge PR
+## 11. PR Merge Checklist
 
-- [ ] URL เป็น noun พหูพจน์ + kebab-case + อยู่ใต้ `/api/v1/`
-- [ ] `POST` คืน `201` · `DELETE` คืน `200` + `{id, deleted:true}`
-- [ ] response ทุกตัวห่อด้วย envelope `{ success, data[, meta] }` / `{ success:false, error }`
-- [ ] `error.code` อยู่ในรายการปิด และ `VALIDATION_ERROR` เป็น 400
-- [ ] คอลเลกชันมี `meta{total,page,limit,totalPages}` และรองรับ `?page=&limit=`
-- [ ] field ใน JSON เป็น camelCase · คอลัมน์ใน DB เป็น snake_case
-- [ ] มี `GET /api/health` ที่ `data.service` ตรงกับชื่อระบบ
-- [ ] ประกาศ `public_endpoints` ใน `subsystem.yaml` ครบ
-- [ ] `node standards/conformance/run.js` ผ่านระดับ L2 ขึ้นไป
+> Run through this before every push — conformance checks all of these automatically.
+
+- [ ] URL uses plural noun + kebab-case + lives under `/api/v1/`
+- [ ] No verbs in the URL path
+- [ ] `POST` returns `201` · `DELETE` returns `200` + `{ id, deleted: true }` (not `204`)
+- [ ] Every response is wrapped in `{ success, data[, meta] }` or `{ success: false, error }`
+- [ ] `error.code` is from the closed list only · `VALIDATION_ERROR` uses HTTP 400
+- [ ] Collections include `meta { total, page, limit, totalPages }` and support `?page=&limit=`
+- [ ] Empty collections return `data: []` + `meta.total: 0`, not `404`
+- [ ] JSON response fields are camelCase · DB columns are snake_case
+- [ ] Timestamps are ISO 8601 UTC ending in `Z`
+- [ ] Every id is UUID v4 · non-UUID path params respond `400`
+- [ ] No stack trace / SQL error / file path leaking in any response
+- [ ] `JwtAuthGuard` applied globally in `AppModule` — no route under `/api/v1/` is accidentally public
+- [ ] Public endpoints use `@Public()` decorator and are declared in `subsystem.yaml`
+- [ ] No token → `401 UNAUTHORIZED` · wrong role → `403 FORBIDDEN` (not swapped)
+- [ ] No custom JWT parsing — uses `@csmju/core-sdk` only
+- [ ] `GET /api/health` exists · `data.service` matches the system name in `subsystem.yaml`
+- [ ] `public_endpoints` declared in `subsystem.yaml` completely
+- [ ] `node standards/conformance/run.js` passes at L2 or above
