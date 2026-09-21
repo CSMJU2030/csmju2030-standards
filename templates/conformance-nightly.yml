@@ -1,8 +1,15 @@
-# Runtime conformance — ยิงระบบที่รันอยู่จริงผ่าน HTTP
+# .github/workflows/conformance-nightly.yml
+# Copy this file, unmodified, into every csmju-<subsystem> repo (new-subsystem.sh
+# does this automatically for new repos).
 #
+# Runtime conformance — ยิงระบบที่รันอยู่จริงผ่าน HTTP
 # ต่างจาก subsystem-compliance.yml ที่ตรวจซอร์สโค้ดแบบ static:
 # workflow นี้ต้องมี Core Hub + ระบบย่อย + PostgreSQL รันอยู่จริง จึงไม่รันทุก PR
 # ใช้แบบ nightly และก่อน release ตาม docs/conformance.md ข้อ 5
+#
+# ไม่ต้องระบุ subsystem_url เอง — runner อ่าน base_url จาก subsystem.yaml ที่ราก
+# repo นี้เป็นค่าเริ่มต้นอยู่แล้ว (ดู conformance/lib/manifest.js) ใส่ input ตอน
+# workflow_dispatch เฉพาะตอนต้องการ override ชั่วคราวเท่านั้น
 name: Runtime Conformance (nightly)
 
 on:
@@ -11,20 +18,18 @@ on:
   workflow_dispatch:
     inputs:
       subsystem_url:
-        description: 'base URL ของระบบย่อยที่รันอยู่'
-        required: true
+        description: 'override base URL ของระบบย่อย (ปกติไม่ต้องใส่ อ่านจาก subsystem.yaml)'
+        required: false
         type: string
       core_hub_url:
-        description: 'base URL ของ Core Hub'
+        description: 'override base URL ของ Core Hub (ปกติไม่ต้องใส่)'
         required: false
-        default: 'http://localhost:3000'
         type: string
       level:
-        description: 'ระดับ conformance'
+        description: 'override ระดับ conformance (ปกติไม่ต้องใส่)'
         required: false
-        default: 'L3'
         type: choice
-        options: [L1, L2, L3]
+        options: ['', L1, L2, L3]
 
 jobs:
   conformance:
@@ -39,15 +44,6 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Resolve runner path
-        id: runner
-        run: |
-          if [[ -f standards/conformance/run.js ]]; then
-            echo "path=standards/conformance/run.js" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=conformance/run.js" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Run conformance suite
         env:
           CONFORMANCE_URL: ${{ inputs.subsystem_url }}
@@ -58,7 +54,7 @@ jobs:
           [[ -n "$CONFORMANCE_URL" ]] && ARGS="$ARGS --url $CONFORMANCE_URL"
           [[ -n "$CONFORMANCE_CORE_HUB" ]] && ARGS="$ARGS --core-hub $CONFORMANCE_CORE_HUB"
           [[ -n "$CONFORMANCE_LEVEL" ]] && ARGS="$ARGS --level $CONFORMANCE_LEVEL"
-          node "${{ steps.runner.outputs.path }}" $ARGS --json
+          node standards/conformance/run.js $ARGS --json
 
       - name: Upload report
         if: always()
