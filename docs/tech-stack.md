@@ -22,11 +22,40 @@
 | **Docker + docker compose** | — | ต้องมี `Dockerfile` และ `docker-compose.yml` |
 
 ### 1.2 Frontend Stack
-*   **Core Framework:** **Next.js** (App Router) — `15+`
+*   **Core Framework:** **Next.js** (App Router) — `15.5+` (ต้องมีคำสั่ง `next typegen` ดูข้อ 1.2.1)
 *   **Language:** **TypeScript**
 *   **Styling:** **Tailwind CSS** (ใช้งานร่วมกับ `@csmju2030/design-system` ของ Core)
 *   **State / Data Fetching:** Zustand, React Context, Axios หรือ React Query
 *   ห้ามมีหน้า login ของตัวเอง — ต้องเข้าผ่าน Core Hub SSO (`auth-contract.md` ข้อ 5)
+
+#### 1.2.1 script `typecheck` ของ frontend ต้องสร้าง route types ก่อน
+
+Next.js สร้าง type ของ route/layout (`LayoutProps`, `PageProps`) ลงใน `.next/types`
+**ตอนรัน `next dev` หรือ `next build` เท่านั้น** ไม่ได้อยู่ในซอร์สโค้ด
+
+ถ้าตั้ง `"typecheck": "tsc --noEmit"` เฉย ๆ จะ **ผ่านในเครื่องแต่ตกบน CI** เพราะในเครื่องมี
+`.next/` ค้างจากการรัน dev อยู่แล้ว ส่วน CI checkout ใหม่ไม่มี และ `QA-02` รัน typecheck
+**ก่อน** build เสมอ อาการที่เจอคือ:
+
+```text
+app/layout.tsx(23,50): error TS2304: Cannot find name 'LayoutProps'.
+```
+
+`frontend/package.json` จึงต้องเป็น:
+
+```json
+{
+  "scripts": {
+    "typecheck": "next typegen && tsc --noEmit"
+  }
+}
+```
+
+`next typegen` สร้างเฉพาะ type โดยไม่ต้อง build ทั้งโปรเจกต์ (ใช้เวลาไม่ถึงวินาที)
+ฝั่ง backend ใช้ `tsc --noEmit -p tsconfig.json` ตามปกติ
+
+> ตรวจก่อนเปิด PR ด้วยการลบของค้างออกก่อน: `rm -rf frontend/.next && pnpm -r typecheck`
+> ถ้าผ่านแบบนี้ CI จะผ่านด้วย
 
 ### 1.3 Backend Stack
 
