@@ -5,6 +5,22 @@
 
 ---
 
+## Errata ของ 1.0.0 — 2026-09-23
+
+แก้เอกสารเท่านั้น ไม่มีการเปลี่ยนกฎหรือสคริปต์ตรวจ จึงไม่ขึ้นเวอร์ชัน
+(`VERSION` ยังเป็น `1.0.0` ระบบย่อยไม่ต้องเลื่อน `.standards-version`)
+
+- `tech-stack.md` ข้อ 1.2.1 (ใหม่) — `typecheck` ของ frontend ต้องเป็น
+  `next typegen && tsc --noEmit` ไม่ใช่ `tsc --noEmit` เฉย ๆ
+  Next.js สร้าง type ของ route/layout (`LayoutProps`, `PageProps`) ตอน dev/build
+  เท่านั้น สคริปต์แบบเดิมจึงผ่านในเครื่อง (มี `.next/` ค้าง) แต่ตกบน CI ที่ checkout
+  ใหม่ด้วย `TS2304: Cannot find name 'LayoutProps'` — เจอจริงตอนทำ frontend ของ Core Hub
+- `tech-stack.md` ข้อ 1.2 — ระบุ Next.js เป็น `15.5+` เพราะ `next typegen` เพิ่งมีในเวอร์ชันนั้น
+- `ai/AGENTS.md` — เพิ่มลงตาราง "สิ่งที่ agent มักทำผิด" และเพิ่มคำสั่ง
+  `rm -rf frontend/.next && pnpm -r typecheck` ในชุดคำสั่งที่ต้องรันก่อนส่งงาน
+
+---
+
 ## 1.0.0 — 2026-09-11
 
 **เวอร์ชันแรกที่ประกาศใช้จริง** — เริ่มนับใหม่ที่ 1.0.0

@@ -75,6 +75,7 @@ reference implementation: `demo-student-subsystem/backend/`
 | "ใช้ npm/yarn ก็เหมือนกัน" | ใช้ **pnpm** เท่านั้น (`QA-05`) |
 | "`prisma migrate dev` เปลี่ยนชื่อคอลัมน์" | จะกลายเป็น drop+add ข้อมูลหาย — เขียน `RENAME COLUMN` เอง |
 | "แก้เทส/สคริปต์ให้ผ่าน" | ห้ามแตะ `standards/` — ให้แก้โค้ดตัวเอง |
+| "`typecheck` ของ frontend ใช้ `tsc --noEmit` พอ" | ต้องเป็น `next typegen && tsc --noEmit` ไม่งั้นผ่านในเครื่องแต่ตกบน CI (`tech-stack.md` ข้อ 1.2.1) |
 | "รายงานว่าเสร็จ น่าจะผ่าน" | ต้องแนบผลรันจริงของ CI + conformance |
 
 ---
@@ -86,6 +87,9 @@ pnpm install
 pnpm --filter backend build
 pnpm --filter backend test
 pnpm --filter backend start:dev
+
+# ตรวจ typecheck แบบเดียวกับ CI (ลบของค้างก่อน ไม่งั้นผ่านหลอก)
+rm -rf frontend/.next && pnpm -r typecheck
 
 # ตัวตัดสิน
 ./standards/scripts/run-all-checks.sh .        # static — เหมือน CI
