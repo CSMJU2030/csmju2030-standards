@@ -21,6 +21,7 @@ repo นี้เป็นแหล่งความจริงเพียง
 
 | อ่านเพื่อ | ไฟล์ |
 |---|---|
+| **เริ่มที่นี่ (AIE)** — ลำดับขั้นตอนตั้งแต่ศูนย์จนส่งมอบ | [`docs/aie-workflow.md`](docs/aie-workflow.md) |
 | **เริ่มที่นี่** — ภาพรวมและสถานะจริงของสถาปัตยกรรม | [`docs/overview.md`](docs/overview.md) |
 | JWT · JWKS · SSO · callback | [`docs/auth-contract.md`](docs/auth-contract.md) |
 | role mapping · permission · 401/403 | [`docs/authorization.md`](docs/authorization.md) |
