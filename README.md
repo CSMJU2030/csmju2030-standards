@@ -26,6 +26,7 @@ repo นี้เป็นแหล่งความจริงเพียง
 | JWT · JWKS · SSO · callback | [`docs/auth-contract.md`](docs/auth-contract.md) |
 | role mapping · permission · 401/403 | [`docs/authorization.md`](docs/authorization.md) |
 | stack ที่บังคับ + เวอร์ชัน และกฎ Database Isolation | [`docs/tech-stack.md`](docs/tech-stack.md) |
+| ดีไซน์และการออกแบบ | [`docs/ui-design-system.md`](docs/ui-design-system.md) |
 | รูปแบบ API ที่ต้องทำตาม | [`docs/api-conventions.md`](docs/api-conventions.md) |
 | ชื่อตาราง/คอลัมน์ · migration | [`docs/data-dictionary.md`](docs/data-dictionary.md) |
 | ลงทะเบียนระบบย่อยกับ Core Hub | [`docs/subsystem-registry.md`](docs/subsystem-registry.md) |
