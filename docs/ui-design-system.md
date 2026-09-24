@@ -163,7 +163,7 @@
 ## 3. Design Tokens
 
 > **กฎเหล็ก:** ทุกสีใน className ต้องมาจาก token ห้ามพิมพ์ hex ดิบ (`bg-[#2154D9]`, `border-[#3B80F2]`)
-> CI จะ scan หา hex code ที่ไม่ได้อยู่ใน token file และ **fail build**
+> CI (`UI-01`) จะ scan หา hex code ทั้ง `frontend/` ยกเว้นไฟล์ token กลาง (`globals.css` และโฟลเดอร์ `csmju/` จาก template) และ **fail build**
 
 ปัจจุบัน token ถูกประกาศใน `app/globals.css` ด้วย `@theme` ของ **Tailwind CSS v4** (ไม่มี `tailwind.config.js`) ชื่อ token ใช้ระบบ role ของ Material 3 (`primary`, `primary-container`, `on-surface`, …) และ Tailwind จะสร้าง utility ให้อัตโนมัติ เช่น `--color-primary-container` → `bg-primary-container`, `text-primary-container`, `border-primary-container`
 
@@ -1036,33 +1036,38 @@ import { CsmjuLogo } from "@/csmju"; // ใน core hub: "@/app/components/Csmju
 
 ### 16.1 โครงสร้างโปรเจกต์ (🔴 โครงหลัก / 🟡 รายละเอียดภายใน)
 
-ระบบย่อย 1 ระบบ = 1 repo ที่มี 2 โฟลเดอร์ (monorepo อย่างง่าย)
+ระบบย่อย 1 ระบบ = 1 repo ที่มี `frontend/` + `backend/` (pnpm workspace) — โครงเต็มของทั้ง repo และฝั่ง `backend/` ดู [`repo-structure.md`](repo-structure.md) ข้อ 2 ด้านล่างนี้ขยายเฉพาะส่วนที่เกี่ยวกับหน้าจอ
 
 ```
 csmju-<subsystem-name>/
 ├── subsystem.yaml              # 🔴 manifest (auth-contract §4, api-conventions §7)
-├── web/                        # Next.js
+├── standards/                  # 🔴 git submodule → csmju2030-standards
+├── frontend/                   # Next.js — CI สแกนทั้งโฟลเดอร์นี้ (UI-01..04, SEC-03, ARC-01)
 │   └── src/
 │       ├── app/
+│       │   ├── globals.css     # 🔴 token (@theme) จาก template — ห้ามแก้ (ข้อ 17.0)
 │       │   ├── layout.tsx      # 🔴 ครอบด้วย <CsmjuAppShell> ที่นี่ที่เดียว
 │       │   ├── page.tsx
 │       │   ├── loading.tsx     # 🔴 skeleton
 │       │   ├── error.tsx       # 🔴 ErrorState
 │       │   ├── not-found.tsx   # 🔴 EmptyState
 │       │   └── <resource>/     # โฟลเดอร์ = kebab-case ตรงกับ path ของ API
+│       ├── csmju/              # 🔴 ของกลางจาก template (ช่วงเปลี่ยนผ่าน ข้อ 17.0) — ห้ามแก้
 │       ├── components/
 │       │   ├── features/       # component เฉพาะโดเมนของระบบนี้
 │       │   └── shared/         # ใช้ซ้ำภายในระบบนี้
-│       ├── lib/
-│       │   ├── api.ts          # ห่อ fetch + envelope + error mapping
-│       │   └── permissions.ts  # mapping Layer 2 ของระบบนี้
-│       └── styles/globals.css  # import ของ design system เท่านั้น
-└── api/                        # NestJS
+│       └── lib/
+│           ├── api.ts          # ห่อ fetch + envelope + error mapping
+│           └── permissions.ts  # mapping Layer 2 ของระบบนี้
+└── backend/                    # NestJS — ดู repo-structure.md
     └── src/
         ├── main.ts
-        ├── common/             # filter, interceptor, guard ที่มาจาก template ส่วนกลาง
-        └── modules/<resource>/ # controller + service + dto + entity
+        ├── auth/               # คัดลอกจาก reference implementation
+        ├── common/             # envelope, exception filter, DTO กลาง
+        └── <domain>/           # controller + service + dto
 ```
+
+> ใช้ `src/` ตามโครงนี้ — สคริปต์ตรวจ `DD-01` `DD-02` `DD-04` `DD-05` สแกนเฉพาะ `frontend/src` ถ้าวางโค้ดไว้นอก `src/` กฎเหล่านี้จะไม่ถูกตรวจ
 
 > ❌ **ห้ามมีโฟลเดอร์ `components/ui/`** ที่สร้าง Button/Card/Modal ของตัวเอง — นั่นคือสัญญาณว่ากำลัง fork design system
 
@@ -1124,16 +1129,18 @@ csmju-<subsystem-name>/
 
 **`@csmju2030/design-system` คืออะไร:** ชื่อ **npm package** ที่วางแผนไว้ให้เป็นที่รวม UI กลาง (token สี/ฟอนต์, `CsmjuAppShell`, `CsmjuLogo`, ปุ่ม, Modal, ไอคอน ฯลฯ) ให้ทั้ง 37 ระบบติดตั้งด้วย `npm install` แล้วอัปเดตพร้อมกันด้วย `npm update` — **ไม่ใช่ไฟล์ และยังไม่ได้สร้าง/เผยแพร่** ทุกที่ในเอกสารนี้ที่อ้างถึง package นี้, `npx create-csmju-subsystem` หรือ `npx csmju-check-standards` คือแผนในอนาคต
 
-**ระหว่างนี้ให้ใช้ template `csmju-subsystem-web`** (อยู่ที่ `csmju-core-hub/templates/csmju-subsystem-web/`) ซึ่งมีของกลางชุดเดียวกับหน้าเว็บ core hub อยู่ในโฟลเดอร์ `csmju/`
+**ระหว่างนี้ให้ใช้ template `csmju-subsystem-web`** ซึ่งมีของกลางชุดเดียวกับหน้าเว็บ core hub อยู่ในโฟลเดอร์ `csmju/`
+
+> ⚠️ template นี้อยู่ใน **repo `csmju-core-hub`** ที่ `templates/csmju-subsystem-web/` — **ไม่ใช่** `templates/` ของ repo มาตรฐานนี้ (ซึ่งมีแค่ `subsystem.yaml`, `ci.yml`, `CODEOWNERS`, PR template) ต้อง clone `csmju-core-hub` มาไว้ข้าง ๆ repo ของตัวเองก่อน ถ้าไม่มีสิทธิ์อ่าน repo นั้นให้ขอ PM
 
 | ในเอกสารเขียนว่า | ช่วงนี้ให้ใช้ |
 |---|---|
-| `npm install @csmju2030/design-system` | copy template: `cp -R templates/csmju-subsystem-web ../csmju-<ชื่อระบบ>-web` แล้ว `npm install` |
+| `npm install @csmju2030/design-system` | จากรากของ repo ระบบย่อย: `cp -R ../csmju-core-hub/templates/csmju-subsystem-web/. frontend/` แล้ว `pnpm install` (ใส่ลงใน `frontend/` ของ repo เดิม — ห้ามแยกเป็น repo `-web` ต่างหาก · ห้ามใช้ `npm` เพราะจะได้ `package-lock.json` ซึ่งผิด `QA-05`) · ถ้า template วาง `app/` / `csmju/` ไว้ที่ราก ให้ย้ายเข้า `frontend/src/` ตามข้อ 16.1 |
 | `npx create-csmju-subsystem …` | copy template (ข้างบน) |
 | `import { … } from "@csmju2030/design-system"` | `import { … } from "@/csmju"` |
 | `import "@csmju2030/design-system/styles.css"` | มีแล้วใน `app/globals.css` ของ template |
 | `@csmju2030/design-system/icons` | `import { EditIcon, … } from "@/csmju"` |
-| `npm update @csmju2030/design-system` | copy `csmju/`, `app/globals.css`, `public/csmju-logo.png`, `design-system.md` จาก template เวอร์ชันล่าสุดทับของเดิม (ห้าม merge ทีละบรรทัด) |
+| `npm update @csmju2030/design-system` | `git pull` ใน `csmju-core-hub` แล้ว copy `csmju/`, `app/globals.css`, `public/csmju-logo.png`, `design-system.md` จาก `templates/csmju-subsystem-web/` ทับของเดิมใน `frontend/` (ห้าม merge ทีละบรรทัด) |
 
 **ของที่มีใน `@/csmju` แล้ว:** `CsmjuAppShell` · `CsmjuLogo` · `PageHeader` · `Modal` · `ConfirmDeleteModal` · `Tabs` · `StatusBadge` · ไอคอนทั้งหมด · class ใน `ui.ts` (`primaryButtonClass`, `secondaryButtonClass`, `dangerButtonClass`, `inputClass`, `cardClass`, `thClass`, `tdClass`, `iconButtonClass`, `iconDangerButtonClass`) และตัวอย่าง `loading.tsx` / `error.tsx` / `not-found.tsx` ใน `app/`
 
@@ -1194,7 +1201,7 @@ npx csmju-check-standards
 # 3. อ่าน CHANGELOG ของ design system (เฉพาะส่วนที่ใหม่กว่าเวอร์ชันเดิม)
 cat standards/CHANGELOG.md
 
-# 4. ป้อน ui-design-system.md + ui-prompt-template.md ให้ AI ของตัวเองอ่านก่อนสั่งงาน
+# 4. ป้อน ui-design-system.md (system prompt ข้อ 20.1) ให้ AI ของตัวเองอ่านก่อนสั่งงาน
 # 5. เริ่มพัฒนาใน feature branch
 git checkout -b feature/equipment/borrow-return-ui
 ```

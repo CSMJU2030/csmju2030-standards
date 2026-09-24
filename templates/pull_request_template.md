@@ -36,7 +36,7 @@
 
 ### UI (ถ้ามีการแก้หน้าจอ)
 - [ ] ทุกหน้าอยู่ใน `<CsmjuAppShell>`
-- [ ] ไม่มี hex สีหรือ px ดิบ ใช้ token `--csmju-*` เท่านั้น
+- [ ] ไม่มี hex สีหรือ px ดิบ ใช้ class จาก token ใน `@theme` เท่านั้น (ui-design-system.md ข้อ 3)
 - [ ] ครบ 4 สถานะ: loading / empty / error / success
 - [ ] ทุก input มี `<label>` ที่มองเห็นได้
 - [ ] ทดสอบที่ 360px แล้วไม่มี horizontal scroll

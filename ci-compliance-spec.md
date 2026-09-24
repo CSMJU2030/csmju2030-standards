@@ -319,12 +319,12 @@ jobs:
 | `GH-04` | `standards/` submodule pointer ตรงกับที่ PM อนุมัติ | ❌ Fail | github-workflow.md 3.6 |
 | `SEC-01` | ไม่มี hardcoded connection string / API key / secret | ❌ Fail | github-workflow.md 4 |
 | `SEC-02` | ไม่มีไฟล์ `.env` ที่มีค่าจริงใน repo | ❌ Fail | github-workflow.md 4 |
-| `SEC-03` | ไม่มี token เก็บใน `localStorage` | ❌ Fail | ui-prompt-template.md 9 |
+| `SEC-03` | ไม่มี token เก็บใน `localStorage` | ❌ Fail | ui-design-system.md 16.2 |
 | `SEC-04` | ตรวจ JWT ตามสัญญา: RS256 + JWKS + `kid` · ห้าม HS256/alg=none/กุญแจฝังในโค้ด/ออก token เอง/ใช้ jsonwebtoken-passport-jwt | ❌ Fail | auth-contract.md 4, 9 |
 | `SEC-05` | ไม่มีหน้า login / form username-password ในระบบย่อย | ❌ Fail | auth-contract.md 1, 9 |
 | `ARC-01` | ไม่มี Prisma client / `pg` import ใน `frontend/` | ❌ Fail | tech-stack.md 1.2 |
 | `ARC-02` | Dependency ทั้งหมดอยู่ใน whitelist ของ stack | ❌ Fail | tech-stack.md 1 |
-| `ARC-03` | ไม่มี UI library ต้องห้าม (MUI/Antd/Bootstrap ฯลฯ) | ❌ Fail | ui-prompt-template.md 2 |
+| `ARC-03` | ไม่มี UI library ต้องห้าม (MUI/Antd/Bootstrap ฯลฯ) | ❌ Fail | ui-design-system.md 16.2 |
 | `API-01` | `openapi.json` sync กับโค้ด backend | ❌ Fail | tech-stack.md 3 |
 | `API-02` | URL เป็น kebab-case + noun พหูพจน์ + มี `/v1/` | ❌ Fail | api-conventions.md 1 |
 | `API-03` | ทุก endpoint ห่อ response ด้วย envelope มาตรฐาน | ❌ Fail | api-conventions.md 3 |
@@ -337,10 +337,10 @@ jobs:
 | `DD-03` | ตาราง/คอลัมน์ในฐานข้อมูลเป็น `snake_case` ผ่าน `@map`/`@@map` (field ใน TS/JSON เป็น camelCase) | ❌ Fail | data-dictionary.md 9.1 |
 | `DD-04` | ไม่ hardcode รายชื่อคณะ (ต้องเรียก `/v1/faculties`) | ❌ Fail | data-dictionary.md 3 |
 | `DD-05` | ฟิลด์เงินเป็น integer ไม่ใช่ float | ❌ Fail | data-dictionary.md 5 |
-| `UI-01` | ไม่มี hex color ดิบ (ต้องใช้ `--csmju-*` token) | ❌ Fail | ui-prompt-template.md 1 |
-| `UI-02` | ไม่มีค่า spacing/radius นอก scale ที่กำหนด | ⚠️ Warn | ui-prompt-template.md |
-| `UI-03` | ไม่มี `div onClick` / `outline:none` / `!important` | ⚠️ Warn | ui-prompt-template.md 5 |
-| `UI-04` | ไม่มี emoji ในหน้าจอระบบ | ⚠️ Warn | ui-prompt-template.md 8 |
+| `UI-01` | ไม่มี hex color ดิบ (ต้องใช้ class จาก token ใน `@theme`) | ❌ Fail | ui-design-system.md 3 |
+| `UI-02` | ไม่มีค่า spacing/radius นอก scale ที่กำหนด | ⚠️ Warn | ui-design-system.md 3.2–3.3 |
+| `UI-03` | ไม่มี `div onClick` / `outline:none` / `!important` | ⚠️ Warn | ui-design-system.md 12.1, 16.2 |
+| `UI-04` | ไม่มี emoji ในหน้าจอระบบ | ⚠️ Warn | ui-design-system.md 16.2 |
 | `QA-01` | ESLint + Prettier ผ่านทั้ง frontend และ backend | ❌ Fail | github-workflow.md 3.1 |
 | `QA-02` | `tsc --noEmit` ผ่านทั้งสองฝั่ง | ❌ Fail | github-workflow.md 3.2 |
 | `QA-03` | Unit test ผ่าน + coverage ≥ เกณฑ์ที่ทีมกำหนด | ❌ Fail | github-workflow.md 3.3 |
@@ -540,18 +540,20 @@ echo "✅ [API-01] openapi.json sync กับโค้ด"
 # scripts/check-ui-tokens.sh
 set -euo pipefail
 
-# หา hex color ดิบใน tsx/css (ยกเว้นไฟล์ config ของ tailwind preset)
-RESULT=$(grep -rnE '#[0-9a-fA-F]{3,8}\b' frontend/src \
+# หา hex color ดิบใน tsx/ts/css ทั้ง frontend/ (ไม่ใช่แค่ src/)
+# ยกเว้นไฟล์ token กลางจาก template: globals.css และโฟลเดอร์ csmju/
+RESULT=$(grep -rnE '#[0-9a-fA-F]{3,8}\b' frontend \
   --include='*.tsx' --include='*.ts' --include='*.css' \
-  --exclude='*.config.*' --exclude-dir=node_modules 2>/dev/null || true)
+  --exclude='*.config.*' --exclude='globals.css' --exclude-dir=csmju \
+  --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null || true)
 
 if [[ -n "$RESULT" ]]; then
   cat <<EOF
 ❌ [UI-01] พบค่าสี hex ดิบในโค้ด frontend
 $(echo "$RESULT" | sed 's/^/   /')
-   อ้างอิง: ui-prompt-template.md ข้อ 1
-   วิธีแก้: ใช้ CSS variable --csmju-* หรือ utility class
-            จาก tailwind preset ของโครงการแทน
+   อ้างอิง: ui-design-system.md ข้อ 3
+   วิธีแก้: ใช้ utility class จาก token ใน @theme ของ globals.css
+            (เช่น bg-primary-container, text-on-surface) แทนการพิมพ์ hex
 EOF
   exit 1
 fi
@@ -607,7 +609,6 @@ csmju2030-standards/
 │   ├── api-conventions.md
 │   ├── data-dictionary.md
 │   ├── ui-design-system.md
-│   ├── ui-prompt-template.md
 │   ├── tech-stack.md
 │   ├── github-workflow.md
 │   └── ci-compliance-spec.md            # ไฟล์นี้
@@ -712,7 +713,7 @@ csmju-<subsystem-name>/
 
 ### UI (ถ้ามีการแก้หน้าจอ)
 - [ ] ทุกหน้าอยู่ใน `<CsmjuAppShell>`
-- [ ] ไม่มี hex สีหรือ px ดิบ ใช้ token `--csmju-*` เท่านั้น
+- [ ] ไม่มี hex สีหรือ px ดิบ ใช้ class จาก token ใน `@theme` เท่านั้น (ui-design-system.md ข้อ 3)
 - [ ] ครบ 4 สถานะ: loading / empty / error / success
 - [ ] ทุก input มี `<label>` ที่มองเห็นได้
 - [ ] ทดสอบที่ 360px แล้วไม่มี horizontal scroll

@@ -1,3 +1,3 @@
 export function Button() {
-  return <button style={{ color: 'var(--csmju-primary)' }}>Save</button>;
+  return <button className="bg-primary-container text-on-primary">Save</button>;
 }

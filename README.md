@@ -180,6 +180,5 @@ subsystem ปักหมุดเวอร์ชันไว้ (`@v1.0.0`) จ
 | ruleset ระดับ repo | ✅ ทั้ง 2 repo |
 | **ruleset ระดับ org** | ❌ ต้องมี plan **GitHub Team** — API ตอบ 403 ตรง ๆ บน Free ต้องรัน `apply-rulesets.sh repo <name>` ทุกครั้งที่สร้าง subsystem ใหม่ |
 | Require 2FA / ห้าม member ลบ repo / เปลี่ยน visibility | ⬜ ต้องตั้งในหน้าเว็บ |
-| `docs/ui-prompt-template.md` | ⬜ ยังเป็น stub รอเจ้าของส่งฉบับจริง (อีก 6 ฉบับเป็นของจริงแล้ว) |
 | สมาชิกจริงใน team `pl-*` / `aie-*` | ⬜ ยังมีแค่เจ้าของ org — จนกว่าจะมีคนจริง PR จะ approve ไม่ได้นอกจากใช้ bypass ของ devops |
 | standards repo เป็น private | ⬜ ต้องทำ GitHub App ก่อน (เหตุผลอยู่ในหัว `new-subsystem.sh`) |
