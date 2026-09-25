@@ -30,6 +30,7 @@ set -euo pipefail
 ORG="CSMJU2030"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STANDARDS_VERSION="$(tr -d '[:space:]' < "$SCRIPT_DIR/VERSION")"
+PNPM_VERSION="9.15.9"
 
 SUBSYSTEM="${1:?ระบุชื่อ subsystem เช่น payroll}"
 DISPLAY_NAME="${2:-$SUBSYSTEM}"
@@ -110,6 +111,17 @@ cat > pnpm-workspace.yaml <<'EOF'
 packages:
   - 'frontend'
   - 'backend'
+EOF
+
+# reusable workflow เรียก pnpm/action-setup โดยไม่ระบุ version เพื่อให้อ่าน
+# "packageManager" จากไฟล์นี้ — ไม่มีไฟล์นี้ job Code Quality กับ API Contract
+# Sync จะ fail ด้วย "No pnpm version is specified" ตั้งแต่ PR แรก
+cat > package.json <<EOF
+{
+  "name": "${REPO_NAME}",
+  "private": true,
+  "packageManager": "pnpm@${PNPM_VERSION}"
+}
 EOF
 
 cat > README.md <<EOF
