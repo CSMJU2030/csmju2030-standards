@@ -78,6 +78,10 @@ run_fixture_case "API-02"   "check-api-conventions.sh"
 # before anyone could write code. pass-only fixture.
 run_fixture_case "API-02-EMPTY" "check-api-conventions.sh"
 run_fixture_case "UI-01"     "check-ui-tokens.sh"
+# UI-01-NOSRC is a regression case: the scan was limited to frontend/src,
+# so a Next.js app with app/ at the root of frontend/ passed without being
+# checked. fail-only fixture.
+run_fixture_case "UI-01-NOSRC" "check-ui-tokens.sh"
 run_fixture_case "QA-05"     "check-qa.sh"
 run_fixture_case "EXC-01"    "check-exceptions.sh"
 

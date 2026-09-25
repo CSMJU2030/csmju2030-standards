@@ -217,7 +217,8 @@ Prisma ต้อง **pin 7.9.1 เป๊ะทั้งสามตัว** (`p
 - **ห้ามมีหน้า login ของตัวเอง** — ผู้ใช้เข้ามาผ่าน Core Hub SSO เท่านั้น
 - token เก็บใน **httpOnly cookie** เท่านั้น · ห้าม `localStorage` (`SEC-03`)
 - frontend **ห้าม import Prisma / `pg` / แตะ `DATABASE_URL`** (`ARC-01`)
-- ใช้ design token `--csmju-*` ห้ามใส่ hex ดิบ
+- ใช้ class จาก design token ใน `@theme` (เช่น `bg-primary-container`) ห้ามใส่ hex ดิบ (`UI-01`)
+  — หน้าตา สี ฟอนต์ component ทั้งหมดอยู่ใน [`ui-design-system.md`](ui-design-system.md)
 
 script `typecheck` ของ frontend ต้องเป็นแบบนี้ ไม่งั้นผ่านในเครื่องแต่**ตกบน CI**:
 
