@@ -115,7 +115,8 @@ csmju-<slug>/
 จากนั้นแก้ `subsystem.yaml` ให้ตรงงานจริง — โดยเฉพาะ **`probes`** ซึ่ง conformance ใช้ยิงทดสอบ
 (ประกาศไม่ครบ = ขึ้น `SKIP` = **ยังไม่ผ่าน**) ดู [`conformance.md`](conformance.md) ข้อ 3
 
-> ขั้นที่ต้องให้ org admin ทำต่อ: สร้าง Team `pl-<slug>` / `aie-<slug>` และตั้ง ruleset ให้ repo
+> ขั้นที่ต้องให้ org admin ทำต่อ: สร้าง Team `pl-<slug>` / `aie-<slug>` — ruleset สคริปต์ตั้งให้แล้ว
+> ถ้าคนรันไม่มีสิทธิ์ workflow Ruleset Sweep จะตามตั้งให้ภายในชั่วโมง
 
 ---
 

@@ -16,6 +16,7 @@
 #   2. รัน run-all-checks.sh กับของที่สร้าง — ถ้าไม่ผ่านจะหยุด ไม่ push ขึ้นเว็บ
 #   3. สร้าง repo บน GitHub แล้ว push
 #   4. เพิ่ม standards submodule
+#   5. ตั้ง ruleset (ถ้าสิทธิ์ไม่พอ workflow Ruleset Sweep จะตามตั้งให้ภายในชั่วโมง)
 #
 # หมายเหตุเรื่อง visibility: subsystem repo สร้างเป็น public เพราะ
 #   (ก) GitHub Actions ให้เวลารันไม่จำกัดกับ repo public — 37 repo × 8 job
@@ -29,6 +30,7 @@ set -euo pipefail
 ORG="CSMJU2030"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STANDARDS_VERSION="$(tr -d '[:space:]' < "$SCRIPT_DIR/VERSION")"
+PNPM_VERSION="9.15.9"
 
 SUBSYSTEM="${1:?ระบุชื่อ subsystem เช่น payroll}"
 DISPLAY_NAME="${2:-$SUBSYSTEM}"
@@ -111,6 +113,17 @@ packages:
   - 'backend'
 EOF
 
+# reusable workflow เรียก pnpm/action-setup โดยไม่ระบุ version เพื่อให้อ่าน
+# "packageManager" จากไฟล์นี้ — ไม่มีไฟล์นี้ job Code Quality กับ API Contract
+# Sync จะ fail ด้วย "No pnpm version is specified" ตั้งแต่ PR แรก
+cat > package.json <<EOF
+{
+  "name": "${REPO_NAME}",
+  "private": true,
+  "packageManager": "pnpm@${PNPM_VERSION}"
+}
+EOF
+
 cat > README.md <<EOF
 # ${REPO_NAME}
 
@@ -179,13 +192,25 @@ git add .gitmodules standards
 git commit -q -m "chore(${SUBSYSTEM}): pin standards submodule at v${STANDARDS_VERSION}"
 git push -q
 
+# --- ruleset: ต้องตั้งหลัง push ครบแล้วเท่านั้น main-protection ห้าม push ตรง
+# เข้า main แม้แต่ team devops (bypass_mode: pull_request) ตั้งก่อนจะ push
+# submodule commit ไม่ขึ้น — ถ้าตั้งไม่สำเร็จไม่หยุดสคริปต์ เพราะ repo ขึ้นเว็บแล้ว ---
+echo "→ ตั้ง ruleset..."
+RULESET_STEP=""
+if ! "$SCRIPT_DIR/org-settings/apply-rulesets.sh" repo "$REPO_NAME"; then
+  echo "⚠️  ตั้ง ruleset ไม่สำเร็จ (ต้องเป็น org admin หรืออยู่ team devops)" >&2
+  echo "   workflow Ruleset Sweep ใน standards repo จะตามตั้งให้ภายในชั่วโมง" >&2
+  RULESET_STEP="
+  - ruleset ยังไม่ได้ตั้ง: รอ Ruleset Sweep หรือรันเอง
+      standards/org-settings/apply-rulesets.sh repo ${REPO_NAME}"
+fi
+
 cat <<EOF
 
 ✅ สร้าง ${REPO_NAME} สำเร็จ
    https://github.com/${ORG}/${REPO_NAME}
 
 ขั้นตอนที่เหลือ (ต้องมีสิทธิ์ org admin)
-  1. สร้าง Team: pl-${SUBSYSTEM}, aie-${SUBSYSTEM} แล้วผูกเข้า repo
-  2. ตั้ง ruleset:  standards/org-settings/apply-rulesets.sh repo ${REPO_NAME}
-  3. แก้ subsystem.yaml ใส่ owner จริง
+  - สร้าง Team: pl-${SUBSYSTEM}, aie-${SUBSYSTEM} แล้วผูกเข้า repo
+  - แก้ subsystem.yaml ใส่ owner จริง${RULESET_STEP}
 EOF
