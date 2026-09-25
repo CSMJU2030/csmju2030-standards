@@ -76,6 +76,7 @@ sed "s#<subsystem-name>#${SUBSYSTEM}#g" \
 
 cp "$SCRIPT_DIR/templates/pull_request_template.md" .github/pull_request_template.md
 cp "$SCRIPT_DIR/templates/.env.example" .env.example
+cp "$SCRIPT_DIR/templates/conformance-nightly.yml" .github/workflows/conformance-nightly.yml
 
 # --- GH-04: ไฟล์นี้คือสิ่งที่สคริปต์เดิมลืมสร้าง ทำให้ทุก repo ใหม่ fail ทันที ---
 printf '%s\n' "$STANDARDS_VERSION" > .standards-version
