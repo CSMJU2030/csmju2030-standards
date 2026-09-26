@@ -83,6 +83,31 @@ CI (`ARC-02`) ตรวจ dependency ทุกตัวกับรายกา
 ต้องการไลบรารีนอกรายการ → เปิด issue ขอเพิ่ม พร้อมเหตุผลว่าแก้ปัญหาอะไร
 **ห้าม**แก้ไฟล์ whitelist เองใน PR ของระบบย่อย
 
+#### 1.4.1 งานตั้งเวลา (scheduled job)
+
+งานที่ต้องรันเองตามเวลา เช่น ยกเลิกคำขอที่ค้างเกินกำหนด หรือติดธงรายการที่เกินกำหนดคืน ให้ใช้ `@nestjs/schedule` (อนุญาตตั้งแต่ 1.0.1)
+ไลบรารีตั้งเวลาตัวอื่น (`node-cron` · `cron` · `agenda` · `bull`) ยังไม่อนุญาต ให้ใช้ตัวเดียวกันทั้ง platform
+
+ทุกงานต้องทำตาม 3 ข้อนี้
+
+1. **รันซ้ำได้โดยไม่เสียหาย (idempotent)** — ใส่เงื่อนไขทั้งหมดไว้ใน `WHERE` ของคำสั่งเดียว
+   เช่น `UPDATE … SET status = 'EXPIRED' WHERE status = 'PENDING' AND expires_at < now()`
+   ห้ามดึงรายการออกมาก่อนแล้วค่อยวนแก้ทีละแถว เพราะถ้ามีสอง instance รันพร้อมกัน งานจะถูกทำซ้ำ
+2. **ระบุ time zone ทุกครั้ง** — `@Cron('0 2 * * *', { timeZone: 'Asia/Bangkok' })`
+   ระบบที่รันใน Docker มักใช้เวลา UTC ถ้าไม่ระบุ งานที่ตั้งไว้ตีสองจะไปรันตอนเก้าโมงเช้าเวลาไทย
+3. **ถ้าวันหนึ่งต้องรันหลาย instance** — ครอบงานด้วย `pg_try_advisory_xact_lock` ภายใน `prisma.$transaction`
+   เพื่อให้มีแค่ instance เดียวที่ทำงานรอบนั้น ทำได้ทันทีโดยไม่ต้องเพิ่ม dependency และไม่ต้องย้ายไป scheduler กลาง
+   (ตอนนี้ระบบย่อยรัน instance เดียว และมาตรฐานยังไม่มี scheduler กลาง)
+
+```ts
+await this.prisma.$transaction(async (tx) => {
+  // เลขประจำงาน ต้องไม่ซ้ำกับงานอื่นในระบบเดียวกัน
+  const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(4201) AS locked`;
+  if (!locked) return; // instance อื่นกำลังทำงานนี้อยู่
+  await tx.$executeRaw`UPDATE borrow_requests SET status = 'EXPIRED' WHERE status = 'PENDING' AND expires_at < now()`;
+});
+```
+
 ### 1.5 ข้อยกเว้นของ Core Hub
 
 `csmju-core-hub` **ไม่ใช่**ระบบย่อย จึงไม่อยู่ใต้กฎบางข้อ เพราะเป็นผู้ให้ identity เอง:
