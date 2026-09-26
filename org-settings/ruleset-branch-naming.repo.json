@@ -9,7 +9,8 @@
         "refs/heads/**"
       ],
       "exclude": [
-        "refs/heads/main"
+        "refs/heads/main",
+        "refs/heads/develop"
       ]
     }
   },

@@ -92,6 +92,22 @@ echo "== GH-01: branch naming =="
 assert_exit "GH-01 pass (valid branch name)" 0 "$?"
 "$SCRIPT_DIR/check-branch-name.sh" . "bugfix-thing" >/dev/null 2>&1
 assert_exit "GH-01 fail (invalid branch name)" 1 "$?"
+# develop → main (release) and main → develop (hotfix back-merge) are the only
+# PRs allowed between the two long-lived branches (github-workflow.md 1.5).
+# GITHUB_BASE_REF is cleared so the result does not depend on the PR this
+# self-test itself runs in.
+GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "develop" "main" >/dev/null 2>&1
+assert_exit "GH-01 pass (release PR develop → main)" 0 "$?"
+GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "main" "develop" >/dev/null 2>&1
+assert_exit "GH-01 pass (back-merge PR main → develop)" 0 "$?"
+GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "feature/core-hub/add-thing" "develop" >/dev/null 2>&1
+assert_exit "GH-01 pass (feature PR into develop)" 0 "$?"
+GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "develop" >/dev/null 2>&1
+assert_exit "GH-01 fail (develop outside a PR into main)" 1 "$?"
+GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "release/1.1" "main" >/dev/null 2>&1
+assert_exit "GH-01 fail (other long-lived names are still rejected)" 1 "$?"
+GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "main" "main" >/dev/null 2>&1
+assert_exit "GH-01 fail (main as a head outside the back-merge)" 1 "$?"
 
 # --- GH-02: commit messages (needs a real git repo, built on the fly) ----
 echo

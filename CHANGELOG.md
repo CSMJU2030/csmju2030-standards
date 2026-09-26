@@ -5,7 +5,27 @@
 
 ---
 
-## ยังไม่ออกเวอร์ชัน
+## 1.1.0 — 2026-09-26
+
+### branch `develop` (ใหม่)
+
+- `docs/github-workflow.md` ข้อ 1.5 (ใหม่) — repo ที่มีหลายคนทำพร้อมกันหรือมี dev server ใช้ branch หลัก 2 ตัว
+  คือ `develop` รวมงานแล้วทดสอบบน dev server และ `main` เป็น production · Core Hub ต้องใช้ · ระบบย่อยเลือกใช้ได้ ·
+  repo มาตรฐานไม่ใช้เพราะ tag ทำหน้าที่เป็น release อยู่แล้ว
+  feature PR เข้า `develop` แบบ squash · PR `develop` → `main` และ `main` → `develop` ใช้ merge commit
+  เพราะถ้า squash แล้ว `main` กับ `develop` จะแยกประวัติกัน · ข้อ 1.1, 1.2, 1.4, 3 และ system prompt ข้อ 5 ปรับให้ตรงกัน
+- `GH-01` (`scripts/check-branch-name.sh`) — ยอมรับ PR `develop` → `main` และ `main` → `develop`
+  โดยดู base จาก `GITHUB_BASE_REF` (หรือ argument ที่ 3) ส่วนชื่ออื่นยังต้องเป็น `feature/<subsystem>/<เรื่อง>`
+  และการตรวจในเครื่องที่ไม่มี base ยังให้ `develop` กับ `main` ไม่ผ่านเหมือนเดิม · `self-test.sh` เพิ่ม 6 กรณี
+- `templates/ci.yml` · ตัวอย่างใน `ci-compliance-spec.md` ข้อ 6.2 และ `core-hub-rules.md` ข้อ 6 — รัน CI กับ PR ที่เข้า `develop` ด้วย
+  (repo ที่ไม่มี `develop` ไม่มีผลอะไร)
+- `ci-compliance-spec.md` ข้อ 4.1–4.2 และ `org-settings/` — เลิกบังคับ linear history บน `main` เพราะ PR release ต้องเป็น merge commit
+  ส่วน feature PR ยังเป็น squash โดยคุมที่ merge method ของ repo · repo ที่ใช้ `develop` ต้องเปิด merge commit
+  และตั้ง `develop` เป็น default branch ก่อน merge PR release ครั้งแรก (ไม่งั้น "Automatically delete head branches" จะลบ `develop`)
+  · ruleset ชื่อ branch ยกเว้น `refs/heads/develop` เพิ่มจาก `refs/heads/main`
+  · `apply-rulesets.sh` ยอมรับ repo ที่ default branch เป็น `develop` ด้วย (เดิมรับแค่ `main`)
+
+### UI และเอกสาร (เดิมอยู่ใน "ยังไม่ออกเวอร์ชัน")
 
 - `scripts/check-ui-tokens.sh` (`UI-01`..`UI-04`) — สแกนทั้ง `frontend/` แทน `frontend/src`
   เดิมถ้า Next.js วาง `app/` ไว้ที่ราก `frontend/` สคริปต์จะไม่เจอไฟล์ไหนเลยแล้วผ่านเฉย ๆ
@@ -19,6 +39,17 @@
 - `ui-design-system.md` ข้อ 16.1 — ใช้ `frontend/` + `backend/` ตาม `repo-structure.md`
   (เดิมเขียน `web/` + `api/`) · ข้อ 17.0 — ระบุว่า template `csmju-subsystem-web` อยู่ใน repo
   `csmju-core-hub` และให้ copy ลง `frontend/` ด้วย `pnpm` แทนการแยก repo `-web` ด้วย `npm`
+
+### ระบบย่อยและ Core Hub ต้องทำอะไรเมื่อเลื่อนมา 1.1.0
+
+1. `UI-01`..`UI-04` ตรวจทั้ง `frontend/` แล้ว ถ้ามีสี hex นอก `globals.css` และ `csmju/` จะตก ต้องเปลี่ยนเป็น token ก่อนเลื่อนเวอร์ชัน
+   (Core Hub ยกเว้น `UI-01`..`UI-04` อยู่แล้ว)
+2. ขอ PL หรือ DevOps เลื่อน pin ใน `.github/workflows/ci.yml` เป็น `@v1.1.0` · ระบบย่อยเลื่อน submodule `standards`
+   · `.standards-version` · `standards_version` ใน `subsystem.yaml` ด้วย (PR นี้ `GH-03` จะแจ้งตามที่ตั้งใจไว้ github-workflow.md ข้อ 3)
+3. ถ้าจะใช้ `develop` ให้ทำ "ตั้งค่าครั้งแรก" ใน github-workflow.md ข้อ 1.5 · Core Hub ต้องเลื่อนเป็น 1.1.0 ก่อนเปิด PR release ครั้งแรก
+   ไม่งั้น `GH-01` ของ 1.0.0 จะตีตก PR `develop` → `main`
+4. repo ที่มี ruleset อยู่แล้วจะยังใช้ชุดเดิม เพราะ sweep สร้างเฉพาะตัวที่ขาดและไม่ทับของเดิม (org-settings-checklist.md)
+   DevOps ต้องรัน `org-settings/apply-rulesets.sh repo <ชื่อ repo>` ให้แต่ละ repo ที่จะใช้ `develop`
 
 ---
 

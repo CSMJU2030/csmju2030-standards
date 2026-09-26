@@ -5,7 +5,7 @@
   "bypass_actors": [],
   "conditions": {
     "repository_name": { "include": ["csmju-*"], "exclude": [] },
-    "ref_name": { "include": ["refs/heads/**"], "exclude": ["refs/heads/main"] }
+    "ref_name": { "include": ["refs/heads/**"], "exclude": ["refs/heads/main", "refs/heads/develop"] }
   },
   "rules": [
     {
