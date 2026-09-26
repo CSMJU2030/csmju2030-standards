@@ -5,6 +5,23 @@
 
 ---
 
+## ยังไม่ออกเวอร์ชัน
+
+- `scripts/check-ui-tokens.sh` (`UI-01`..`UI-04`) — สแกนทั้ง `frontend/` แทน `frontend/src`
+  เดิมถ้า Next.js วาง `app/` ไว้ที่ราก `frontend/` สคริปต์จะไม่เจอไฟล์ไหนเลยแล้วผ่านเฉย ๆ
+  (fixture ใหม่ `__fixtures__/UI-01-NOSRC`) · ยกเว้นไฟล์ token กลาง `globals.css` และ `csmju/`
+  จาก template ซึ่งประกาศสีเป็น hex โดยตั้งใจ — เดิม `globals.css` ใต้ `src/` ทำให้ `UI-01` ตกเอง
+- ข้อความ `UI-01` และ `SEC-03` ชี้ไป `ui-design-system.md` แทน `ui-prompt-template.md`
+  ที่ถูกรวมเข้าไปแล้ว (เช่นเดียวกับตารางกฎใน `ci-compliance-spec.md` ข้อ 7)
+- ชื่อ token: เลิกใช้ `--csmju-*` ใน `aie-workflow.md`, `ci-compliance-spec.md`,
+  `templates/pull_request_template.md` ให้ตรงกับ `ui-design-system.md` ข้อ 3
+  (Tailwind v4 `@theme` เช่น `bg-primary-container`)
+- `ui-design-system.md` ข้อ 16.1 — ใช้ `frontend/` + `backend/` ตาม `repo-structure.md`
+  (เดิมเขียน `web/` + `api/`) · ข้อ 17.0 — ระบุว่า template `csmju-subsystem-web` อยู่ใน repo
+  `csmju-core-hub` และให้ copy ลง `frontend/` ด้วย `pnpm` แทนการแยก repo `-web` ด้วย `npm`
+
+---
+
 ## 1.0.1 — 2026-09-26
 
 - `scripts/lib/allowed-deps.json` — เพิ่ม `@nestjs/schedule` ใน `allowed_backend` สำหรับงานตั้งเวลา (scheduled job)
@@ -20,6 +37,22 @@
 
 **ระบบย่อยต้องทำอะไร:** ถ้าต้องใช้ `@nestjs/schedule` ให้ขอ PL เลื่อนเป็น 1.0.1 ได้แก่ pin ใน `ci.yml` · submodule `standards` ·
 `.standards-version` · `standards_version` ใน `subsystem.yaml` · ระบบย่อยอื่นไม่ต้องทำอะไร
+
+---
+
+## Errata ของ 1.0.0 — 2026-09-23
+
+แก้เอกสารเท่านั้น ไม่มีการเปลี่ยนกฎหรือสคริปต์ตรวจ จึงไม่ขึ้นเวอร์ชัน
+(`VERSION` ยังเป็น `1.0.0` ระบบย่อยไม่ต้องเลื่อน `.standards-version`)
+
+- `tech-stack.md` ข้อ 1.2.1 (ใหม่) — `typecheck` ของ frontend ต้องเป็น
+  `next typegen && tsc --noEmit` ไม่ใช่ `tsc --noEmit` เฉย ๆ
+  Next.js สร้าง type ของ route/layout (`LayoutProps`, `PageProps`) ตอน dev/build
+  เท่านั้น สคริปต์แบบเดิมจึงผ่านในเครื่อง (มี `.next/` ค้าง) แต่ตกบน CI ที่ checkout
+  ใหม่ด้วย `TS2304: Cannot find name 'LayoutProps'` — เจอจริงตอนทำ frontend ของ Core Hub
+- `tech-stack.md` ข้อ 1.2 — ระบุ Next.js เป็น `15.5+` เพราะ `next typegen` เพิ่งมีในเวอร์ชันนั้น
+- `ai/AGENTS.md` — เพิ่มลงตาราง "สิ่งที่ agent มักทำผิด" และเพิ่มคำสั่ง
+  `rm -rf frontend/.next && pnpm -r typecheck` ในชุดคำสั่งที่ต้องรันก่อนส่งงาน
 
 ---
 

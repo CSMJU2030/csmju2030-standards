@@ -21,10 +21,12 @@ repo นี้เป็นแหล่งความจริงเพียง
 
 | อ่านเพื่อ | ไฟล์ |
 |---|---|
+| **เริ่มที่นี่ (AIE)** — ลำดับขั้นตอนตั้งแต่ศูนย์จนส่งมอบ | [`docs/aie-workflow.md`](docs/aie-workflow.md) |
 | **เริ่มที่นี่** — ภาพรวมและสถานะจริงของสถาปัตยกรรม | [`docs/overview.md`](docs/overview.md) |
 | JWT · JWKS · SSO · callback | [`docs/auth-contract.md`](docs/auth-contract.md) |
 | role mapping · permission · 401/403 | [`docs/authorization.md`](docs/authorization.md) |
 | stack ที่บังคับ + เวอร์ชัน และกฎ Database Isolation | [`docs/tech-stack.md`](docs/tech-stack.md) |
+| ดีไซน์และการออกแบบ | [`docs/ui-design-system.md`](docs/ui-design-system.md) |
 | รูปแบบ API ที่ต้องทำตาม | [`docs/api-conventions.md`](docs/api-conventions.md) |
 | ชื่อตาราง/คอลัมน์ · migration | [`docs/data-dictionary.md`](docs/data-dictionary.md) |
 | ลงทะเบียนระบบย่อยกับ Core Hub | [`docs/subsystem-registry.md`](docs/subsystem-registry.md) |
@@ -95,7 +97,7 @@ CI ตรวจว่า "เขียนถูกกฎ" · conformance ตร�
 ./new-subsystem.sh payroll "ระบบเงินเดือน"
 ```
 สร้างโครงไฟล์, ตรวจ compliance กับของที่สร้าง, สร้าง repo บน GitHub, push,
-แล้วผูก standards submodule ให้ — ถ้า scaffold ไม่ผ่าน compliance
+แล้วผูก standards submodule และตั้ง ruleset ให้ — ถ้า scaffold ไม่ผ่าน compliance
 จะหยุดก่อนสร้างอะไรบน GitHub
 
 ### ตั้ง branch protection
@@ -103,8 +105,12 @@ CI ตรวจว่า "เขียนถูกกฎ" · conformance ตร�
 ```bash
 ./org-settings/apply-rulesets.sh validate <repo>   # ลองยิง payload แบบ disabled แล้วลบ
 ./org-settings/apply-rulesets.sh repo csmju-payroll
+./org-settings/apply-rulesets.sh sweep --dry-run   # ไล่ทุก repo ดูว่าตัวไหนยังขาด
 ./org-settings/apply-rulesets.sh org               # ต้องมี scope admin:org
 ```
+
+plan Free ไม่มี org ruleset — `new-subsystem.sh` ตั้งให้ตอนสร้าง และ workflow
+`ruleset-sweep.yml` ตามเก็บตัวที่หลุดทุกชั่วโมง
 
 งานตั้งค่าระดับ organization ที่สคริปต์ทำแทนไม่ได้ อยู่ใน
 [`org-settings/org-settings-checklist.md`](org-settings/org-settings-checklist.md)
@@ -133,7 +139,7 @@ fixtures/          บัญชี dev ของ Core Hub + manifest ตัว�
 templates/         ไฟล์ที่ทุก subsystem repo ต้องมีเหมือนกัน (subsystem.yaml, ci.yml, …)
 org-settings/      ruleset + checklist ที่ต้องตั้งในหน้า Settings ของ GitHub
 __fixtures__/      ตัวอย่าง pass/fail สำหรับ self-test
-.github/workflows/ subsystem-compliance.yml · core-hub-compliance.yml (reusable) · conformance-nightly.yml · self-test.yml
+.github/workflows/ subsystem-compliance.yml · core-hub-compliance.yml (reusable) · conformance-nightly.yml · self-test.yml · ruleset-sweep.yml
 ```
 
 > `docs/` คนอ่าน · `contracts/` เครื่องอ่าน · ถ้าสองอย่างขัดกันให้ยึด `contracts/` แล้วแจ้ง PL
@@ -176,8 +182,8 @@ subsystem ปักหมุดเวอร์ชันไว้ (`@v1.0.0`) จ
 | Teams `devops` `pm` `pl-equipment` `aie-equipment` | ✅ สร้างและผูกสิทธิ์แล้ว |
 | org settings, Actions allow-list, secret scanning, Dependabot | ✅ ตั้งแล้ว — รายละเอียดใน `org-settings/org-settings-checklist.md` |
 | ruleset ระดับ repo | ✅ ทั้ง 2 repo |
-| **ruleset ระดับ org** | ❌ ต้องมี plan **GitHub Team** — API ตอบ 403 ตรง ๆ บน Free ต้องรัน `apply-rulesets.sh repo <name>` ทุกครั้งที่สร้าง subsystem ใหม่ |
+| **ruleset ระดับ org** | ❌ ต้องมี plan **GitHub Team** — API ตอบ 403 ตรง ๆ บน Free ใช้ `new-subsystem.sh` + workflow Ruleset Sweep แทน |
+| Ruleset Sweep credential | ⬜ ต้องสร้าง GitHub App — ขั้นตอนใน `org-settings/org-settings-checklist.md` |
 | Require 2FA / ห้าม member ลบ repo / เปลี่ยน visibility | ⬜ ต้องตั้งในหน้าเว็บ |
-| `docs/ui-prompt-template.md` | ⬜ ยังเป็น stub รอเจ้าของส่งฉบับจริง (อีก 6 ฉบับเป็นของจริงแล้ว) |
 | สมาชิกจริงใน team `pl-*` / `aie-*` | ⬜ ยังมีแค่เจ้าของ org — จนกว่าจะมีคนจริง PR จะ approve ไม่ได้นอกจากใช้ bypass ของ devops |
 | standards repo เป็น private | ⬜ ต้องทำ GitHub App ก่อน (เหตุผลอยู่ในหัว `new-subsystem.sh`) |

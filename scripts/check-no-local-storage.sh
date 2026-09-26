@@ -15,7 +15,7 @@ if [[ -n "$RESULT" ]]; then
   cat <<EOF
 ❌ [SEC-03] พบการเก็บ token ใน localStorage
 $(echo "$RESULT" | sed 's/^/   /')
-   อ้างอิง: ui-prompt-template.md ข้อ 9
+   อ้างอิง: ui-design-system.md ข้อ 16.2 (ข้อห้ามข้อ 4)
    วิธีแก้: เก็บ token ใน httpOnly cookie หรือ memory เท่านั้น ห้ามใช้ localStorage
 EOF
   exit 1
