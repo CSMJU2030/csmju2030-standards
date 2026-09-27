@@ -62,7 +62,7 @@
 | `API-01` | `openapi.json` sync กับโค้ด | **ยกเว้น (ชั่วคราว)** | Core Hub ยังไม่มีสคริปต์ `generate:openapi` — กลับมาบังคับเมื่อมี |
 | `API-02` | path kebab-case ใต้ `/api/v1` | **บังคับ** | — |
 | `API-03` | response envelope `{ success, data/error, meta }` | **บังคับ** | ยกเว้น JWKS (§5) |
-| `API-04` | `error.code` จาก 7 ค่า | **บังคับ** | — |
+| `API-04` | `error.code` จาก 9 ค่าของ `contracts/error-codes.json` | **บังคับ** | — |
 | `API-05` | ต้องมี health endpoint | **บังคับ** | Core Hub ใช้ `/api/v1/health` (ระบบย่อยใช้ `/api/health`) |
 | `API-06` | ประกาศ `public_endpoints` ใน `subsystem.yaml` | **ยกเว้น** | Core Hub ไม่มี `subsystem.yaml` |
 | `API-07` | ห้าม `per_page` — ใช้ `page`/`limit` | **บังคับ** | — |

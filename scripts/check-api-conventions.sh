@@ -4,6 +4,12 @@
 # Usage: check-api-conventions.sh [target_dir]
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# API-04 อ่านรายการ error code จากสัญญากลาง — หาไฟล์จากที่อยู่ของสคริปต์
+# แบบเดียวกับ check-submodule-pointer.sh จึงใช้ได้ทั้งตอนเป็น submodule
+# (standards/scripts) และตอน CI checkout ไว้ที่ .compliance-tools/scripts
+ERROR_CODES_JSON="$SCRIPT_DIR/../contracts/error-codes.json"
+
 TARGET_DIR="${1:-.}"
 cd "$TARGET_DIR"
 
@@ -61,12 +67,70 @@ if [[ -d backend/src && -n "$BACKEND_TS" ]]; then
     VIOLATION=1
   fi
 
-  # API-04: error.code must be one of the 6 standard values
-  ALLOWED_CODES="BAD_REQUEST|VALIDATION_ERROR|NOT_FOUND|UNAUTHORIZED|FORBIDDEN|CONFLICT|INTERNAL_ERROR"
+  # API-04: error.code ต้องอยู่ในรายการของ contracts/error-codes.json
+  # อ่านรายการจากไฟล์นั้นไฟล์เดียว ไม่เขียนซ้ำไว้ในสคริปต์ — เพิ่ม code ในสัญญา
+  # แล้วตัวตรวจเห็นทันที เอกสารกับ CI จึงเห็นไม่ตรงกันไม่ได้อีก
+  if command -v node >/dev/null 2>&1; then
+    ALLOWED_CODES=$(node -e \
+      'process.stdout.write(require(process.argv[1]).codes.join("|"))' \
+      "$ERROR_CODES_JSON")
+  else
+    # ไม่มี node: ดึงค่าจาก "codes" ด้วย grep — ไฟล์นี้อยู่ในการดูแลของ repo นี้
+    ALLOWED_CODES=$(sed -n '/"codes"/,/\]/p' "$ERROR_CODES_JSON" \
+      | grep -oE '"[A-Z_]+"' | tr -d '"' | paste -sd '|' -)
+  fi
+  CODE_COUNT=$(echo "$ALLOWED_CODES" | tr '|' '\n' | grep -c .)
+
+  # (ก) รูป `code: 'X'` ที่ใช้ตอนสร้าง error response ตรง ๆ
   BAD_CODES=$(grep -rnE "code\s*:\s*['\"][A-Z_]+['\"]" backend/src --include='*.ts' 2>/dev/null \
     | grep -vE "code\s*:\s*['\"]($ALLOWED_CODES)['\"]" || true)
+
+  # (ข) ค่าที่ประกาศไว้ใน `ErrorCode` — ทั้ง object (`const ErrorCode = {...}`),
+  # enum และ type union ส่วนใหญ่ระบบประกาศรายการไว้ที่นี่แล้วอ้าง
+  # `ErrorCode.X` ทีหลัง ซึ่งรูป (ก) มองไม่เห็นเลย · ต้องใช้ node เพราะ
+  # การประกาศมักกินหลายบรรทัด ถ้าเครื่องไม่มี node ข้ามเฉพาะส่วนนี้
+  if command -v node >/dev/null 2>&1; then
+    DECLARED=$(node - "$ALLOWED_CODES" <<'NODE'
+const fs = require('fs');
+const allowed = new Set(process.argv[2].split('|'));
+const found = [];
+const DECLARATIONS = [
+  /\b(?:const|let|var)\s+ErrorCode\b[^=]*=\s*\{([\s\S]*?)\}/g,
+  /\benum\s+ErrorCode\s*\{([\s\S]*?)\}/g,
+  /\btype\s+ErrorCode\s*=([\s\S]*?);/g,
+];
+const scan = (file) => {
+  const text = fs.readFileSync(file, 'utf8');
+  for (const pattern of DECLARATIONS) {
+    for (const match of text.matchAll(pattern)) {
+      const bodyStart = match.index + match[0].indexOf(match[1]);
+      for (const literal of match[1].matchAll(/['"]([A-Z][A-Z0-9_]*)['"]/g)) {
+        if (allowed.has(literal[1])) continue;
+        const line = text.slice(0, bodyStart + literal.index).split('\n').length;
+        found.push(`${file}:${line}: ErrorCode มีค่า '${literal[1]}'`);
+      }
+    }
+  }
+};
+const walk = (dir) => {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules') continue;
+    const full = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) walk(full);
+    else if (entry.name.endsWith('.ts')) scan(full);
+  }
+};
+walk('backend/src');
+process.stdout.write(found.join('\n'));
+NODE
+)
+    if [[ -n "$DECLARED" ]]; then
+      BAD_CODES=$(printf '%s\n%s' "$BAD_CODES" "$DECLARED" | sed '/^$/d')
+    fi
+  fi
+
   if [[ -n "$BAD_CODES" ]]; then
-    echo "❌ [API-04] error.code ไม่อยู่ในรายการมาตรฐาน 7 ค่า ($ALLOWED_CODES)"
+    echo "❌ [API-04] error.code ไม่อยู่ในรายการมาตรฐาน $CODE_COUNT ค่า ($ALLOWED_CODES)"
     echo "$BAD_CODES" | sed 's/^/   /'
     VIOLATION=1
   fi
@@ -98,7 +162,7 @@ if [[ "$VIOLATION" -eq 1 ]]; then
   cat <<EOF
    อ้างอิง: api-conventions.md ข้อ 1, 2, 3, 4, 5, 8
    วิธีแก้: ปรับ route ให้เป็น kebab-case พหูพจน์ใต้ /api/v1/, ห่อ response ด้วย envelope มาตรฐาน,
-            ใช้ error.code จากรายการ 7 ค่า, ใช้ page/limit สำหรับ pagination
+            ใช้ error.code จาก contracts/error-codes.json, ใช้ page/limit สำหรับ pagination
             และเพิ่ม endpoint GET /api/health
 EOF
   exit 1

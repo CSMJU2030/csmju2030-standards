@@ -50,7 +50,7 @@
 - [ ] `GET /api/health` → `{success, data:{status:"ok", service:"<name>"}}`
 - [ ] `GET /api/v1/me` → `{id, email, coreRole, subsystemRole}`
 - [ ] คอลเลกชันมี `meta{total,page,limit,totalPages}` และรองรับ `?page=&limit=`
-- [ ] error ใช้ code จาก enum ปิด 7 ค่า · `VALIDATION_ERROR` = 400
+- [ ] error ใช้ code จาก enum ปิด 9 ค่า (`contracts/error-codes.json`) · `VALIDATION_ERROR` = 400 · 429/503 มี `Retry-After`
 - [ ] 401 vs 403 ถูกต้องทุกกรณี · ไม่มี stack trace หลุด
 
 ## เกณฑ์ตัดสิน

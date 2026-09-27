@@ -203,7 +203,7 @@ Prisma ต้อง **pin 7.9.1 เป๊ะทั้งสามตัว** (`p
 | health | `GET /api/health` (อยู่นอก `/v1`) ตอบ `{status, service}` |
 | callback | `GET /auth/callback` (อยู่นอก `/api`) |
 | response | ห่อ envelope `{ success, data, meta? }` ทุก endpoint |
-| error | `{ success:false, error:{ code, message } }` · `code` มาจาก **7 ค่าปิด** เท่านั้น |
+| error | `{ success:false, error:{ code, message } }` · `code` มาจาก **9 ค่าปิด** ใน `contracts/error-codes.json` เท่านั้น |
 | pagination | `?page=1&limit=20` (ห้าม `per_page`) |
 | สร้างสำเร็จ | `201` · ลบสำเร็จ `200` + `{id, deleted:true}` |
 | validation ผิด | **400** `VALIDATION_ERROR` (ไม่ใช่ 422) |
