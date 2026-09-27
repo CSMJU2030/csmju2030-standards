@@ -208,6 +208,13 @@ assert_exit "ARC-02 subsystem ตี passport-jwt/@nestjs/jwt ตก" 1 "$?"
 CSMJU_PROFILE=core-hub  "$SCRIPT_DIR/check-authorized-deps.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1
 assert_exit "ARC-02 core-hub อนุญาต allowed_core_hub" 0 "$?"
 
+# sharp อยู่ใน allowed_core_hub เท่านั้น — ระบบย่อยต้องเก็บรูปผ่าน Core Hub ไม่ย่อรูปเอง
+SHARP_FIXTURE="$FIXTURES_DIR/PROFILE-CORE-HUB-SHARP"
+CSMJU_PROFILE=subsystem "$SCRIPT_DIR/check-authorized-deps.sh" "$SHARP_FIXTURE" >/dev/null 2>&1
+assert_exit "ARC-02 subsystem ตี sharp ตก" 1 "$?"
+CSMJU_PROFILE=core-hub  "$SCRIPT_DIR/check-authorized-deps.sh" "$SHARP_FIXTURE" >/dev/null 2>&1
+assert_exit "ARC-02 core-hub อนุญาต sharp" 0 "$?"
+
 CSMJU_PROFILE=subsystem "$SCRIPT_DIR/check-field-aliases.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1
 assert_exit "DD-01 subsystem ตี user_id ตก" 1 "$?"
 CSMJU_PROFILE=core-hub  "$SCRIPT_DIR/check-field-aliases.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1

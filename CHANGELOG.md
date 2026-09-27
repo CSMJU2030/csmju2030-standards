@@ -7,7 +7,15 @@
 
 ## ยังไม่ออกเวอร์ชัน
 
-(ยังไม่มี)
+- `scripts/lib/allowed-deps.json` — เพิ่ม `sharp` ใน `allowed_core_hub` สำหรับบริการเก็บรูปกลางของ Core Hub
+  (ตรวจ ย่อ และแปลงรูปเป็น WebP) · เพิ่มเฉพาะ profile `core-hub` ระบบย่อยยังใช้ไม่ได้ ต้องเก็บรูปผ่าน Core Hub
+- `docs/core-hub-rules.md` §6 (ใหม่) — `GET /api/v1/images/:id/file` ส่งไฟล์ดิบไม่ห่อ envelope และไม่ต้องมี JWT
+  เพราะ `<img>` แนบ token ไม่ได้ พร้อมเงื่อนไขที่ต้องคงไว้ · หัวข้อเดิม §6–§8 เลื่อนเป็น §7–§9
+- fixture `__fixtures__/PROFILE-CORE-HUB-SHARP` + assertion ใน `scripts/self-test.sh` ยืนยันว่า `sharp`
+  ผ่านเฉพาะ profile `core-hub` และยังถูกตีตกใน profile `subsystem`
+
+การ**เพิ่ม**ข้อยกเว้นเป็น minor ตาม §8 ของ `core-hub-rules.md` · **ระบบย่อยไม่ต้องทำอะไร** ·
+Core Hub ต้องเลื่อน pin ใน `ci.yml` เป็นเวอร์ชันที่ออกรายการนี้
 
 ---
 

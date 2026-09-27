@@ -61,7 +61,7 @@
 | `ARC-03` | ห้าม UI library ต้องห้าม (MUI/Antd/Bootstrap) | **บังคับ** | ยังตรวจ แม้ repo นี้ยังไม่มี frontend |
 | `API-01` | `openapi.json` sync กับโค้ด | **ยกเว้น (ชั่วคราว)** | Core Hub ยังไม่มีสคริปต์ `generate:openapi` — กลับมาบังคับเมื่อมี |
 | `API-02` | path kebab-case ใต้ `/api/v1` | **บังคับ** | — |
-| `API-03` | response envelope `{ success, data/error, meta }` | **บังคับ** | ยกเว้น JWKS (§5) |
+| `API-03` | response envelope `{ success, data/error, meta }` | **บังคับ** | ยกเว้น JWKS (§5) และไฟล์รูป (§6) |
 | `API-04` | `error.code` จาก 9 ค่าของ `contracts/error-codes.json` | **บังคับ** | — |
 | `API-05` | ต้องมี health endpoint | **บังคับ** | Core Hub ใช้ `/api/v1/health` (ระบบย่อยใช้ `/api/health`) |
 | `API-06` | ประกาศ `public_endpoints` ใน `subsystem.yaml` | **ยกเว้น** | Core Hub ไม่มี `subsystem.yaml` |
@@ -92,6 +92,7 @@
 | `@nestjs/passport` · `passport` · `passport-jwt` | strategy ของ Core Hub เอง |
 | `bcrypt` · `@types/bcrypt` | hash รหัสผ่านในฐานข้อมูลผู้ใช้ |
 | `@types/passport-jwt` | type definitions |
+| `sharp` | ตรวจ ย่อ และแปลงรูปเป็น WebP ในบริการเก็บรูปกลาง (§6) — ระบบย่อยใช้ไม่ได้ ต้องเก็บรูปผ่าน Core Hub |
 
 แพ็กเกจนอกรายการนี้ยังถูกตีตกตามปกติ — เพิ่มได้ด้วย PR ที่แก้ `allowed-deps.json` เท่านั้น
 
@@ -111,7 +112,25 @@
 
 ---
 
-## 6. วิธีรัน
+## 6. ไฟล์รูปจากบริการเก็บรูปกลาง
+
+Core Hub เก็บรูปให้ทุกระบบย่อย (รูปโปรไฟล์ · รูปข่าว · รูปทั่วไป) และแสดงผ่าน
+`GET /api/v1/images/:id/file` ซึ่งต่างจาก endpoint อื่นสองข้อ:
+
+1. **ส่งไฟล์ดิบ ไม่ห่อ envelope** — `<img src>` ต้องได้ bytes ของรูปโดยตรง แบบเดียวกับ JWKS (§5 ข้อ 1)
+2. **ไม่ต้องมี JWT** — เบราว์เซอร์แนบ `Authorization` ให้ `<img>` ไม่ได้ รูปจึงเป็นสาธารณะ
+
+เงื่อนไขที่ทำให้ยกเว้นได้ ต้องคงไว้ทุกข้อ:
+
+- ยกเว้นเฉพาะ endpoint นี้ · อัปโหลด รายการ ข้อมูลรูป และการลบ ยังต้องมี JWT และสิทธิ์ตามปกติ
+- `:id` เป็น UUID v4 ที่ server สร้าง เดาไม่ได้ · ไม่มี endpoint สาธารณะที่ให้ไล่ดูรายการรูป
+- เก็บเฉพาะรูปที่ server เข้ารหัสใหม่เป็น WebP แล้ว (ตรวจจาก magic bytes · ไม่รับ SVG) และลบ EXIF ทิ้ง
+- ตอบพร้อม `Content-Type: image/webp` และ `X-Content-Type-Options: nosniff`
+- รูปที่ถูกลบแล้วต้องตอบ `404` ทันที
+
+---
+
+## 7. วิธีรัน
 
 ในเครื่อง:
 
@@ -132,7 +151,7 @@ Workflow นี้ตั้ง `CSMJU_PROFILE=core-hub` ให้เอง — r
 
 ---
 
-## 7. เพิ่ม/ลดข้อยกเว้น
+## 8. เพิ่ม/ลดข้อยกเว้น
 
 ข้อยกเว้นในเอกสารนี้เป็น **ถาวรตามสถาปัตยกรรม** ไม่ใช่หนี้ทางเทคนิค จึงไม่ต้องมี `expires`
 ต่างจาก `.compliance-exceptions.yml` ของระบบย่อยที่มีวันหมดอายุบังคับ (`EXC-01`)
@@ -144,7 +163,7 @@ Workflow นี้ตั้ง `CSMJU_PROFILE=core-hub` ให้เอง — r
 
 ---
 
-## 8. อ้างอิง
+## 9. อ้างอิง
 
 - [`ci-compliance-spec.md`](../ci-compliance-spec.md) — กฎเต็มชุดของระบบย่อย
 - [`docs/tech-stack.md`](tech-stack.md) §1.5 — สรุปข้อยกเว้นแบบสั้น
