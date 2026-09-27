@@ -80,13 +80,18 @@
     "expired",
     "invalid_issuer",
     "invalid_audience",
-    "invalid_claims"
+    "invalid_claims",
+    "sso_restart_without_state",
+    "sso_state_missing",
+    "sso_state_mismatch"
   ],
   "mustNeverLog": [
     "access token",
     "refresh token",
     "Authorization header",
     "password",
-    "private key"
+    "private key",
+    "the full /auth/callback URL (its query carries the access token) - log the path only",
+    "the whole Cookie header (on localhost it also carries Core Hub's refresh token)"
   ]
 }

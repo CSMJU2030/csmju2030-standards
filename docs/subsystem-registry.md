@@ -60,6 +60,10 @@ Core Hub จะทำ SSO ให้เฉพาะ `approvalStatus = APPROVED` *
 | ถ้า client ส่ง `callback_url` มาด้วย | ต้อง **ตรงเป๊ะ** กับที่ลงทะเบียน ไม่งั้น `400` |
 | ห้าม | ยอมรับ callback ที่ client กำหนดเอง (open redirect) |
 
+`callback_url` ยังเป็นค่าเดียวที่ต้องลงทะเบียน ส่วน `/auth/login` และ `/auth/logout` มาตรฐาน 1.1 กำหนด path
+ไว้แล้ว ([auth-contract](auth-contract.md) ข้อ 5) จึงไม่ต้องลงทะเบียน · **ห้ามลงทะเบียน `/auth/login` เป็น
+`callback_url`** — มันส่งเบราว์เซอร์กลับไป Core Hub ทำให้วนไม่จบ
+
 Core Hub ตรวจตามลำดับนี้ก่อนออก token:
 
 ```text
@@ -105,11 +109,14 @@ conformance_level: L3
 
 base_url: http://localhost:3002
 core_hub_url: http://localhost:3000
+core_hub_web_url: http://localhost:3100   # เว็บของ Core Hub ที่ /auth/login ส่งเบราว์เซอร์ไป (1.1)
 callback_path: /auth/callback
 
 public_endpoints:
   - GET /api/health
+  - GET /auth/login
   - GET /auth/callback
+  - POST /auth/logout
 
 probes:                       # conformance ใช้ตรวจ contract (ประกาศไม่ครบ = SKIP = ไม่ผ่าน)
   collection: /api/v1/equipment-items

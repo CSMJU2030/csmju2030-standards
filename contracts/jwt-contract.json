@@ -1,6 +1,6 @@
 {
   "$comment": "Immutable Core Hub token contract. A subsystem MUST validate every field listed here.",
-  "standardsVersion": "1.0",
+  "standardsVersion": "1.1",
   "algorithm": "RS256",
   "issuer": "core-hub",
   "audience": "csmju2030",
@@ -11,6 +11,17 @@
   "ssoAuthorizePath": "/api/v1/auth/sso/authorize",
   "ssoHandoffPath": "/api/v1/auth/sso/handoff",
   "accessTokenLifetime": "15m",
+  "sso": {
+    "$comment": "Central SSO, standards 1.1 (auth-contract.md section 5). Every sign-in starts at the subsystem's login path; the browser is sent to Core Hub's WEB app, never to the API's ssoAuthorizePath, which needs a Bearer header a redirect cannot carry.",
+    "coreHubWebAuthorizePath": "/sso/authorize",
+    "coreHubWebLogoutPath": "/logout",
+    "subsystemLoginPath": "/auth/login",
+    "subsystemCallbackPath": "/auth/callback",
+    "subsystemLogoutPath": "/auth/logout",
+    "sessionCookieSuffix": "_access_token",
+    "stateCookieSuffix": "_sso_state",
+    "stateTtlMaxSec": 600
+  },
   "claims": {
     "sub": "Core Hub user id - the only identity a subsystem may trust",
     "email": "Core Hub email",
@@ -37,6 +48,7 @@
     "unknown kid after one JWKS refresh"
   ],
   "plannedChanges": {
-    "v1.1": "aud will become the subsystem name (for example: student-service). Subsystems SHOULD accept a list of audiences during the transition."
+    "next": "aud will become the subsystem name (for example: student-service). Subsystems SHOULD accept a list of audiences during the transition. Moved out of 1.1, which delivered silent re-SSO instead.",
+    "v2.0": "The SSO handoff becomes authorization code + PKCE, so the access token no longer travels in the callback URL."
   }
 }

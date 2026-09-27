@@ -62,7 +62,11 @@ reference implementation: `demo-student-subsystem/backend/`
 
 | ❌ ห้ามทำ | ✅ ต้องทำ |
 |---|---|
-| "เพิ่ม `/login` ให้เผื่อไว้" | ระบบย่อยไม่มี login — ผู้ใช้ล็อกอินที่ Core Hub เท่านั้น (`SEC-05`) |
+| "เพิ่ม `/login` ให้เผื่อไว้" | ระบบย่อยไม่มีหน้า login หรือฟอร์มรหัสผ่าน — ผู้ใช้ล็อกอินที่ Core Hub เท่านั้น (`SEC-05`) · `GET /auth/login` ที่ต้องมีเป็นแค่ตัว redirect ไป Core Hub ([auth-contract](../docs/auth-contract.md) ข้อ 5) |
+| "ทำ session ของระบบย่อยเอง จะได้ไม่หลุดทุก 15 นาที" | session คือ Core Hub token ในคุกกี้ `<ชื่อ>_access_token` ที่หมดอายุพร้อม token · ไม่หลุดเพราะ silent re-SSO (auth-contract ข้อ 7) · ห้ามมีตาราง session / session id / token ของตัวเอง |
+| "API ตอบ 302 ไป login ตอน token หมดอายุ" | API (`/api/*`) ตอบ **401 JSON** เสมอ — `fetch` ตาม redirect ข้าม origin ไม่ได้ การพาไป login เป็นหน้าที่ของ frontend |
+| "ส่งเบราว์เซอร์ไป `/api/v1/auth/sso/authorize` ของ Core Hub ตรง ๆ" | endpoint นั้นต้องมี Bearer ที่เบราว์เซอร์แนบไม่ได้ → 401 · ให้ส่งไป **เว็บ** ของ Core Hub `{CORE_HUB_WEB_URL}/sso/authorize` ผ่าน `/auth/login` ของตัวเอง |
+| "ต่ออายุ token ด้วย `fetch` ไป `/auth/login`" | ต้องเป็น top-level navigation (`window.location.assign`) — `fetch` ไม่ได้คุกกี้และติด CORS |
 | "ทำตาราง users ของตัวเองไว้ก่อน" | เก็บได้แค่ `core_user_id` เป็น external reference |
 | "ตอบ 401 ตอนสิทธิ์ไม่พอ" | สิทธิ์ไม่พอ = **403** เสมอ · 401 ใช้ตอนไม่รู้ว่าเป็นใคร |
 | "ตอบ 404 แทน 403 เพื่อความปลอดภัย" | มาตรฐานบังคับ 403 (conformance จับ) |

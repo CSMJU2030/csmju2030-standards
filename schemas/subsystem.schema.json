@@ -39,6 +39,11 @@
       "format": "uri",
       "default": "http://localhost:3000"
     },
+    "core_hub_web_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "เว็บของ Core Hub ที่ GET /auth/login ส่งเบราว์เซอร์ไป (standards 1.1) · ไม่บังคับ แต่ถ้าไม่มี conformance L3-16 จะตก"
+    },
     "callback_path": {
       "type": "string",
       "default": "/auth/callback",
