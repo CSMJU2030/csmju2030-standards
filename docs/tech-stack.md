@@ -26,6 +26,7 @@
 *   **Language:** **TypeScript**
 *   **Styling:** **Tailwind CSS** (ใช้งานร่วมกับ `@csmju2030/design-system` ของ Core)
 *   **State / Data Fetching:** Zustand, React Context, Axios หรือ React Query
+*   **ไอคอน · แผนที่ · QR:** `lucide-react` · `leaflet` · `qrcode.react` (ตั้งแต่ 1.2.1 ดูข้อ 1.4.2)
 *   ห้ามมีหน้า login ของตัวเอง — ต้องเข้าผ่าน Core Hub SSO (`auth-contract.md` ข้อ 5)
 
 #### 1.2.1 script `typecheck` ของ frontend ต้องสร้าง route types ก่อน
@@ -82,6 +83,52 @@ CI (`ARC-02`) ตรวจ dependency ทุกตัวกับรายกา
 
 ต้องการไลบรารีนอกรายการ → เปิด issue ขอเพิ่ม พร้อมเหตุผลว่าแก้ปัญหาอะไร
 **ห้าม**แก้ไฟล์ whitelist เองใน PR ของระบบย่อย
+
+#### 1.4.2 ไอคอน แผนที่ QR และ Tailwind v4 (อนุญาตตั้งแต่ 1.2.1)
+
+| แพ็กเกจ | ใช้ทำอะไร | license |
+|---|---|---|
+| `lucide-react` | ไอคอน — ใช้ชุดนี้ชุดเดียวทั้ง platform import ทีละไอคอน (`import { MapPin } from 'lucide-react'`) | ISC |
+| `leaflet` (+ `@types/leaflet`) | แผนที่ | BSD-2-Clause |
+| `qrcode.react` | สร้าง QR code ในเบราว์เซอร์ | ISC |
+| `@tailwindcss/postcss` | Tailwind CSS v4 (`@theme`) ผ่าน PostCSS แบบเดียวกับ frontend ของ Core Hub | MIT |
+
+**`react-leaflet` ไม่อนุญาต** เพราะใช้ license Hippocratic-2.1 ซึ่งไม่ใช่ license โอเพนซอร์สมาตรฐาน (ไม่ผ่าน OSI)
+ให้เรียก `leaflet` ตรง ๆ ใน client component แทน:
+
+```tsx
+'use client';
+import { useEffect, useRef } from 'react';
+import 'leaflet/dist/leaflet.css';
+
+export function CampusMap({ lat, lng, zoom = 17 }: { lat: number; lng: number; zoom?: number }) {
+  const el = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let map: import('leaflet').Map | undefined;
+    let cancelled = false;
+    // leaflet ใช้ window — โหลดเฉพาะฝั่งเบราว์เซอร์ ไม่ให้พังตอน server render
+    import('leaflet').then((L) => {
+      if (cancelled || !el.current) return;
+      map = L.map(el.current).setView([lat, lng], zoom);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(map);
+    });
+    return () => {
+      cancelled = true;
+      map?.remove();
+    };
+  }, [lat, lng, zoom]);
+
+  return <div ref={el} style={{ height: 320 }} />;
+}
+```
+
+- ทุกแผนที่ต้องแสดง attribution ของ OpenStreetMap และทำตาม tile usage policy ของ OSM — ถ้าใช้ปริมาณมากให้ตั้ง tile server เอง
+- ถ้าตั้ง Content-Security-Policy ต้องเพิ่มโดเมน tile ใน `img-src`
+- QR code ใส่ได้เฉพาะข้อมูลสาธารณะ เช่น URL ของหน้าประกาศ — **ห้าม**ใส่ token รหัสผ่าน หรือข้อมูลบุคคล
 
 #### 1.4.1 งานตั้งเวลา (scheduled job)
 

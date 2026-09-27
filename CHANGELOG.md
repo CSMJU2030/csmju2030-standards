@@ -11,6 +11,22 @@
 
 ---
 
+## 1.2.1 — 2026-09-28
+
+- `scripts/lib/allowed-deps.json` — อนุญาต frontend เพิ่ม 4 ตัว (PM อนุมัติ 28 ก.ย. ตามคำขอของทีมระบบย่อย):
+  `lucide-react` (ไอคอน · ISC) · `leaflet` (แผนที่ · BSD-2-Clause) · `qrcode.react` (QR · ISC) ·
+  `@tailwindcss/postcss` (Tailwind v4 · MIT — อยู่ทั้ง `allowed_frontend` และ `allowed_dev_tooling` แบบเดียวกับ `tailwindcss`)
+- **`react-leaflet` ไม่อนุญาต** — ใช้ license Hippocratic-2.1 ซึ่งไม่ผ่าน OSI · ให้เรียก `leaflet` ตรง ๆ
+  (ตัวอย่าง client component ใน `docs/tech-stack.md` ข้อ 1.4.2)
+- `docs/tech-stack.md` ข้อ 1.2 และ 1.4.2 (ใหม่) · `ci-compliance-spec.md` ข้อ 7.3 — อัปเดตให้ตรงกับ whitelist
+  พร้อมข้อกำหนดแผนที่ (แสดง attribution ของ OpenStreetMap · เพิ่มโดเมน tile ใน CSP) และ QR (ใส่ได้เฉพาะข้อมูลสาธารณะ)
+- fixture `__fixtures__/ARC-02-MAP` + `scripts/self-test.sh` — 4 ตัวใหม่ผ่าน · `react-leaflet` ถูกตีตก
+
+**ใครต้องทำอะไร:** ไม่มีกฎที่เข้มขึ้น · ระบบย่อยที่จะใช้แพ็กเกจเหล่านี้ต้องเลื่อน pin ใน `ci.yml` + `.standards-version` +
+submodule เป็น 1.2.1 · ระบบย่อยอื่นไม่ต้องทำอะไร
+
+---
+
 ## 1.2.0 — 2026-09-27
 
 - `scripts/lib/allowed-deps.json` — เพิ่ม `sharp` ใน `allowed_core_hub` สำหรับบริการเก็บรูปกลางของ Core Hub

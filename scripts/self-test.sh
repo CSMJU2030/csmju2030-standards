@@ -50,6 +50,9 @@ run_fixture_case "ARC-02-03" "check-authorized-deps.sh"
 # but forbidden_everywhere still applies there and dev tooling is still
 # rejected as a runtime dependency.
 run_fixture_case "ARC-02-DEV" "check-authorized-deps.sh"
+# ARC-02-MAP: lucide-react / leaflet / qrcode.react / @tailwindcss/postcss are allowed since 1.2.1;
+# react-leaflet stays out (Hippocratic-2.1 is not an OSI licence) — use leaflet directly.
+run_fixture_case "ARC-02-MAP" "check-authorized-deps.sh"
 run_fixture_case "DD-01"     "check-field-aliases.sh"
 # DD-02 is a regression case: the enum was copied wrong as
 # student|staff|faculty|admin|guest, which rejected the real value
