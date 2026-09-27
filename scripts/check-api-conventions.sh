@@ -12,7 +12,10 @@ VIOLATION=0
 # ยิงเฉพาะเมื่อมีไฟล์ .ts จริงใน backend/src — repo ที่ scaffold ใหม่มีแต่
 # โฟลเดอร์เปล่า ถ้าเช็คแค่ว่ามีโฟลเดอร์ API-03/API-05 จะตีตกทันทีก่อนที่
 # ใครจะได้เขียนโค้ด ซึ่งขัดกับสคริปต์ตัวอื่นที่ยึดหลัก "ไม่มีไฟล์ = ข้าม"
-BACKEND_TS=$(find backend/src -name '*.ts' -not -path '*/node_modules/*' 2>/dev/null | head -1)
+# -print -quit แทน `| head -1`: ภายใต้ pipefail ถ้า head ปิดท่อก่อน find เขียนเสร็จ
+# find จะโดน SIGPIPE (exit 141) แล้ว set -e ทำให้สคริปต์จบเงียบ ๆ โดยไม่บอกว่าตกเพราะอะไร
+# เกิดจริงบน CI (Linux) เมื่อรายชื่อไฟล์ยาวเกิน buffer — ดู CHANGELOG 1.0.2
+BACKEND_TS=$(find backend/src -name '*.ts' -not -path '*/node_modules/*' -print -quit 2>/dev/null)
 if [[ -d backend/src && -n "$BACKEND_TS" ]]; then
   # API-02: route segments must be kebab-case (no camelCase / underscores),
   # and a /v1 global prefix must be declared somewhere in main.ts.

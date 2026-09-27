@@ -564,9 +564,10 @@ echo "✅ [UI-01] ไม่พบ hex color ดิบ"
 {
   "allowed_frontend": [
     "next", "react", "react-dom", "typescript",
-    "tailwindcss", "postcss", "autoprefixer",
+    "tailwindcss", "@tailwindcss/postcss", "postcss", "autoprefixer",
     "@csmju2030/design-system",
     "zustand", "axios", "@tanstack/react-query",
+    "lucide-react", "leaflet", "qrcode.react",
     "zod", "openapi-typescript",
     "eslint", "prettier", "vitest", "@testing-library/react"
   ],

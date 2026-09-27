@@ -50,6 +50,9 @@ run_fixture_case "ARC-02-03" "check-authorized-deps.sh"
 # but forbidden_everywhere still applies there and dev tooling is still
 # rejected as a runtime dependency.
 run_fixture_case "ARC-02-DEV" "check-authorized-deps.sh"
+# ARC-02-MAP: lucide-react / leaflet / qrcode.react / @tailwindcss/postcss are allowed since 1.0.2;
+# react-leaflet stays out (Hippocratic-2.1 is not an OSI licence) — use leaflet directly.
+run_fixture_case "ARC-02-MAP" "check-authorized-deps.sh"
 run_fixture_case "DD-01"     "check-field-aliases.sh"
 # DD-02 is a regression case: the enum was copied wrong as
 # student|staff|faculty|admin|guest, which rejected the real value
@@ -78,8 +81,38 @@ run_fixture_case "API-02"   "check-api-conventions.sh"
 # before anyone could write code. pass-only fixture.
 run_fixture_case "API-02-EMPTY" "check-api-conventions.sh"
 run_fixture_case "UI-01"     "check-ui-tokens.sh"
+# UI-01-NOSRC is a regression case: the scan was limited to frontend/src,
+# so a Next.js app with app/ at the root of frontend/ passed without being
+# checked. fail-only fixture.
+run_fixture_case "UI-01-NOSRC" "check-ui-tokens.sh"
 run_fixture_case "QA-05"     "check-qa.sh"
 run_fixture_case "EXC-01"    "check-exceptions.sh"
+
+# --- SIGPIPE regression: `find | head -1` under pipefail -------------------
+# head closes the pipe after one line; if find is still writing it dies with
+# SIGPIPE (141) and set -e ends the script silently. On Linux CI that happened
+# at random once a file list outgrew the stdio buffer (~7 KB). This tree makes
+# the list larger than a pipe can hold, so the old code fails every time.
+# Built at runtime to keep 1,800 empty files out of the repo.
+echo
+echo "== SIGPIPE: large backend/src =="
+BIG_TREE=$(mktemp -d)
+mkdir -p "$BIG_TREE/backend/src"
+printf "%s\n" "import { NestFactory } from '@nestjs/core';" \
+  "async function bootstrap() { const app = await NestFactory.create(AppModule); app.setGlobalPrefix('api/v1'); }" \
+  > "$BIG_TREE/backend/src/main.ts"
+printf "%s\n" "@Controller('health')" "export class HealthController { @Get() ok() { return { success: true, data: {} }; } }" \
+  > "$BIG_TREE/backend/src/health.controller.ts"
+i=0
+while [ "$i" -lt 1800 ]; do
+  i=$((i + 1))
+  : > "$BIG_TREE/backend/src/generated-file-number-$i-padding-to-outgrow-the-pipe.ts"
+done
+"$SCRIPT_DIR/check-api-conventions.sh" "$BIG_TREE" >/dev/null 2>&1
+assert_exit "API-02..07 run to the end on a large backend (no SIGPIPE)" 0 "$?"
+"$SCRIPT_DIR/check-no-jwt-verify.sh" "$BIG_TREE" >/dev/null 2>&1
+assert_exit "SEC-04/05 run to the end on a large backend (no SIGPIPE)" 0 "$?"
+rm -rf "$BIG_TREE"
 
 # --- GH-01: branch naming (no fixture dir needed, branch passed as arg) --
 echo

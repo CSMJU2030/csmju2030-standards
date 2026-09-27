@@ -5,6 +5,34 @@
 
 ---
 
+## 1.0.2 — 2026-09-28
+
+รุ่นในสาย **1.0.x** สำหรับระบบย่อยที่ทดสอบกับ Core Hub `main` (SSO 1.0 — เข้าระบบจาก portal ของ Core Hub ผ่าน `/api/sso/<ชื่อ>`)
+ออกต่อจาก tag `v1.0.1` โดยตรงแบบเดียวกับที่ 1.0.1 ออกจาก `v1.0.0` จึง**ไม่รวม**งานของ 1.1.0 ขึ้นไปบน `main`
+(SSO 1.1 ที่เริ่มจาก `GET /auth/login` ของระบบย่อย · error code 9 ค่า · conformance L3-16..22) ซึ่ง Core Hub `main` ยังไม่รองรับ
+
+- `scripts/lib/allowed-deps.json` — อนุญาต frontend เพิ่ม 4 ตัว (PM อนุมัติ 28 ก.ย. ชุดเดียวกับ 1.2.1 บน `main`):
+  `lucide-react` (ไอคอน · ISC) · `leaflet` (แผนที่ · BSD-2-Clause) · `qrcode.react` (QR · ISC) ·
+  `@tailwindcss/postcss` (Tailwind v4 · MIT — อยู่ทั้ง `allowed_frontend` และ `allowed_dev_tooling` แบบเดียวกับ `tailwindcss`)
+- **`react-leaflet` ไม่อนุญาต** — ใช้ license Hippocratic-2.1 ซึ่งไม่ผ่าน OSI · ให้เรียก `leaflet` ตรง ๆ
+  (ตัวอย่าง client component ใน `docs/tech-stack.md` ข้อ 1.4.2)
+- `scripts/check-ui-tokens.sh` (`UI-01`..`UI-04`) — นำตัว scan ของ `main` (1.1.0) มาใช้: ตรวจทั้ง `frontend/` ไม่ใช่แค่ `frontend/src`
+  และยกเว้นไฟล์ token กลาง (`globals.css` · โฟลเดอร์ `csmju/`) ที่ประกาศสีเป็น hex ใน `@theme` ของ Tailwind v4
+  ถ้าไม่มีข้อนี้ ระบบย่อยที่ย้ายไป Tailwind v4 ตามที่อนุมัติจะตก `UI-01` ที่ไฟล์ token ของตัวเอง ·
+  token จาก `@csmju2030/design-system` ยังผ่านเหมือนเดิม
+- `scripts/check-api-conventions.sh` · `scripts/check-no-jwt-verify.sh` — เลิกใช้ `find | head -1` ซึ่งทำให้สคริปต์จบเงียบ ๆ
+  ด้วย SIGPIPE บน CI (Linux) เมื่อ `backend/src` มีไฟล์มาก (การแก้เดียวกับ 1.1.1 บน `main`)
+- `docs/tech-stack.md` ข้อ 1.2 และ 1.4.2 (ใหม่) · `ci-compliance-spec.md` ข้อ 7.3 — อัปเดตให้ตรงกับ whitelist
+  พร้อมข้อกำหนดแผนที่ (แสดง attribution ของ OpenStreetMap · เพิ่มโดเมน tile ใน CSP) และ QR (ใส่ได้เฉพาะข้อมูลสาธารณะ)
+- fixture `ARC-02-MAP` · `UI-01` (ไฟล์ token) · `UI-01-NOSRC` และชุดทดสอบ SIGPIPE ใน `scripts/self-test.sh`
+
+**ใครต้องทำอะไร:** ระบบย่อยที่ทดสอบกับ Core Hub `main` ให้ขอ PL เลื่อนเป็น 1.0.2 ได้แก่ pin ใน `ci.yml` (`@v1.0.2`) ·
+submodule `standards` (tag `v1.0.2`) · `.standards-version` · `standards_version` ใน `subsystem.yaml`
+repo ที่มี `app/` อยู่ที่ราก `frontend/` จะถูกตรวจ `UI-01` จริงเป็นครั้งแรก — hex ดิบนอกไฟล์ token จะตก ·
+ระบบย่อยที่ผูก 1.1.0 ขึ้นไปต้องทดสอบกับ Core Hub `develop` ไม่ใช่ `main`
+
+---
+
 ## 1.0.1 — 2026-09-26
 
 - `scripts/lib/allowed-deps.json` — เพิ่ม `@nestjs/schedule` ใน `allowed_backend` สำหรับงานตั้งเวลา (scheduled job)
