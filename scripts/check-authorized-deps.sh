@@ -53,8 +53,11 @@ in_list() {
   fi
   return 1
 }
+# pattern ต้องผูกกับ $p ก่อนใช้ — ใน `$d | test(.)` ตัว `.` คือ $d เอง
+# ชื่อ package จึงถูกใช้เป็น regex ของตัวมันเองและตรงเสมอ (devDependency
+# ทุกตัวเคยผ่านข้อนี้ รวมถึงไลบรารี runtime ที่ย้ายไปซ่อนใน devDependencies)
 matches_dev_pattern() {
-  [[ "$(jq -r --arg d "$1" '[.dev_tooling_patterns[] | select($d | test(.))] | length > 0' "$ALLOWED_DEPS")" == "true" ]]
+  [[ "$(jq -r --arg d "$1" '[.dev_tooling_patterns[] as $p | select($d | test($p))] | length > 0' "$ALLOWED_DEPS")" == "true" ]]
 }
 
 report_forbidden() {

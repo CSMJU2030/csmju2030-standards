@@ -11,6 +11,30 @@
 
 ---
 
+## 1.3.0 — 2026-09-28
+
+- `scripts/check-authorized-deps.sh` (`ARC-02`) — แก้ `dev_tooling_patterns` ที่ตรงกับ**ทุก** devDependency
+  ใน `select($d | test(.))` ตัว `.` คือชื่อ package เอง ชื่อจึงถูกใช้เป็น regex ของตัวมันเองและตรงเสมอ
+  pattern `^@types/` ไม่เคยถูกใช้จริง · ผลคือ devDependency ใดก็ผ่าน รวมถึงไลบรารีนอก whitelist
+  (เช่น `react-leaflet`) ที่ย้ายไปไว้ใน `devDependencies` ทั้งที่ Next ยัง bundle ขึ้น production ·
+  เป็นมาตั้งแต่ 1.0.0 · แก้เป็น `.[] as $p | select($d | test($p))`
+- `scripts/lib/allowed-deps.json` — เพิ่ม 7 ตัวใน `allowed_dev_tooling` ที่ผ่านมาได้เพราะบั๊กข้างบน
+  และเป็นเครื่องมือจาก scaffold มาตรฐานของ Next/Nest ไม่ใช่การเลือกสถาปัตยกรรม:
+  `eslint-config-next` · `@eslint/eslintrc` · `eslint-config-prettier` ·
+  `eslint-plugin-prettier` · `globals` · `source-map-support` · `ts-loader`
+  (`@tailwindcss/postcss` อยู่ในรายการแล้วตั้งแต่ 1.2.1)
+- `docs/tech-stack.md` ข้อ 1.4 — อธิบายการตรวจ `devDependencies`
+- fixture `__fixtures__/ARC-02-DEV-UNLISTED` + `scripts/self-test.sh` — pass: tooling ของ Next 16 +
+  Tailwind v4 และ Nest 11 · fail: `react-leaflet` ใน `devDependencies` (สคริปต์เดิมปล่อยผ่าน)
+
+เป็น minor เพราะ `ARC-02` เข้มขึ้นกับ `devDependencies` · แต่การปิดช่องของบั๊กไม่ทำให้ repo ใดตกเพิ่ม
+(ตรวจ Core Hub และทุก branch ของระบบย่อยใน org ที่มี `package.json` ณ 28 ก.ย. — ผลเหมือนเดิมทุกตัว)
+
+**ใครต้องทำอะไร:** ระบบย่อยที่มีแพ็กเกจนอก whitelist อยู่ใน `devDependencies` จะตกที่ `ARC-02` เมื่อเลื่อนเป็น 1.3.0 —
+ต้องเปิด issue ขอเพิ่มเข้า whitelist หรือเอาออก · Core Hub เลื่อน pin ใน `ci.yml` เป็น `@v1.3.0`
+
+---
+
 ## 1.2.1 — 2026-09-28
 
 - `scripts/lib/allowed-deps.json` — อนุญาต frontend เพิ่ม 4 ตัว (PM อนุมัติ 28 ก.ย. ตามคำขอของทีมระบบย่อย):
