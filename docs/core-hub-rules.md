@@ -127,6 +127,8 @@ Core Hub เก็บรูปให้ทุกระบบย่อย (รู
 - เก็บเฉพาะรูปที่ server เข้ารหัสใหม่เป็น WebP แล้ว (ตรวจจาก magic bytes · ไม่รับ SVG) และลบ EXIF ทิ้ง
 - ตอบพร้อม `Content-Type: image/webp` และ `X-Content-Type-Options: nosniff`
 - รูปที่ถูกลบแล้วต้องตอบ `404` ทันที
+- `Cache-Control` ตั้ง `max-age` (และ `s-maxage` ถ้ามี) ได้ไม่เกิน `86400` (1 วัน) และห้ามใส่ `immutable` —
+  เบราว์เซอร์และ proxy ไม่ถาม server อีกจนกว่า cache หมดอายุ ถ้านานกว่านี้รูปที่ลบแล้วจะยังแสดงอยู่
 
 ---
 
