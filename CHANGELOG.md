@@ -49,6 +49,12 @@ Central SSO ที่ใช้ได้จริงจากเบราว์�
 - `API-04` (`scripts/check-api-conventions.sh`) — อ่านรายการจาก `contracts/error-codes.json` แทนการเขียนไว้ในสคริปต์ ·
   ตรวจค่าที่ประกาศใน `ErrorCode` (object · enum · type) ด้วย ไม่ใช่แค่รูป `code: '…'` ·
   ถ้าไม่มี node จะอ่านรายการด้วย grep และข้ามเฉพาะส่วน `ErrorCode` · fixture ใหม่ `__fixtures__/API-04`
+- `API-04` **เลิกตรวจไฟล์ทดสอบ** (`*.spec.ts` · `test/`) — ค่า `code:` ในไฟล์ทดสอบเป็นข้อมูลตัวอย่าง
+  เช่น `code: 'SCI'` ของ reference data ไม่ใช่ error contract (เดิมตีตก false positive จนระบบที่ทำถูกต้อง
+  merge ไม่ได้) · fixture pass เพิ่ม `rooms.service.spec.ts` เป็น regression
+- ตัวสแกน `ErrorCode` ย้ายไปเป็นไฟล์ `scripts/lib/api04-errorcode-scan.js` — heredoc ที่ซ้อนใน
+  command substitution ทำให้ **bash 3.2 ของ macOS parse ทั้งสคริปต์ไม่ผ่าน** ทีมที่ใช้ Mac
+  จะรันตัวตรวจในเครื่องไม่ได้เลย (CI บน Linux ไม่เจอ)
 
 ### conformance
 
@@ -64,6 +70,11 @@ Central SSO ที่ใช้ได้จริงจากเบราว์�
   ส่วน demo `main` (มาตรฐาน 1.0) ตก 9 ข้อที่ L3 ชุดใหม่ ตามที่ควรเป็น
 
 ### เอกสารอื่น
+
+- `docs/reference-data.md` (ใหม่) — สารบัญชุดข้อมูลอ้างอิงกลาง + สัญญากลางโดยย่อ + เส้นแบ่งชัดว่า
+  ข้อมูลบุคคล (`/api/v1/people`) ไม่ใช่ reference data ห้าม cache (หน้าที่ค้างจาก `SHARED_DATA_HANDOFF` ข้อ 7.1)
+- `docs/LOCAL_INTEGRATION_GUIDE.md` — แทนฉบับเก่าด้วยร่างล่าสุดของ PL (25 ก.ย.) จะตามแก้ส่วน SSO
+  เมื่องานฝั่ง demo ส่งมอบ
 
 - `ai/AGENTS.md` เพิ่ม 4 ข้อใน "สิ่งที่ agent มักทำผิด" · `docs/subsystem-registry.md` หมายเหตุเรื่อง `callback_url` ·
   `templates/subsystem.yaml` · `docs/repo-structure.md` · ข้อความที่ยังเขียนว่า "7 ค่า"
