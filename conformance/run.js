@@ -13,7 +13,16 @@
  * Levels
  *   L1  Identity  - Core Hub token verification, 401 behaviour, /me, no local login
  *   L2  Contract  - response envelope, error codes, pagination, 400/403/404
- *   L3  SSO       - registered callback_url, /auth/callback, session without re-login
+ *   L3  SSO       - registered callback_url, sign-in that starts at /auth/login, the
+ *                   three callback outcomes, session without re-login, logout
+ *
+ * L3 plays Core Hub's web app itself: after the subsystem's /auth/login it
+ * calls the API's sso/authorize with a Bearer token and the subsystem's state,
+ * which is what the web app does with its session cookie.
+ *
+ * A 429 with Retry-After of at most 5 s is waited out and retried once; the
+ * summary counts retries, and error codes outside contracts/error-codes.json
+ * are listed as WARN (they will FAIL in the next version).
  *
  * Zero dependencies: Node.js 20+ only. Never reads the Core Hub private key.
  */
@@ -23,10 +32,14 @@ const { loadManifest } = require('./lib/manifest');
 const {
   Report,
   call,
+  cookieByName,
+  cookiePair,
+  deletesCookie,
   isSuccessEnvelope,
   isErrorEnvelope,
   isKnownErrorCode,
   leaksInternals,
+  observations,
 } = require('./lib/harness');
 const { negativeTokens, decodeJwt } = require('./lib/tokens');
 
@@ -74,6 +87,7 @@ function loadConfig(args) {
     subsystemId: args.subsystem ?? manifest.subsystemId,
     baseUrl: (args.url ?? manifest.baseUrl ?? '').replace(/\/+$/, ''),
     coreHubUrl: (args['core-hub'] ?? manifest.coreHubUrl ?? 'http://localhost:3000').replace(/\/+$/, ''),
+    coreHubWebUrl: (args['core-hub-web'] ?? manifest.coreHubWebUrl ?? '').replace(/\/+$/, ''),
     level: (args.level ?? manifest.level ?? 'L3').toUpperCase(),
     callbackPath: manifest.callbackPath ?? '/auth/callback',
     probes: manifest.probes ?? {},
@@ -381,10 +395,34 @@ async function runLevel2(config, report, tokens) {
 
 // ------------------------------------------------------------- level 3 ----
 
-async function runLevel3(config, report, tokens) {
-  const { baseUrl, coreHubUrl, subsystemId, callbackPath } = config;
+/** Cookie names are the subsystem name with "-" turned into "_" (auth-contract 5.1-5.2). */
+function ssoCookieNames(subsystemId) {
+  const prefix = subsystemId.replace(/-/g, '_');
+  return {
+    session: `${prefix}${JWT_CONTRACT.sso.sessionCookieSuffix}`,
+    state: `${prefix}${JWT_CONTRACT.sso.stateCookieSuffix}`,
+  };
+}
 
-  report.group('L3 · SSO — registration & handoff');
+function parseUrl(value) {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+/** Location without the access token, safe to print. */
+function shown(location) {
+  return (location ?? '').replace(/access_token=[^&]+/, 'access_token=<token>');
+}
+
+async function runLevel3(config, report, tokens) {
+  const { baseUrl, coreHubUrl, coreHubWebUrl, subsystemId, callbackPath } = config;
+  const sso = JWT_CONTRACT.sso;
+  const names = ssoCookieNames(subsystemId);
+
+  report.group('L3 · SSO — registration');
 
   const adminToken = tokens.admin;
 
@@ -428,17 +466,81 @@ async function runLevel3(config, report, tokens) {
   const ssoRole = mappedRoles.find((role) => tokens[role]) ?? 'staff';
   const ssoToken = tokens[ssoRole];
 
-  const authorize = await call(
-    `${coreHubUrl}/api/v1/auth/sso/authorize?subsystem=${encodeURIComponent(subsystemId)}`,
-    { token: ssoToken },
+  /** Step 1, as a browser: the subsystem mints a state and points at Core Hub web. */
+  const beginLogin = async (next) => {
+    const query = next === undefined ? '' : `?next=${encodeURIComponent(next)}`;
+    const response = await call(`${baseUrl}${sso.subsystemLoginPath}${query}`);
+    const target = parseUrl(response.location);
+    const stateCookie = cookieByName(response, names.state);
+    return {
+      response,
+      target,
+      state: target?.searchParams.get('state') ?? null,
+      stateCookie,
+      cookie: cookiePair(stateCookie),
+    };
+  };
+
+  /** Step 2, as Core Hub's web app: the API handoff with the user's Bearer token. */
+  const handoff = (state) => {
+    const query = new URLSearchParams({ subsystem: subsystemId });
+    if (state !== undefined) query.set('state', state);
+    return call(`${coreHubUrl}${JWT_CONTRACT.ssoAuthorizePath}?${query}`, { token: ssoToken });
+  };
+
+  /** Step 3, as a browser: follow Core Hub's redirect back, with or without a cookie. */
+  const callback = (location, cookie) => call(location, cookie ? { cookie } : {});
+
+  const withToken = (location, token) => {
+    const url = new URL(location);
+    url.searchParams.set('access_token', token);
+    return url.toString();
+  };
+
+  report.group('L3 · SSO — /auth/login starts every sign-in');
+
+  const login = await beginLogin();
+  const expectedAuthorize = coreHubWebUrl ? `${coreHubWebUrl}${sso.coreHubWebAuthorizePath}` : '';
+
+  if (!coreHubWebUrl) {
+    report.fail('L3-16', `${sso.subsystemLoginPath} → 302 to Core Hub web /sso/authorize`, 'manifest ไม่มี core_hub_web_url');
+  } else {
+    report.expectTrue(
+      'L3-16',
+      `${sso.subsystemLoginPath} → 302 to Core Hub web /sso/authorize with subsystem and state`,
+      login.response.status === 302 &&
+        login.target !== null &&
+        `${login.target.origin}${login.target.pathname}` === expectedAuthorize &&
+        login.target.searchParams.get('subsystem') === subsystemId &&
+        Boolean(login.state) &&
+        !login.target.searchParams.has('callback_url'),
+      `status=${login.response.status} location=${login.response.location ?? '(none)'}`,
+    );
+  }
+
+  const stateMaxAge = Number(/max-age=(\d+)/i.exec(login.stateCookie ?? '')?.[1]);
+  report.expectTrue(
+    'L3-17',
+    `${sso.subsystemLoginPath} sets an HttpOnly ${names.state} lasting at most ${sso.stateTtlMaxSec} s`,
+    Boolean(login.stateCookie) &&
+      /httponly/i.test(login.stateCookie) &&
+      Number.isFinite(stateMaxAge) &&
+      stateMaxAge > 0 &&
+      stateMaxAge <= sso.stateTtlMaxSec,
+    `set-cookie=${login.stateCookie ?? '(none)'}`,
   );
 
-  report.expect('L3-06', 'Core Hub SSO authorize → 302', authorize.status, 302);
+  report.group('L3 · SSO — handoff with the subsystem state');
+
+  const authorize = await handoff(login.state ?? undefined);
+
+  report.expect('L3-06', 'Core Hub SSO authorize (with state) → 302', authorize.status, 302);
   report.expectTrue(
     'L3-07',
-    'redirect points at the registered callback',
-    (authorize.location ?? '').startsWith(`${baseUrl}${callbackPath}`),
-    `location=${(authorize.location ?? '').replace(/access_token=[^&]+/, 'access_token=<token>')}`,
+    'redirect points at the registered callback and returns the state',
+    (authorize.location ?? '').startsWith(`${baseUrl}${callbackPath}`) &&
+      parseUrl(authorize.location)?.searchParams.get('state') === login.state,
+    `location=${shown(authorize.location)}`,
   );
 
   report.group('L3 · SSO — callback establishes a session');
@@ -448,25 +550,19 @@ async function runLevel3(config, report, tokens) {
     return;
   }
 
-  const callback = await call(authorize.location);
+  const accepted = await callback(authorize.location, login.cookie);
+  const session = cookieByName(accepted, names.session);
 
-  report.expectTrue(
-    'L3-08',
-    'callback accepts the Core Hub token (200 or 302)',
-    callback.status === 200 || callback.status === 302,
-    `got ${callback.status}`,
-  );
+  report.expect('L3-08', 'callback with a matching state → 302', accepted.status, 302);
   report.expectTrue(
     'L3-09',
-    'callback sets an HttpOnly session cookie',
-    /httponly/i.test(callback.setCookie ?? ''),
-    `set-cookie=${(callback.setCookie ?? '(none)').split(';')[0]}`,
+    `callback sets an HttpOnly ${names.session} cookie`,
+    Boolean(session) && !deletesCookie(session) && /httponly/i.test(session),
+    `set-cookie=${accepted.setCookies.map((entry) => entry.split(';')[0].split('=')[0]).join(', ') || '(none)'}`,
   );
 
-  const cookie = (callback.setCookie ?? '').split(';')[0];
-
-  if (cookie) {
-    const meViaCookie = await call(`${baseUrl}/api/v1/me`, { cookie });
+  if (session && !deletesCookie(session)) {
+    const meViaCookie = await call(`${baseUrl}/api/v1/me`, { cookie: cookiePair(session) });
     report.expect('L3-10', 'the session cookie alone reaches /api/v1/me', meViaCookie.status, 200);
 
     const claims = decodeJwt(ssoToken).payload;
@@ -478,21 +574,29 @@ async function runLevel3(config, report, tokens) {
     );
   } else {
     report.skip('L3-10', 'session cookie reaches /api/v1/me', 'no cookie was issued');
+    report.skip('L3-11', 'cookie session identifies the same user', 'no cookie was issued');
   }
 
-  report.group('L3 · SSO — rejected handoffs');
+  report.group('L3 · SSO — callbacks that must not create a session');
 
+  const setsSession = (result) => {
+    const entry = cookieByName(result, names.session);
+    return Boolean(entry) && !deletesCookie(entry);
+  };
+
+  // A forged token, with a valid state and cookie so the check reaches the token.
   const negatives = negativeTokens(JWT_CONTRACT, ssoToken);
-
-  const tampered = await call(
-    `${baseUrl}${callbackPath}?access_token=${encodeURIComponent(negatives.tamperedRole)}`,
-  );
-  report.expect('L3-12', 'callback with a tampered token → 401', tampered.status, 401);
+  const forgedLogin = await beginLogin();
+  const forgedAuthorize = await handoff(forgedLogin.state ?? undefined);
+  const tampered = forgedAuthorize.location
+    ? await callback(withToken(forgedAuthorize.location, negatives.tamperedRole), forgedLogin.cookie)
+    : { status: 0, setCookies: [] };
+  report.expect('L3-12', 'callback with a tampered token (state valid) → 401', tampered.status, 401);
   report.expectTrue(
     'L3-13',
     'no session cookie is issued for a rejected token',
-    !/core_hub|session/i.test(tampered.setCookie ?? ''),
-    `set-cookie=${tampered.setCookie ?? '(none)'}`,
+    !setsSession(tampered),
+    `set-cookie=${tampered.setCookies.join(' | ') || '(none)'}`,
   );
 
   const noToken = await call(`${baseUrl}${callbackPath}`);
@@ -504,11 +608,77 @@ async function runLevel3(config, report, tokens) {
   );
 
   const foreignCallback = await call(
-    `${coreHubUrl}/api/v1/auth/sso/authorize?subsystem=${encodeURIComponent(subsystemId)}` +
+    `${coreHubUrl}${JWT_CONTRACT.ssoAuthorizePath}?subsystem=${encodeURIComponent(subsystemId)}` +
       `&callback_url=${encodeURIComponent('https://evil.example.com/steal')}`,
     { token: ssoToken },
   );
   report.expect('L3-15', 'Core Hub rejects an unregistered callback_url', foreignCallback.status, 400);
+
+  // A sidebar click: Core Hub starts the sign-in, so there is no state.
+  const stateless = await handoff(undefined);
+  const restarted = stateless.location ? await callback(stateless.location) : { status: 0, setCookies: [] };
+  const restartTarget = parseUrl(restarted.location ? new URL(restarted.location, baseUrl) : '');
+  report.expectTrue(
+    'L3-18',
+    `callback without state → 302 to ${sso.subsystemLoginPath}, no session cookie`,
+    restarted.status === 302 &&
+      restartTarget?.pathname === sso.subsystemLoginPath &&
+      !setsSession(restarted),
+    `status=${restarted.status} location=${restarted.location ?? '(none)'}`,
+  );
+
+  // A state that arrives without its cookie: this browser never started it.
+  const orphanLogin = await beginLogin();
+  const orphanAuthorize = await handoff(orphanLogin.state ?? undefined);
+  const orphan = orphanAuthorize.location ? await callback(orphanAuthorize.location) : { status: 0, setCookies: [] };
+  report.expectTrue(
+    'L3-19',
+    'callback with a state but no state cookie → 401, no session cookie',
+    orphan.status === 401 && !setsSession(orphan),
+    `status=${orphan.status}`,
+  );
+
+  // The state of one sign-in with the cookie of another.
+  const first = await beginLogin();
+  const second = await beginLogin();
+  const crossed = await handoff(first.state ?? undefined);
+  const mismatched = crossed.location ? await callback(crossed.location, second.cookie) : { status: 0, setCookies: [] };
+  report.expectTrue(
+    'L3-20',
+    'state from one /auth/login with the cookie of another → 401',
+    mismatched.status === 401 && !setsSession(mismatched),
+    `status=${mismatched.status}`,
+  );
+
+  // An open-redirect attempt must land inside the subsystem.
+  const evil = await beginLogin('//evil.example.com');
+  const evilAuthorize = await handoff(evil.state ?? undefined);
+  const evilCallback = evilAuthorize.location ? await callback(evilAuthorize.location, evil.cookie) : { status: 0 };
+  const landing = evilCallback.location ? new URL(evilCallback.location, baseUrl) : null;
+  report.expectTrue(
+    'L3-21',
+    'next=//evil.example.com still lands on a path of the subsystem itself',
+    evilCallback.status === 302 && landing !== null && landing.origin === new URL(baseUrl).origin,
+    `status=${evilCallback.status} location=${evilCallback.location ?? '(none)'}`,
+  );
+
+  report.group('L3 · SSO — sign-out');
+
+  const logout = await call(`${baseUrl}${sso.subsystemLogoutPath}`, {
+    method: 'POST',
+    cookie: session ? cookiePair(session) : undefined,
+  });
+  const logoutSession = cookieByName(logout, names.session);
+  report.expectTrue(
+    'L3-22',
+    `POST ${sso.subsystemLogoutPath} → 303 to Core Hub web /logout and clears ${names.session}`,
+    logout.status === 303 &&
+      Boolean(coreHubWebUrl) &&
+      logout.location === `${coreHubWebUrl}${sso.coreHubWebLogoutPath}` &&
+      Boolean(logoutSession) &&
+      /max-age=0(\s*;|\s*$)/i.test(logoutSession),
+    `status=${logout.status} location=${logout.location ?? '(none)'} set-cookie=${logoutSession ?? '(none)'}`,
+  );
 }
 
 // ----------------------------------------------------------------- main ---
@@ -553,10 +723,32 @@ async function main() {
     await runLevel3(config, report, tokens);
   }
 
-  const { PASS, FAIL, SKIP } = report.counts;
+  // Worth knowing, never a failure: retries after a 429 and codes outside the enum.
+  if (observations.retries.length > 0 || observations.unknownCodes.size > 0) {
+    report.group('Warnings');
+  }
+  if (observations.retries.length > 0) {
+    report.warn(
+      'W-RETRY',
+      `${observations.retries.length} request(s) were throttled (429) and retried once`,
+      observations.retries.map((retry) => `${retry.url} after ${retry.wait}s`).join(' · '),
+    );
+  }
+  for (const [code, where] of observations.unknownCodes) {
+    report.warn(
+      'W-CODE',
+      `error.code "${code}" is not in contracts/error-codes.json (FAIL from the next version)`,
+      [...where].join(' · '),
+    );
+  }
+
+  const { PASS, FAIL, SKIP, WARN } = report.counts;
+  const retries = observations.retries.length;
 
   console.log(`\n${'─'.repeat(60)}`);
-  console.log(`RESULT: ${PASS} passed · ${FAIL} failed · ${SKIP} skipped`);
+  console.log(
+    `RESULT: ${PASS} passed · ${FAIL} failed · ${SKIP} skipped · ${WARN} warnings · retries: ${retries}`,
+  );
   console.log(
     FAIL === 0
       ? `✅ CONFORMANT — ${config.subsystemId} meets standard v${JWT_CONTRACT.standardsVersion} ${config.level}`
@@ -571,7 +763,7 @@ async function main() {
           subsystemId: config.subsystemId,
           standardsVersion: JWT_CONTRACT.standardsVersion,
           level: config.level,
-          summary: report.counts,
+          summary: { ...report.counts, retries },
           conformant: FAIL === 0,
           results: report.results,
           generatedAt: new Date().toISOString(),

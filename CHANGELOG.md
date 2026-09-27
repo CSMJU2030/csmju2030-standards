@@ -7,6 +7,80 @@
 
 ## ยังไม่ออกเวอร์ชัน
 
+(ยังไม่มี)
+
+---
+
+## 1.1.0 — 2026-09-27
+
+Central SSO ที่ใช้ได้จริงจากเบราว์เซอร์ · Silent re-SSO · error code 9 ค่า — ตาม `SSO_FIX_HANDOFF.md` ข้อ 7
+
+**ทำไม:** ใน 1.0 ระบบย่อยส่งเบราว์เซอร์ไป `sso/authorize` ของ **API** ซึ่งต้องมี Bearer ที่เบราว์เซอร์แนบไม่ได้
+จึงได้ 401 เสมอ · callback ที่ Core Hub เริ่มเองกัน login CSRF ไม่ได้ · token อายุ 15 นาทีทำให้ผู้ใช้หลุดบ่อย
+จนมีระบบย่อยไปทำ session ของตัวเอง (ขัดข้อ 5.1 และทำให้ถอนสิทธิ์ช้าถึง 8 ชั่วโมง) ·
+และระบบที่ต้องตอบ 429/503 ไม่มี error code ให้ใช้
+
+### สัญญา
+
+- `docs/auth-contract.md` ข้อ 5 เขียนใหม่ — **ทุก sign-in เริ่มที่ `GET /auth/login` ของระบบย่อย**
+  ซึ่งสร้าง `state` แล้วส่งไป**เว็บ**ของ Core Hub `/sso/authorize` · flow จาก sidebar · endpoint ทั้งสองฝั่ง
+- ข้อ 5.1 — callback 3 แบบ: ไม่มี state → ทิ้ง token แล้ว `302 /auth/login` · state ไม่ตรง → `401` ไม่ redirect ·
+  ผ่าน → คุกกี้ session แล้วไปหน้า `next` · ไม่สำเร็จต้องไม่มีคุกกี้ session · `no-store` · `no-referrer` ·
+  ห้าม log URL เต็มของ callback
+- ข้อ 5.2 (ใหม่) — state ≥ 32 ไบต์ base64url · คุกกี้ `<ชื่อ>_sso_state` `Path=/auth/callback` ไม่เกิน 600 วินาที ·
+  กฎของ `next` 5 ข้อ ตรวจซ้ำตอนใช้
+- ข้อ 6 — คุกกี้ session ชื่อ `<ชื่อ>_access_token` (เดิม `core_hub_access_token` ที่ชนกันบน localhost)
+- ข้อ 7 — Silent re-SSO: API ตอบ 401 JSON · frontend navigate ทั้งหน้าไป `/auth/login?next=` ·
+  ห้าม redirect ทับฟอร์ม · กันวน 30 วินาที · logout หมายถึงออกทั้งระบบ
+- ข้อ 9 — `/auth/login` และ `/auth/logout` เป็นข้อยกเว้นที่ต้องมี (redirect เท่านั้น ไม่มีฟอร์ม)
+- ข้อ 11 — 1.1 ส่งมอบแล้ว · `aud` แยกตามระบบย่อยย้ายไปเวอร์ชันถัดไป
+- `contracts/error-codes.json` — เพิ่ม `TOO_MANY_REQUESTS` (429) และ `SERVICE_UNAVAILABLE` (503)
+  ทั้งคู่ต้องมี `Retry-After` · 503 ใช้เมื่อสิ่งที่พึ่งพาไม่พร้อมชั่วคราว ห้ามใช้แทน 500 ของบั๊ก
+  (`docs/api-conventions.md` ข้อ 4 · endpoint นอก `/api/v1` เป็น 4 path)
+- `contracts/jwt-contract.json` ก้อน `sso` (path ทั้งหมด · suffix ของคุกกี้ · `stateTtlMaxSec`)
+- `contracts/openapi.yaml` — `/auth/login` · `/auth/logout` · callback ตอบ 302/400/401/403 ·
+  `session.expiresAt` ใน `/api/v1/me` · error enum 9 ค่า
+- `contracts/log-events.json` — reason `sso_restart_without_state` `sso_state_missing` `sso_state_mismatch` ·
+  เพิ่ม URL เต็มของ callback และ header `Cookie` ทั้งก้อนเข้า `mustNeverLog`
+- `schemas/subsystem.schema.json` — `core_hub_web_url` (ไม่บังคับ แต่ L3-16 ต้องใช้)
+
+### ตัวตรวจ
+
+- `API-04` (`scripts/check-api-conventions.sh`) — อ่านรายการจาก `contracts/error-codes.json` แทนการเขียนไว้ในสคริปต์ ·
+  ตรวจค่าที่ประกาศใน `ErrorCode` (object · enum · type) ด้วย ไม่ใช่แค่รูป `code: '…'` ·
+  ถ้าไม่มี node จะอ่านรายการด้วย grep และข้ามเฉพาะส่วน `ErrorCode` · fixture ใหม่ `__fixtures__/API-04`
+- `API-04` **เลิกตรวจไฟล์ทดสอบ** (`*.spec.ts` · `test/`) — ค่า `code:` ในไฟล์ทดสอบเป็นข้อมูลตัวอย่าง
+  เช่น `code: 'SCI'` ของ reference data ไม่ใช่ error contract (เดิมตีตก false positive จนระบบที่ทำถูกต้อง
+  merge ไม่ได้) · fixture pass เพิ่ม `rooms.service.spec.ts` เป็น regression
+- ตัวสแกน `ErrorCode` ย้ายไปเป็นไฟล์ `scripts/lib/api04-errorcode-scan.js` — heredoc ที่ซ้อนใน
+  command substitution ทำให้ **bash 3.2 ของ macOS parse ทั้งสคริปต์ไม่ผ่าน** ทีมที่ใช้ Mac
+  จะรันตัวตรวจในเครื่องไม่ได้เลย (CI บน Linux ไม่เจอ)
+
+### conformance
+
+- L3 เริ่มที่ `/auth/login` แล้วเล่นบทเว็บของ Core Hub · ข้อใหม่ **L3-16 – L3-22**
+  (login → เว็บ Core Hub · คุกกี้ state · callback ไม่มี state · state ไม่มีคุกกี้ · state สลับกัน ·
+  `next=//evil` · logout) · รวม **62 → 69 ข้อ** · รายละเอียดใน `docs/conformance.md`
+- อ่าน `Set-Cookie` ทุกตัวแล้วหาตามชื่อ (callback ตั้ง 2 คุกกี้) · รับ `--core-hub-web`
+- เจอ `429` ที่ `Retry-After` ≤ 5 วินาที รอแล้วลองใหม่ 1 ครั้ง · บรรทัดสรุปแสดง `retries: N`
+- สถานะ `WARN` ที่ไม่ทำให้ตก · error code นอก `error-codes.json` เป็น WARN (เวอร์ชันถัดไปเป็น FAIL)
+- ตัวอ่าน `subsystem.yaml` รับ CRLF — เดิมบน Windows ที่ `core.autocrlf=true` คอมเมนต์บรรทัดแรกทำให้ runner หยุดทันที
+- ผลกับ reference implementation (demo-student-subsystem `feature/student-service/silent-sso`):
+  `RESULT: 69 passed · 0 failed · 0 skipped · 0 warnings · retries: 0` ด้วยค่า rate limit แบบ default ·
+  ส่วน demo `main` (มาตรฐาน 1.0) ตก 9 ข้อที่ L3 ชุดใหม่ ตามที่ควรเป็น
+
+### เอกสารอื่น
+
+- `docs/reference-data.md` (ใหม่) — สารบัญชุดข้อมูลอ้างอิงกลาง + สัญญากลางโดยย่อ + เส้นแบ่งชัดว่า
+  ข้อมูลบุคคล (`/api/v1/people`) ไม่ใช่ reference data ห้าม cache (หน้าที่ค้างจาก `SHARED_DATA_HANDOFF` ข้อ 7.1)
+- `docs/LOCAL_INTEGRATION_GUIDE.md` — แทนฉบับเก่าด้วยร่างล่าสุดของ PL (25 ก.ย.) จะตามแก้ส่วน SSO
+  เมื่องานฝั่ง demo ส่งมอบ
+
+- `ai/AGENTS.md` เพิ่ม 4 ข้อใน "สิ่งที่ agent มักทำผิด" · `docs/subsystem-registry.md` หมายเหตุเรื่อง `callback_url` ·
+  `templates/subsystem.yaml` · `docs/repo-structure.md` · ข้อความที่ยังเขียนว่า "7 ค่า"
+
+### ที่ค้างจาก `main` และออกพร้อมเวอร์ชันนี้
+
 - `scripts/check-ui-tokens.sh` (`UI-01`..`UI-04`) — สแกนทั้ง `frontend/` แทน `frontend/src`
   เดิมถ้า Next.js วาง `app/` ไว้ที่ราก `frontend/` สคริปต์จะไม่เจอไฟล์ไหนเลยแล้วผ่านเฉย ๆ
   (fixture ใหม่ `__fixtures__/UI-01-NOSRC`) · ยกเว้นไฟล์ token กลาง `globals.css` และ `csmju/`
@@ -19,6 +93,19 @@
 - `ui-design-system.md` ข้อ 16.1 — ใช้ `frontend/` + `backend/` ตาม `repo-structure.md`
   (เดิมเขียน `web/` + `api/`) · ข้อ 17.0 — ระบุว่า template `csmju-subsystem-web` อยู่ใน repo
   `csmju-core-hub` และให้ copy ลง `frontend/` ด้วย `pnpm` แทนการแยก repo `-web` ด้วย `npm`
+
+### ระบบย่อยต้องทำอะไรเมื่อเลื่อนมา 1.1
+
+1. เพิ่ม `GET /auth/login` · แก้ `GET /auth/callback` ตาม auth-contract ข้อ 5.1 · เพิ่ม `POST /auth/logout`
+   (คัดลอกจาก demo-student-subsystem ได้) · ถ้ามี session ของตัวเองให้เลิกใช้
+2. เปลี่ยนชื่อคุกกี้เป็น `<ชื่อ>_access_token` (และคุกกี้ state `<ชื่อ>_sso_state`)
+3. เพิ่ม `CORE_HUB_WEB_URL` ใน `.env` และ `core_hub_web_url` ใน `subsystem.yaml` ·
+   เพิ่ม `/auth/login` `/auth/logout` ใน `public_endpoints`
+4. frontend: ใช้ตัวจับ 401 และ re-SSO จาก template (`SSO_FIX_HANDOFF.md` ข้อ 8)
+5. ถ้าตอบ 429 หรือ 503 ให้ใช้ code ใหม่พร้อม `Retry-After`
+6. ขอ PL เลื่อน submodule · pin ใน `ci.yml` · `.standards-version` · `standards_version` เป็น `1.1.0`
+
+Core Hub ยังรับระบบย่อย 1.0 อยู่ (กดจาก sidebar แล้วเข้าได้เหมือนเดิม) แต่ละทีมจึงเลื่อนตามจังหวะของตัวเองได้
 
 ---
 

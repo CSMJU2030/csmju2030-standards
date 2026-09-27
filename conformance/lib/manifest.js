@@ -38,7 +38,10 @@ function parseYaml(text) {
   const root = {};
   const stack = [{ indent: -1, node: root }];
 
-  text.split('\n').forEach((rawLine, index) => {
+  // \r\n ด้วย: บน Windows ที่ตั้ง core.autocrlf=true ไฟล์ใน working tree เป็น CRLF
+  // ถ้าตัดแค่ \n จะเหลือ \r ท้ายบรรทัด regex ตัดคอมเมนต์ (`.*$`) จับไม่ติด
+  // แล้วคอมเมนต์บรรทัดแรกจะถูกมองเป็น "ไม่ใช่ key: value"
+  text.split(/\r?\n/).forEach((rawLine, index) => {
     const withoutComment = rawLine.replace(/\s+#.*$/, '').replace(/^\s*#.*$/, '');
     if (withoutComment.trim() === '') return;
 
@@ -110,6 +113,8 @@ function resolveManifestPath(explicitPath) {
 /**
  * อ่าน manifest แล้วคืนค่าเป็น camelCase
  * `name` (ตาม subsystem.yaml) ถูกแมปเป็น `subsystemId` ที่ runner ใช้
+ * `core_hub_web_url` กลายเป็น `coreHubWebUrl` — เว็บของ Core Hub ที่ L3 ใช้ตรวจ
+ * ว่า /auth/login ส่งเบราว์เซอร์ไปถูกที่ (run.js รับ `--core-hub-web` ทับได้)
  */
 function loadManifest(explicitPath) {
   const manifestPath = resolveManifestPath(explicitPath);

@@ -328,7 +328,7 @@ jobs:
 | `API-01` | `openapi.json` sync กับโค้ด backend | ❌ Fail | tech-stack.md 3 |
 | `API-02` | URL เป็น kebab-case + noun พหูพจน์ + มี `/v1/` | ❌ Fail | api-conventions.md 1 |
 | `API-03` | ทุก endpoint ห่อ response ด้วย envelope มาตรฐาน | ❌ Fail | api-conventions.md 3 |
-| `API-04` | `error.code` อยู่ในรายการมาตรฐาน 7 ค่า | ❌ Fail | api-conventions.md 4 |
+| `API-04` | `error.code` และค่าใน `ErrorCode` อยู่ในรายการของ `contracts/error-codes.json` (9 ค่า) · ไฟล์ทดสอบ `*.spec.ts` และ `test/` ไม่ถูกตรวจ (ค่าในนั้นเป็นข้อมูลตัวอย่าง) | ❌ Fail | api-conventions.md 4 |
 | `API-05` | มี endpoint `GET /api/health` | ❌ Fail | api-conventions.md 8 |
 | `API-07` | pagination ใช้ `?page=&limit=` (ห้าม `per_page`) | ❌ Fail | api-conventions.md 5 |
 | `API-06` | ประกาศ `public_endpoints` ใน `subsystem.yaml` | ⚠️ Warn | api-conventions.md 7 |

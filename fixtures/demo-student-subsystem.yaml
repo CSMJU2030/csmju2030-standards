@@ -1,15 +1,18 @@
 # manifest ของ reference implementation — ใช้ทดสอบตัว conformance runner เอง
 name: student-service
-standards_version: "1.0.0"
+standards_version: "1.1.0"
 conformance_level: L3
 
 base_url: http://localhost:3001
 core_hub_url: http://localhost:3000
+core_hub_web_url: http://localhost:3100   # เว็บของ Core Hub ที่ /auth/login ส่งเบราว์เซอร์ไป (L3-16)
 callback_path: /auth/callback
 
 public_endpoints:
   - GET /api/health
+  - GET /auth/login
   - GET /auth/callback
+  - POST /auth/logout
 
 probes:
   collection: /api/v1/courses
