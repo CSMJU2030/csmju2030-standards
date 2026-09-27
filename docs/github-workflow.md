@@ -11,18 +11,21 @@
 เพื่อให้ AIE และ PL ทำงานร่วมกันได้อย่างเป็นระบบและโค้ดไม่พัง ให้ปฏิบัติตามกฎและลำดับการทำงาน (Flow) จากส่วนกลางอย่างเคร่งครัด:
 
 ### 1.1 กฎเหล็กของ Workflow
-1. **Branch Protection:** ไม่ push ตรงเข้า `main`/`production` เด็ดขาด
-2. **Reviewer:** กำหนด CODEOWNERS ให้ PL (Project Lead) เป็น required reviewer ของ `main` เสมอ
+1. **Branch Protection:** ไม่ push ตรงเข้า `main` และ `develop` เด็ดขาด ทุกอย่างเข้าผ่าน PR
+2. **Reviewer:** กำหนด CODEOWNERS ให้ PL (Project Lead) เป็น required reviewer ของ `main` (และ `develop` ถ้ามี) เสมอ
 3. **Feature Branch:** AIE ต้องทำงานใน feature branch เท่านั้น
-4. **Naming Convention:** ใช้ branch naming รูปแบบ `feature/<subsystem>/<เรื่องที่ทำ>`
+4. **Naming Convention:** ใช้ branch naming รูปแบบ `feature/<subsystem>/<เรื่องที่ทำ>` ข้อยกเว้นมีแค่ PR ระหว่าง `develop` กับ `main` (ข้อ 1.5)
 5. **CI/CD:** CI จะรัน automated compliance ทุกครั้งที่เปิด PR
 
 ### 1.2 ขั้นตอนการทำงานจริง (Git Commands สำหรับ AIE)
 เมื่อเริ่มต้นพัฒนาฟีเจอร์ใหม่ ให้ทำตามลำดับคำสั่งนี้:
 
-**ขั้นตอนที่ 1:** แตก Branch ใหม่สำหรับทำงาน (ใช้ naming convention ตามข้อ 1.1 ข้อ 4)
+**ขั้นตอนที่ 1:** แตก Branch ใหม่จาก branch หลักล่าสุด (ใช้ naming convention ตามข้อ 1.1 ข้อ 4)
+repo ที่มี `develop` ให้แตกจาก `develop` · repo ที่ไม่มีให้แตกจาก `main` (ข้อ 1.5)
 ```bash
-git checkout -b feature/equipment/add-borrow-return
+git switch develop
+git pull
+git switch -c feature/equipment/add-borrow-return
 ```
 
 **ขั้นตอนที่ 2:** อัปเดตมาตรฐานส่วนกลางก่อนเขียนโค้ดเสมอ (เพื่อดึง `csmju2030-standards` ล่าสุด)
@@ -42,8 +45,9 @@ git push origin feature/equipment/add-borrow-return
 ```
 
 **ขั้นตอนที่ 5:** เปิด Pull Request (PR) ให้ PL ตรวจสอบ (ผ่าน GitHub UI หรือ gh cli)
+PR ต้องเข้า branch เดียวกับที่แตกออกมาในขั้นตอนที่ 1 (repo ที่ไม่มี `develop` ใช้ `--base main`)
 ```bash
-gh pr create --base main --title "feat(equipment): add borrow-return flow"
+gh pr create --base develop --title "feat(equipment): add borrow-return flow"
 ```
 
 > **หมายเหตุ:** ชื่อ commit และ PR title ต้องตาม Commit Convention ในข้อ 1.3
@@ -84,9 +88,60 @@ fix(equipment): correct due-date calculation timezone bug
 แต่ละ subsystem มี AIE รับผิดชอบ 1 คน (1 คน = 1 ระบบย่อย) จึงไม่มี concurrent conflict ภายใน repo เดียวกัน แต่ยังต้องรักษาวินัยดังนี้:
 
 1. **Sync กับ standards กลางสม่ำเสมอ:** ก่อนเริ่มงานแต่ละวัน ให้ `git fetch origin` และ `git submodule update --remote standards/` เพื่อไม่ให้ตกรุ่นจากมาตรฐานกลางที่อาจถูกอัปเดตโดยทีมอื่น
-2. **Branch อายุสั้น:** feature branch ไม่ควรค้างเกิน 2-3 วัน เพื่อให้ PL review ทัน และลดความเสี่ยงที่ `main` เปลี่ยนไปมากจนต้อง resolve conflict ตอน merge
-3. **Merge strategy:** ใช้ **Squash and merge** เข้า `main` เท่านั้น เพื่อให้ 1 PR = 1 commit ใน history ของ main
+2. **Branch อายุสั้น:** feature branch ไม่ควรค้างเกิน 2-3 วัน เพื่อให้ PL review ทัน และลดความเสี่ยงที่ branch หลักเปลี่ยนไปมากจนต้อง resolve conflict ตอน merge
+3. **Merge strategy:** PR จาก feature branch ใช้ **Squash and merge** เท่านั้น เพื่อให้ 1 PR = 1 commit ใน history
+   ส่วน PR ระหว่าง `develop` กับ `main` ใช้ **Create a merge commit** (เหตุผลอยู่ในข้อ 1.5)
 4. **Cross-subsystem dependency:** ถ้างานต้องพึ่งพา API ของ subsystem อื่น ให้ประสานผ่าน `openapi.json` ของ subsystem นั้น (ดูข้อ 3 ใน tech-stack.md) แทนการเข้าไปแก้ repo อื่นเอง
+
+---
+
+### 1.5 Branch หลักสองตัว: `develop` และ `main`
+
+repo ที่มีหลายคนทำงานพร้อมกัน หรือมีเครื่อง dev server กลาง ให้แยก branch หลักเป็น 2 ตัว
+งานทุกชิ้นรวมกันและทดสอบด้วยกันที่ `develop` ก่อน แล้วค่อยขึ้น `main`
+
+| branch | ใช้ทำอะไร | deploy ไปที่ |
+|---|---|---|
+| `develop` | รวมงานทุก feature แล้วทดสอบด้วยกัน | dev server |
+| `main` | เฉพาะของที่ผ่านการทดสอบบน dev server แล้ว | production |
+
+**repo ไหนใช้:** Core Hub **ต้องใช้** · ระบบย่อย**เลือกใช้ได้** (แนะนำเมื่อมีคนทำมากกว่า 1 คน หรือมี dev server) ·
+repo มาตรฐาน**ไม่ใช้** เพราะ tag ทำหน้าที่เป็น release อยู่แล้ว และระบบย่อยปักหมุดตาม tag
+
+```text
+feature/<subsystem>/<เรื่อง>  →  PR (squash)  →  develop  →  ทดสอบบน dev server  →  PR (merge commit)  →  main
+```
+
+| งาน | แตกจาก | PR | วิธี merge |
+|---|---|---|---|
+| feature หรือแก้บั๊กทั่วไป | `develop` | เข้า `develop` | Squash and merge |
+| ขึ้น production (release) | — | `develop` → `main` | **Create a merge commit** |
+| hotfix (production พังต้องแก้ด่วน) | `main` | เข้า `main` | Squash and merge |
+| ดึง hotfix กลับเข้า develop | — | `main` → `develop` | **Create a merge commit** |
+
+hotfix ใช้ชื่อ branch แบบ feature ตามปกติ เช่น `feature/core-hub/hotfix-login-loop` · PR `develop` → `main` และ `main` → `develop`
+เป็นข้อยกเว้นเดียวของกฎชื่อ branch (`GH-01` ดูจาก base ของ PR)
+
+**ทำไม PR ระหว่าง `develop` กับ `main` ห้าม squash:** squash สร้าง commit ใหม่บน `main` ที่ `develop` ไม่มี
+รอบ release ถัดไป GitHub จะเห็นงานเก่าทั้งหมดเป็นของใหม่อีกครั้ง PR จะรวม commit เดิมซ้ำและชนกันซ้ำทุกรอบ
+merge commit ทำให้ `main` มี commit ชุดเดียวกับ `develop` และ history ยังอ่านง่าย เพราะแต่ละ feature ถูก squash เหลือ 1 commit ตั้งแต่ตอนเข้า `develop`
+
+**กติกา**
+1. `develop` ต้องใช้งานได้เสมอ เพราะทุกคนทดสอบบนนั้น PR ที่ทำให้ dev server พังต้องแก้หรือ revert ทันที
+2. ขึ้น production บ่อย ๆ อย่างน้อยทุกสัปดาห์ที่มีงานเข้า `develop` ยิ่งปล่อยให้ `develop` ห่างจาก `main` นานยิ่ง merge ยาก
+3. PR release ต้องทดสอบบน dev server ครบก่อน และต้องเขียนรายการงานที่ขึ้นในรอบนั้นไว้ใน PR
+4. merge release แล้วติด tag เวอร์ชันบน `main` (เช่น `v1.1.0`) เพื่อให้รู้ว่า production เป็นเวอร์ชันไหนและย้อนกลับได้
+5. merge hotfix เข้า `main` แล้วต้องเปิด PR `main` → `develop` ทันที ไม่งั้น `develop` จะยังมีบั๊กเดิม และรอบ release ถัดไปอาจชนกัน
+6. PR ที่มี migration ใหม่ต้องเขียนไว้ใน PR ว่าต้องรัน `prisma migrate deploy` ทั้งบน dev server และในเครื่องของทุกคนที่ดึง `develop`
+
+**ตั้งค่าครั้งแรก** (PL หรือ DevOps ทำครั้งเดียวต่อ repo)
+1. สร้าง `develop` จาก `main` แล้ว push
+2. ให้ `.github/workflows/ci.yml` รัน PR ที่เข้า `develop` ด้วย (`branches: [main, develop]` ซึ่ง `templates/ci.yml` มีให้แล้ว) ระบบย่อยต้องให้ DevOps แก้ไฟล์นี้เพราะ AIE แก้ไม่ได้ (`GH-03`)
+3. ตั้ง default branch เป็น `develop` (Settings → General → Default branch) เพื่อให้ PR ใหม่ชี้ `develop` เอง
+   **ต้องทำก่อน merge PR release ครั้งแรก** เพราะถ้าเปิด "Automatically delete head branches" ไว้ GitHub จะลบ head branch ของ PR ที่ merge แล้ว
+   ยกเว้น default branch (ถ้า `develop` ถูกลบไป กดปุ่ม Restore branch ในหน้า PR ได้)
+4. เปิด "Allow merge commits" คู่กับ "Allow squash merging" (Settings → General → Pull Requests) โดย merge commit ใช้กับ PR ระหว่าง `develop` กับ `main` เท่านั้น
+5. ตั้ง dev server ให้ deploy จาก `develop`
 
 ---
 
@@ -104,7 +159,7 @@ fix(equipment): correct due-date calculation timezone bug
 
 ## 3. CI Compliance Checklist (`.github/workflows/`)
 
-เพื่อให้ CI pipeline มาตรฐานตรวจอย่างน้อยดังนี้ทุก PR ที่เข้า `main`:
+เพื่อให้ CI pipeline มาตรฐานตรวจอย่างน้อยดังนี้ทุก PR ที่เข้า `main` หรือ `develop`:
 
 1. **Lint & Format:** ESLint + Prettier ผ่านทั้ง `frontend/` และ `backend/`
 2. **Type Check:** `tsc --noEmit` ผ่านทั้งสองฝั่ง 
@@ -146,4 +201,7 @@ fix(equipment): correct due-date calculation timezone bug
    - ทุก commit และ PR title ต้องตาม Conventional Commits รูปแบบ `<type>(<subsystem-scope>): <คำอธิบาย>` เช่น `feat(equipment): add borrow-return flow`
 4. Secrets:
    - ห้าม hardcode connection string, API key หรือค่าลับใดๆ ในโค้ด ต้องอ่านจาก environment variable เท่านั้น และห้ามสร้าง/แก้ไฟล์ .env ที่มีค่าจริงเข้า repo
+5. Branch:
+   - ถ้า repo มี branch `develop` ให้แตก feature branch จาก `develop` และเปิด PR เข้า `develop` ถ้าไม่มีให้ใช้ `main`
+   - ห้าม push ตรงเข้า `main` หรือ `develop` และห้ามเปิด PR `develop` → `main` เอง (เป็นหน้าที่ของ PL)
 ```

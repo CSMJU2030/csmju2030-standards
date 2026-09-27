@@ -34,7 +34,10 @@ GREP_OPTS=(--include='*.ts' --include='*.js'
   --exclude='*.spec.ts' --exclude='*.e2e-spec.ts' --exclude='*.integration-spec.ts')
 
 # ยึดหลักเดียวกับสคริปต์อื่น: ไม่มีไฟล์ = ข้าม (repo ที่เพิ่ง scaffold ยังไม่มีโค้ด)
-BACKEND_TS=$(find backend/src -name '*.ts' -not -path '*/node_modules/*' 2>/dev/null | head -1)
+# -print -quit แทน `| head -1`: ภายใต้ pipefail ถ้า head ปิดท่อก่อน find เขียนเสร็จ
+# find จะโดน SIGPIPE (exit 141) แล้ว set -e ทำให้สคริปต์จบเงียบ ๆ โดยไม่บอกว่าตกเพราะอะไร
+# เกิดจริงบน CI (Linux) ของ Core Hub เมื่อรายชื่อไฟล์ยาวเกิน buffer — ดู CHANGELOG 1.1.1
+BACKEND_TS=$(find backend/src -name '*.ts' -not -path '*/node_modules/*' -print -quit 2>/dev/null)
 
 if [[ -n "$BACKEND_TS" ]]; then
   BAD_ALG=$(grep -rnE "HS(256|384|512)|algorithms?\s*:\s*\[?\s*['\"]none['\"]" \

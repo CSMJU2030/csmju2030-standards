@@ -29,13 +29,18 @@ MODE="${1:?ระบุ mode: org | repo | self | validate | sweep}"
 SUBSYSTEM_RULESETS=(main-protection branch-naming)
 shift || true
 
-# บล็อกกรณี default branch ยังไม่ใช่ main — ruleset exclude แค่ refs/heads/main
-# ถ้า default เป็น master จะโดน branch_name_pattern ตีตก push เข้า default เอง
+# บล็อกกรณี default branch ไม่ใช่ main หรือ develop — ruleset exclude แค่สองชื่อนี้
+# (develop คือ branch รวมงานตาม github-workflow.md 1.5) ถ้า default เป็น master
+# จะโดน branch_name_pattern ตีตก push เข้า default เอง
+is_long_lived_branch() {
+  [ "$1" = "main" ] || [ "$1" = "develop" ]
+}
+
 guard_default_branch() {
   local repo="$1" br
   br=$(gh api "repos/$ORG/$repo" --jq .default_branch)
-  if [ "$br" != "main" ]; then
-    echo "❌ $repo: default branch คือ '$br' ไม่ใช่ 'main'" >&2
+  if ! is_long_lived_branch "$br"; then
+    echo "❌ $repo: default branch คือ '$br' ไม่ใช่ 'main' หรือ 'develop'" >&2
     echo "   ต้อง rename เป็น main ก่อน ไม่งั้น branch-naming จะบล็อก branch หลักเอง" >&2
     return 1
   fi
@@ -75,8 +80,8 @@ sweep_repo() {
     echo "  ✓ ครบแล้ว"
     return 0
   fi
-  if [ "$branch" != "main" ]; then
-    fail "$repo: default branch คือ '$branch' ไม่ใช่ 'main' — rename ก่อน แล้ว sweep จะตั้งให้เอง"
+  if ! is_long_lived_branch "$branch"; then
+    fail "$repo: default branch คือ '$branch' ไม่ใช่ 'main' หรือ 'develop' — rename ก่อน แล้ว sweep จะตั้งให้เอง"
     return 1
   fi
   for n in "${missing[@]}"; do

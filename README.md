@@ -39,12 +39,15 @@ repo นี้เป็นแหล่งความจริงเพียง
 
 ```bash
 git submodule update --remote standards/      # ดึงมาตรฐานล่าสุดก่อนเริ่มทุกวัน
-git checkout -b feature/<subsystem>/<เรื่องที่ทำ>
+git checkout -b feature/<subsystem>/<เรื่องที่ทำ>  # repo ที่มี develop ให้แตกจาก develop
 # ...เขียนโค้ด...
 git commit -m "feat(<subsystem>): <คำอธิบาย>"
 git push origin feature/<subsystem>/<เรื่องที่ทำ>
-gh pr create --base main
+gh pr create --base main                       # repo ที่มี develop ใช้ --base develop
 ```
+
+repo ที่มีหลายคนทำพร้อมกันหรือมี dev server (เช่น Core Hub) ใช้ `develop` เป็นที่รวมงานก่อนขึ้น `main`
+ดูกติกาใน [`docs/github-workflow.md`](docs/github-workflow.md) ข้อ 1.5
 
 ### ตรวจเองก่อนเปิด PR (ไม่ต้องรอ CI)
 
@@ -69,7 +72,7 @@ CI ตรวจว่า "เขียนถูกกฎ" · conformance ตร�
 
 ## กฎที่ CI บังคับ
 
-ทุก PR ที่เข้า `main` จะรัน 8 job นี้ ต้องเขียวหมดจึง merge ได้
+ทุก PR ที่เข้า `main` หรือ `develop` จะรัน 8 job นี้ ต้องเขียวหมดจึง merge ได้
 
 | Job | ตรวจอะไร |
 |---|---|

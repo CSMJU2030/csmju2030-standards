@@ -19,9 +19,25 @@ Core Hub ต้องเลื่อน pin ใน `ci.yml` เป็นเว�
 
 ---
 
+## 1.1.1 — 2026-09-27
+
+- `scripts/check-api-conventions.sh` (`API-02`..`API-07`) และ `scripts/check-no-jwt-verify.sh` (`SEC-04`/`SEC-05`) —
+  หาไฟล์ `.ts` ตัวแรกด้วย `find … -print -quit` แทน `find … | head -1`
+  ภายใต้ `set -o pipefail` ถ้า `head` ปิดท่อก่อน `find` เขียนเสร็จ `find` จะโดน SIGPIPE (exit 141)
+  แล้ว `set -e` ทำให้สคริปต์จบเงียบ ๆ โดยไม่พิมพ์ว่าตกเพราะอะไร · เจอจริงบน CI ของ Core Hub
+  (PR `feature/core-hub/rate-limit` ตกที่ "API Contract" หลังรายชื่อไฟล์ใน `backend/src` ยาวเกิน buffer ของ Linux ราว 7 KB)
+  ผลเป็นแบบสุ่ม ผ่านบ้างตกบ้าง และบน Mac แทบไม่เจอ ระบบย่อยทุกตัวจะเจอเมื่อโค้ดโตขึ้น
+- `self-test.sh` เพิ่ม 2 กรณีที่สร้าง backend 1,800 ไฟล์ตอนรัน ให้รายชื่อยาวเกินความจุของท่อ — สคริปต์เดิมตก exit 141 ทุกครั้ง
+
+**ใครต้องทำอะไร:** ไม่มีกฎเปลี่ยน · repo ที่ CI ตกที่ "API Contract" หรือ "Security & Stack Scan" โดยไม่มีข้อความ ❌
+(log จบที่ `exit code 141`) ให้เลื่อน pin ใน `ci.yml` และ `.standards-version` เป็น 1.1.1 · ระหว่างรอ กด Re-run failed jobs ได้
+
+---
+
 ## 1.1.0 — 2026-09-27
 
 Central SSO ที่ใช้ได้จริงจากเบราว์เซอร์ · Silent re-SSO · error code 9 ค่า — ตาม `SSO_FIX_HANDOFF.md` ข้อ 7
+และกติกา branch `develop` เป็นที่รวมงานก่อนขึ้น `main` — `docs/github-workflow.md` ข้อ 1.5
 
 **ทำไม:** ใน 1.0 ระบบย่อยส่งเบราว์เซอร์ไป `sso/authorize` ของ **API** ซึ่งต้องมี Bearer ที่เบราว์เซอร์แนบไม่ได้
 จึงได้ 401 เสมอ · callback ที่ Core Hub เริ่มเองกัน login CSRF ไม่ได้ · token อายุ 15 นาทีทำให้ผู้ใช้หลุดบ่อย
@@ -87,6 +103,23 @@ Central SSO ที่ใช้ได้จริงจากเบราว์�
 - `ai/AGENTS.md` เพิ่ม 4 ข้อใน "สิ่งที่ agent มักทำผิด" · `docs/subsystem-registry.md` หมายเหตุเรื่อง `callback_url` ·
   `templates/subsystem.yaml` · `docs/repo-structure.md` · ข้อความที่ยังเขียนว่า "7 ค่า"
 
+### branch `develop`
+
+- `docs/github-workflow.md` ข้อ 1.5 (ใหม่) — repo ที่มีหลายคนทำพร้อมกันหรือมี dev server ใช้ branch หลัก 2 ตัว
+  คือ `develop` รวมงานแล้วทดสอบบน dev server และ `main` เป็น production · Core Hub ต้องใช้ · ระบบย่อยเลือกใช้ได้ ·
+  repo มาตรฐานไม่ใช้เพราะ tag ทำหน้าที่เป็น release อยู่แล้ว
+  feature PR เข้า `develop` แบบ squash · PR `develop` → `main` และ `main` → `develop` ใช้ merge commit
+  เพราะถ้า squash แล้ว `main` กับ `develop` จะแยกประวัติกัน · ข้อ 1.1, 1.2, 1.4, 3 และ system prompt ข้อ 5 ปรับให้ตรงกัน
+- `GH-01` (`scripts/check-branch-name.sh`) — ยอมรับ PR `develop` → `main` และ `main` → `develop`
+  โดยดู base จาก `GITHUB_BASE_REF` (หรือ argument ที่ 3) ส่วนชื่ออื่นยังต้องเป็น `feature/<subsystem>/<เรื่อง>`
+  และการตรวจในเครื่องที่ไม่มี base ยังให้ `develop` กับ `main` ไม่ผ่านเหมือนเดิม · `self-test.sh` เพิ่ม 6 กรณี
+- `templates/ci.yml` · ตัวอย่างใน `ci-compliance-spec.md` ข้อ 6.2 และ `core-hub-rules.md` ข้อ 6 — รัน CI กับ PR ที่เข้า `develop` ด้วย
+  (repo ที่ไม่มี `develop` ไม่มีผลอะไร)
+- `ci-compliance-spec.md` ข้อ 4.1–4.2 และ `org-settings/` — เลิกบังคับ linear history บน `main` ของระบบย่อย เพราะ PR release ต้องเป็น merge commit
+  ส่วน feature PR ยังเป็น squash โดยคุมที่ merge method ของ repo · repo ที่ใช้ `develop` ต้องเปิด merge commit
+  และตั้ง `develop` เป็น default branch ก่อน merge PR release ครั้งแรก (ไม่งั้น "Automatically delete head branches" จะลบ `develop`)
+  · ruleset ชื่อ branch ยกเว้น `refs/heads/develop` เพิ่มจาก `refs/heads/main` · `apply-rulesets.sh` ยอมรับ default branch เป็น `develop`
+
 ### ที่ค้างจาก `main` และออกพร้อมเวอร์ชันนี้
 
 - `scripts/check-ui-tokens.sh` (`UI-01`..`UI-04`) — สแกนทั้ง `frontend/` แทน `frontend/src`
@@ -112,6 +145,12 @@ Central SSO ที่ใช้ได้จริงจากเบราว์�
 4. frontend: ใช้ตัวจับ 401 และ re-SSO จาก template (`SSO_FIX_HANDOFF.md` ข้อ 8)
 5. ถ้าตอบ 429 หรือ 503 ให้ใช้ code ใหม่พร้อม `Retry-After`
 6. ขอ PL เลื่อน submodule · pin ใน `ci.yml` · `.standards-version` · `standards_version` เป็น `1.1.0`
+7. `UI-01`..`UI-04` ตรวจทั้ง `frontend/` แล้ว ถ้ามีสี hex นอก `globals.css` และ `csmju/` จะตก ต้องเปลี่ยนเป็น token ก่อนเลื่อน
+   (Core Hub ยกเว้น `UI-01`..`UI-04` อยู่แล้ว)
+8. ถ้าจะใช้ `develop` ให้ทำ "ตั้งค่าครั้งแรก" ใน github-workflow.md ข้อ 1.5 · Core Hub ต้องเลื่อนเป็น 1.1.0 ก่อนเปิด PR release ครั้งแรก
+   ไม่งั้น `GH-01` ของ 1.0.x จะตีตก PR `develop` → `main`
+9. repo ที่มี ruleset อยู่แล้วจะยังใช้ชุดเดิม เพราะ sweep สร้างเฉพาะตัวที่ขาดและไม่ทับของเดิม (org-settings-checklist.md)
+   DevOps ต้องรัน `org-settings/apply-rulesets.sh repo <ชื่อ repo>` ให้แต่ละ repo ที่จะใช้ `develop`
 
 Core Hub ยังรับระบบย่อย 1.0 อยู่ (กดจาก sidebar แล้วเข้าได้เหมือนเดิม) แต่ละทีมจึงเลื่อนตามจังหวะของตัวเองได้
 
