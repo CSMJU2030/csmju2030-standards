@@ -7,7 +7,7 @@
     "allowed_backend รวม dependency ที่สัญญา v1.0 บังคับ: @prisma/adapter-pg + pg (Prisma 7 driver adapter), jose (ตรวจ JWKS+kid)",
     "jsonwebtoken / passport-jwt ยังห้าม เพราะไม่รองรับ JWKS + kid ตาม auth-contract.md ข้อ 4 — ให้ใช้ jose",
     "allowed_core_hub ใช้เพิ่มจาก allowed_backend เฉพาะ profile=core-hub (csmju-core-hub เป็นผู้ออก token จึงต้องมีไลบรารีเซ็น/ตรวจของตัวเอง · sharp ใช้ย่อรูปในบริการเก็บรูปกลาง)",
-    "lucide-react / leaflet / qrcode.react / @tailwindcss/postcss อนุญาตตั้งแต่ 1.2.1 · react-leaflet ไม่อนุญาต (license Hippocratic-2.1 ไม่ผ่าน OSI) ให้ใช้ leaflet ตรง ๆ"
+    "lucide-react / leaflet / qrcode.react / @tailwindcss/postcss อนุญาตตั้งแต่ 1.2.1 (สาย 1.0.x ตั้งแต่ 1.0.2) · react-leaflet ไม่อนุญาต (license Hippocratic-2.1 ไม่ผ่าน OSI) ให้ใช้ leaflet ตรง ๆ"
   ],
   "allowed_frontend": [
     "next",

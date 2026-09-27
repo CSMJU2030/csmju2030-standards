@@ -20,10 +20,14 @@
   (ตัวอย่าง client component ใน `docs/tech-stack.md` ข้อ 1.4.2)
 - `docs/tech-stack.md` ข้อ 1.2 และ 1.4.2 (ใหม่) · `ci-compliance-spec.md` ข้อ 7.3 — อัปเดตให้ตรงกับ whitelist
   พร้อมข้อกำหนดแผนที่ (แสดง attribution ของ OpenStreetMap · เพิ่มโดเมน tile ใน CSP) และ QR (ใส่ได้เฉพาะข้อมูลสาธารณะ)
+- `docs/ui-design-system.md` ข้อ 14 — ระบบย่อยใช้ `lucide-react` แทนชุดไอคอนกลาง `icons.tsx` ได้ทั้งระบบ แต่ห้ามผสมสองชุด
 - fixture `__fixtures__/ARC-02-MAP` + `scripts/self-test.sh` — 4 ตัวใหม่ผ่าน · `react-leaflet` ถูกตีตก
 
-**ใครต้องทำอะไร:** ไม่มีกฎที่เข้มขึ้น · ระบบย่อยที่จะใช้แพ็กเกจเหล่านี้ต้องเลื่อน pin ใน `ci.yml` + `.standards-version` +
-submodule เป็น 1.2.1 · ระบบย่อยอื่นไม่ต้องทำอะไร
+whitelist ชุดเดียวกันออกให้สาย 1.0.x เป็น **1.0.2** ด้วย (ดูหัวข้อ 1.0.2 ด้านล่าง)
+
+**ใครต้องทำอะไร:** ไม่มีกฎที่เข้มขึ้น · ระบบย่อยที่ผูก 1.1.0 ขึ้นไปและจะใช้แพ็กเกจเหล่านี้ให้ขอ PL เลื่อนเป็น 1.2.1
+(pin ใน `ci.yml` · submodule `standards` · `.standards-version` · `standards_version` ใน `subsystem.yaml`) ·
+ระบบย่อยที่ทดสอบกับ Core Hub `main` ใช้ 1.0.2 · ระบบย่อยอื่นไม่ต้องทำอะไร
 
 ---
 
@@ -180,6 +184,18 @@ Central SSO ที่ใช้ได้จริงจากเบราว์�
    DevOps ต้องรัน `org-settings/apply-rulesets.sh repo <ชื่อ repo>` ให้แต่ละ repo ที่จะใช้ `develop`
 
 Core Hub ยังรับระบบย่อย 1.0 อยู่ (กดจาก sidebar แล้วเข้าได้เหมือนเดิม) แต่ละทีมจึงเลื่อนตามจังหวะของตัวเองได้
+
+---
+
+## 1.0.2 — 2026-09-28
+
+ออกจาก tag `v1.0.1` โดยตรง (commit ไม่อยู่บน `main`) สำหรับระบบย่อยที่ทดสอบกับ Core Hub `main` ซึ่งยังเป็น SSO 1.0
+
+- whitelist 4 ตัวชุดเดียวกับ 1.2.1 · `react-leaflet` ไม่อนุญาต
+- `UI-01`..`UI-04` ใช้ตัว scan ของ 1.1.0 (ตรวจทั้ง `frontend/` · ยกเว้น `globals.css` และ `csmju/`) เพื่อให้ย้ายไป Tailwind v4 ได้
+- การแก้ SIGPIPE ของ 1.1.1 ใน `check-api-conventions.sh` · `check-no-jwt-verify.sh`
+
+รายละเอียดเต็มอยู่ใน `CHANGELOG.md` ของ tag `v1.0.2`
 
 ---
 

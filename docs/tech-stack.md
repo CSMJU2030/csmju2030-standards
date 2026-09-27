@@ -84,11 +84,36 @@ CI (`ARC-02`) ตรวจ dependency ทุกตัวกับรายกา
 ต้องการไลบรารีนอกรายการ → เปิด issue ขอเพิ่ม พร้อมเหตุผลว่าแก้ปัญหาอะไร
 **ห้าม**แก้ไฟล์ whitelist เองใน PR ของระบบย่อย
 
-#### 1.4.2 ไอคอน แผนที่ QR และ Tailwind v4 (อนุญาตตั้งแต่ 1.2.1)
+#### 1.4.1 งานตั้งเวลา (scheduled job)
+
+งานที่ต้องรันเองตามเวลา เช่น ยกเลิกคำขอที่ค้างเกินกำหนด หรือติดธงรายการที่เกินกำหนดคืน ให้ใช้ `@nestjs/schedule` (อนุญาตตั้งแต่ 1.0.1)
+ไลบรารีตั้งเวลาตัวอื่น (`node-cron` · `cron` · `agenda` · `bull`) ยังไม่อนุญาต ให้ใช้ตัวเดียวกันทั้ง platform
+
+ทุกงานต้องทำตาม 3 ข้อนี้
+
+1. **รันซ้ำได้โดยไม่เสียหาย (idempotent)** — ใส่เงื่อนไขทั้งหมดไว้ใน `WHERE` ของคำสั่งเดียว
+   เช่น `UPDATE … SET status = 'EXPIRED' WHERE status = 'PENDING' AND expires_at < now()`
+   ห้ามดึงรายการออกมาก่อนแล้วค่อยวนแก้ทีละแถว เพราะถ้ามีสอง instance รันพร้อมกัน งานจะถูกทำซ้ำ
+2. **ระบุ time zone ทุกครั้ง** — `@Cron('0 2 * * *', { timeZone: 'Asia/Bangkok' })`
+   ระบบที่รันใน Docker มักใช้เวลา UTC ถ้าไม่ระบุ งานที่ตั้งไว้ตีสองจะไปรันตอนเก้าโมงเช้าเวลาไทย
+3. **ถ้าวันหนึ่งต้องรันหลาย instance** — ครอบงานด้วย `pg_try_advisory_xact_lock` ภายใน `prisma.$transaction`
+   เพื่อให้มีแค่ instance เดียวที่ทำงานรอบนั้น ทำได้ทันทีโดยไม่ต้องเพิ่ม dependency และไม่ต้องย้ายไป scheduler กลาง
+   (ตอนนี้ระบบย่อยรัน instance เดียว และมาตรฐานยังไม่มี scheduler กลาง)
+
+```ts
+await this.prisma.$transaction(async (tx) => {
+  // เลขประจำงาน ต้องไม่ซ้ำกับงานอื่นในระบบเดียวกัน
+  const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(4201) AS locked`;
+  if (!locked) return; // instance อื่นกำลังทำงานนี้อยู่
+  await tx.$executeRaw`UPDATE borrow_requests SET status = 'EXPIRED' WHERE status = 'PENDING' AND expires_at < now()`;
+});
+```
+
+#### 1.4.2 ไอคอน แผนที่ QR และ Tailwind v4 (อนุญาตตั้งแต่ 1.2.1 · สาย 1.0.x ตั้งแต่ 1.0.2)
 
 | แพ็กเกจ | ใช้ทำอะไร | license |
 |---|---|---|
-| `lucide-react` | ไอคอน — ใช้ชุดนี้ชุดเดียวทั้ง platform import ทีละไอคอน (`import { MapPin } from 'lucide-react'`) | ISC |
+| `lucide-react` | ไอคอน — ใช้แทนชุดไอคอนกลาง `icons.tsx` ได้ทั้งระบบ แต่ห้ามผสมสองชุด (`ui-design-system.md` ข้อ 14) · import ทีละไอคอน (`import { MapPin } from 'lucide-react'`) | ISC |
 | `leaflet` (+ `@types/leaflet`) | แผนที่ | BSD-2-Clause |
 | `qrcode.react` | สร้าง QR code ในเบราว์เซอร์ | ISC |
 | `@tailwindcss/postcss` | Tailwind CSS v4 (`@theme`) ผ่าน PostCSS แบบเดียวกับ frontend ของ Core Hub | MIT |
@@ -129,31 +154,6 @@ export function CampusMap({ lat, lng, zoom = 17 }: { lat: number; lng: number; z
 - ทุกแผนที่ต้องแสดง attribution ของ OpenStreetMap และทำตาม tile usage policy ของ OSM — ถ้าใช้ปริมาณมากให้ตั้ง tile server เอง
 - ถ้าตั้ง Content-Security-Policy ต้องเพิ่มโดเมน tile ใน `img-src`
 - QR code ใส่ได้เฉพาะข้อมูลสาธารณะ เช่น URL ของหน้าประกาศ — **ห้าม**ใส่ token รหัสผ่าน หรือข้อมูลบุคคล
-
-#### 1.4.1 งานตั้งเวลา (scheduled job)
-
-งานที่ต้องรันเองตามเวลา เช่น ยกเลิกคำขอที่ค้างเกินกำหนด หรือติดธงรายการที่เกินกำหนดคืน ให้ใช้ `@nestjs/schedule` (อนุญาตตั้งแต่ 1.0.1)
-ไลบรารีตั้งเวลาตัวอื่น (`node-cron` · `cron` · `agenda` · `bull`) ยังไม่อนุญาต ให้ใช้ตัวเดียวกันทั้ง platform
-
-ทุกงานต้องทำตาม 3 ข้อนี้
-
-1. **รันซ้ำได้โดยไม่เสียหาย (idempotent)** — ใส่เงื่อนไขทั้งหมดไว้ใน `WHERE` ของคำสั่งเดียว
-   เช่น `UPDATE … SET status = 'EXPIRED' WHERE status = 'PENDING' AND expires_at < now()`
-   ห้ามดึงรายการออกมาก่อนแล้วค่อยวนแก้ทีละแถว เพราะถ้ามีสอง instance รันพร้อมกัน งานจะถูกทำซ้ำ
-2. **ระบุ time zone ทุกครั้ง** — `@Cron('0 2 * * *', { timeZone: 'Asia/Bangkok' })`
-   ระบบที่รันใน Docker มักใช้เวลา UTC ถ้าไม่ระบุ งานที่ตั้งไว้ตีสองจะไปรันตอนเก้าโมงเช้าเวลาไทย
-3. **ถ้าวันหนึ่งต้องรันหลาย instance** — ครอบงานด้วย `pg_try_advisory_xact_lock` ภายใน `prisma.$transaction`
-   เพื่อให้มีแค่ instance เดียวที่ทำงานรอบนั้น ทำได้ทันทีโดยไม่ต้องเพิ่ม dependency และไม่ต้องย้ายไป scheduler กลาง
-   (ตอนนี้ระบบย่อยรัน instance เดียว และมาตรฐานยังไม่มี scheduler กลาง)
-
-```ts
-await this.prisma.$transaction(async (tx) => {
-  // เลขประจำงาน ต้องไม่ซ้ำกับงานอื่นในระบบเดียวกัน
-  const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(4201) AS locked`;
-  if (!locked) return; // instance อื่นกำลังทำงานนี้อยู่
-  await tx.$executeRaw`UPDATE borrow_requests SET status = 'EXPIRED' WHERE status = 'PENDING' AND expires_at < now()`;
-});
-```
 
 ### 1.5 ข้อยกเว้นของ Core Hub
 
