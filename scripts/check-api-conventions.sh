@@ -81,49 +81,22 @@ if [[ -d backend/src && -n "$BACKEND_TS" ]]; then
   fi
   CODE_COUNT=$(echo "$ALLOWED_CODES" | tr '|' '\n' | grep -c .)
 
+  # ไฟล์ทดสอบ (*.spec.ts, test/) ไม่ถูกตรวจทั้ง (ก) และ (ข) — ค่า code ในนั้น
+  # เป็นข้อมูลตัวอย่าง เช่น code: 'SCI' ของ reference data ไม่ใช่ error contract
+  # (เดิมตีตก false positive จนระบบที่ทำถูกต้อง merge ไม่ได้)
+
   # (ก) รูป `code: 'X'` ที่ใช้ตอนสร้าง error response ตรง ๆ
-  BAD_CODES=$(grep -rnE "code\s*:\s*['\"][A-Z_]+['\"]" backend/src --include='*.ts' 2>/dev/null \
+  BAD_CODES=$(grep -rnE "code\s*:\s*['\"][A-Z_]+['\"]" backend/src --include='*.ts' \
+    --exclude='*.spec.ts' --exclude-dir=test 2>/dev/null \
     | grep -vE "code\s*:\s*['\"]($ALLOWED_CODES)['\"]" || true)
 
   # (ข) ค่าที่ประกาศไว้ใน `ErrorCode` — ทั้ง object (`const ErrorCode = {...}`),
   # enum และ type union ส่วนใหญ่ระบบประกาศรายการไว้ที่นี่แล้วอ้าง
-  # `ErrorCode.X` ทีหลัง ซึ่งรูป (ก) มองไม่เห็นเลย · ต้องใช้ node เพราะ
-  # การประกาศมักกินหลายบรรทัด ถ้าเครื่องไม่มี node ข้ามเฉพาะส่วนนี้
+  # `ErrorCode.X` ทีหลัง ซึ่งรูป (ก) มองไม่เห็นเลย · ตัวสแกนเป็นไฟล์ node แยก
+  # (heredoc ซ้อนใน command substitution ทำให้ bash 3.2 ของ macOS parse ไม่ผ่าน)
+  # ถ้าเครื่องไม่มี node ข้ามเฉพาะส่วนนี้
   if command -v node >/dev/null 2>&1; then
-    DECLARED=$(node - "$ALLOWED_CODES" <<'NODE'
-const fs = require('fs');
-const allowed = new Set(process.argv[2].split('|'));
-const found = [];
-const DECLARATIONS = [
-  /\b(?:const|let|var)\s+ErrorCode\b[^=]*=\s*\{([\s\S]*?)\}/g,
-  /\benum\s+ErrorCode\s*\{([\s\S]*?)\}/g,
-  /\btype\s+ErrorCode\s*=([\s\S]*?);/g,
-];
-const scan = (file) => {
-  const text = fs.readFileSync(file, 'utf8');
-  for (const pattern of DECLARATIONS) {
-    for (const match of text.matchAll(pattern)) {
-      const bodyStart = match.index + match[0].indexOf(match[1]);
-      for (const literal of match[1].matchAll(/['"]([A-Z][A-Z0-9_]*)['"]/g)) {
-        if (allowed.has(literal[1])) continue;
-        const line = text.slice(0, bodyStart + literal.index).split('\n').length;
-        found.push(`${file}:${line}: ErrorCode มีค่า '${literal[1]}'`);
-      }
-    }
-  }
-};
-const walk = (dir) => {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === 'node_modules') continue;
-    const full = `${dir}/${entry.name}`;
-    if (entry.isDirectory()) walk(full);
-    else if (entry.name.endsWith('.ts')) scan(full);
-  }
-};
-walk('backend/src');
-process.stdout.write(found.join('\n'));
-NODE
-)
+    DECLARED=$(node "$SCRIPT_DIR/lib/api04-errorcode-scan.js" "$ALLOWED_CODES" backend/src)
     if [[ -n "$DECLARED" ]]; then
       BAD_CODES=$(printf '%s\n%s' "$BAD_CODES" "$DECLARED" | sed '/^$/d')
     fi

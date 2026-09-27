@@ -81,7 +81,9 @@ run_fixture_case "API-02-EMPTY" "check-api-conventions.sh"
 # 1.1, adding TOO_MANY_REQUESTS and SERVICE_UNAVAILABLE) and also checks the
 # values declared in an `ErrorCode` object, enum or type. The fail fixture
 # only ever uses ErrorCode.RATE_LIMITED - never a `code: '...'` literal -
-# which is exactly what the check used to miss.
+# which is exactly what the check used to miss. The pass fixture also holds
+# a *.spec.ts with code: 'SCI' — test files are exempt: their `code` values
+# are data samples (reference data), not the error contract.
 run_fixture_case "API-04"   "check-api-conventions.sh"
 run_fixture_case "UI-01"     "check-ui-tokens.sh"
 # UI-01-NOSRC is a regression case: the scan was limited to frontend/src,
