@@ -7,7 +7,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    # develop is optional; listing it here costs nothing for repos that do not
+    # have one (github-workflow.md 1.5)
+    branches: [main, develop]
 
 jobs:
   compliance:

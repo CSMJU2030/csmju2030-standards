@@ -47,7 +47,7 @@
 
 | รหัส | กฎ | สถานะ | หมายเหตุ |
 |---|---|---|---|
-| `GH-01` | ชื่อ branch `feature/<subsystem>/<เรื่อง>` | **บังคับ** | Core Hub ใช้ `feature/core-hub/<เรื่อง>` |
+| `GH-01` | ชื่อ branch `feature/<subsystem>/<เรื่อง>` | **บังคับ** | Core Hub ใช้ `feature/core-hub/<เรื่อง>` และใช้ `develop` → `main` ตาม github-workflow.md ข้อ 1.5 (`develop` = dev server · `main` = production) |
 | `GH-02` | Conventional Commits | **บังคับ** | — |
 | `GH-03` | ห้ามแก้ `.github/workflows/`, `CODEOWNERS`, `standards` | **ยกเว้น** | Core Hub เป็นเจ้าของ workflow ของตัวเอง |
 | `GH-04` | `.standards-version` ตรงกับ `VERSION` ของ standards | **ยกเว้น** | Core Hub ไม่ได้ผูก standards เป็น submodule |
@@ -123,6 +123,10 @@ bash scripts/run-core-hub-checks.sh /path/to/csmju-core-hub
 ใน CI — `csmju-core-hub/.github/workflows/ci.yml`:
 
 ```yaml
+on:
+  pull_request:
+    branches: [main, develop]
+
 jobs:
   compliance:
     uses: CSMJU2030/csmju2030-standards/.github/workflows/core-hub-compliance.yml@v1.0.0

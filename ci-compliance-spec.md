@@ -132,7 +132,10 @@ csmju-<subsystem>  ×37 repo
 
 ## 4. Layer 1 — Branch Protection Rules
 
-### 4.1 ค่าที่ต้องตั้งบน `main` ของทุก repo
+### 4.1 ค่าที่ต้องตั้งบน `main` ของทุก repo (และ `develop` ถ้ามี)
+
+repo ที่ใช้ `develop` (github-workflow.md ข้อ 1.5) ตั้ง `develop` ด้วยค่าชุดเดียวกับตารางนี้ ยกเว้นข้อ creation ของ ruleset
+เพราะ `develop` ต้องสร้างทีหลังได้ ตอนนี้ยังไม่มีไฟล์ ruleset ของ `develop` ให้ import ให้ตั้งเองใน Settings → Rules เมื่อแผนของ GitHub เปิดให้บังคับใช้ได้
 
 | ตัวเลือก | ค่า | เหตุผล |
 |---|---|---|
@@ -143,7 +146,7 @@ csmju-<subsystem>  ×37 repo
 | Require status checks to pass | ✅ | บังคับ CI ผ่านก่อน merge |
 | — Require branches to be up to date | ✅ | ป้องกัน merge บนฐานเก่า |
 | Require conversation resolution | ✅ | comment ของ PL ต้องถูกตอบก่อน |
-| Require linear history | ✅ | บังคับ squash merge (ข้อ 1.4) |
+| Require linear history | ❌ | PR `develop` → `main` ต้องเป็น merge commit (github-workflow.md ข้อ 1.5) · feature PR ยังเป็น squash โดยคุมที่ merge method (ข้อ 4.2) |
 | Allow force pushes | ❌ | ห้ามเด็ดขาด — ทำลายประวัติ audit |
 | Allow deletions | ❌ | ห้ามลบ branch หลัก |
 | Do not allow bypassing | ✅ | admin ก็ต้องผ่าน — ปิดช่องข้ามกฎ |
@@ -154,12 +157,14 @@ csmju-<subsystem>  ×37 repo
 
 ```text
 ✅ Allow squash merging      (default commit message = PR title)
-❌ Allow merge commits
+❌ Allow merge commits       (repo ที่ใช้ develop: ✅ — ใช้กับ PR develop → main และ main → develop เท่านั้น)
 ❌ Allow rebase merging
-✅ Automatically delete head branches
+✅ Automatically delete head branches   (repo ที่ใช้ develop ต้องตั้ง develop เป็น default branch ก่อน)
 ```
 
-เหตุผล: `github-workflow.md` ข้อ 1.4 กำหนดให้ 1 PR = 1 commit ใน history ของ `main`
+เหตุผล: `github-workflow.md` ข้อ 1.4 กำหนดให้ feature PR 1 ตัว = 1 commit ใน history
+ส่วน PR ระหว่าง `develop` กับ `main` ต้องเป็น merge commit ไม่งั้น `main` กับ `develop` จะแยกประวัติกัน (ข้อ 1.5)
+และ GitHub ไม่ลบ default branch เอง ถ้า `develop` ไม่ใช่ default branch จะถูกลบทิ้งหลัง merge PR release
 
 ### 4.3 Required status checks ที่ต้องเพิ่ม
 
@@ -269,7 +274,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]   # develop มีผลเฉพาะ repo ที่ใช้ (github-workflow.md 1.5)
 
 jobs:
   compliance:
@@ -313,7 +318,7 @@ jobs:
 
 | รหัส | Check | ระดับ | อ้างอิง |
 |---|---|---|---|
-| `GH-01` | Branch name ตรงรูปแบบ `feature/<subsystem>/<เรื่อง>` | ❌ Fail | github-workflow.md 1.1 |
+| `GH-01` | Branch name ตรงรูปแบบ `feature/<subsystem>/<เรื่อง>` ยกเว้น PR `develop` → `main` และ `main` → `develop` | ❌ Fail | github-workflow.md 1.1, 1.5 |
 | `GH-02` | Commit message ตาม Conventional Commits | ❌ Fail | github-workflow.md 1.3 |
 | `GH-03` | ไม่มีการแก้ไข `.github/workflows/` | ❌ Fail | github-workflow.md 5 |
 | `GH-04` | `standards/` submodule pointer ตรงกับที่ PM อนุมัติ | ❌ Fail | github-workflow.md 3.6 |
@@ -377,7 +382,12 @@ jobs:
 set -euo pipefail
 
 BRANCH="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}"
+BASE="${GITHUB_BASE_REF:-}"          # GitHub Actions ตั้งให้ทุก PR · ในเครื่องว่าง
 PATTERN='^feature/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$'
+
+# ข้อยกเว้นเดียว: PR ระหว่าง branch หลักสองตัว (github-workflow.md ข้อ 1.5)
+[[ "$BRANCH" == "develop" && "$BASE" == "main" ]] && exit 0   # ขึ้น production
+[[ "$BRANCH" == "main" && "$BASE" == "develop" ]] && exit 0   # ดึง hotfix กลับ
 
 if [[ ! "$BRANCH" =~ $PATTERN ]]; then
   cat <<EOF
@@ -385,6 +395,7 @@ if [[ ! "$BRANCH" =~ $PATTERN ]]; then
    พบ: $BRANCH
    ต้องเป็น: feature/<subsystem>/<เรื่องที่ทำ>
    ตัวอย่าง: feature/equipment/add-borrow-return
+   ข้อยกเว้น: PR develop → main และ main → develop (github-workflow.md ข้อ 1.5)
    อ้างอิง: github-workflow.md ข้อ 1.1 (4)
    วิธีแก้: git branch -m feature/<subsystem>/<เรื่อง>
 EOF
@@ -392,6 +403,8 @@ EOF
 fi
 echo "✅ [GH-01] Branch name ผ่าน: $BRANCH"
 ```
+
+ตัวจริงอยู่ที่ `scripts/check-branch-name.sh` ซึ่งรับชื่อ branch และ base เป็น argument ได้ด้วย เพื่อให้ `self-test.sh` ทดสอบทุกกรณีได้
 
 #### `GH-03` — ป้องกันการแก้ไฟล์ CI
 
@@ -1056,7 +1069,7 @@ Subsystem repo (ทำซ้ำทุก repo)
 [ ] .gitignore มี .env และ .env.local
 [ ] .env.example มีชื่อ key ครบ ไม่มีค่าจริง
 [ ] Required status checks ครบ 7 ตัว
-[ ] Squash merge เท่านั้น
+[ ] feature PR ใช้ squash merge · repo ที่ใช้ develop เปิด merge commit ไว้ให้ PR develop ↔ main
 [ ] ไม่มี secret หลงอยู่ใน git history
 ```
 

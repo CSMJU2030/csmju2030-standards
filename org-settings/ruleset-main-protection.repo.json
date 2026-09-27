@@ -66,9 +66,6 @@
       }
     },
     {
-      "type": "required_linear_history"
-    },
-    {
       "type": "non_fast_forward"
     },
     {

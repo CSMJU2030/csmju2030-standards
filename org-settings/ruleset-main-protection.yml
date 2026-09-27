@@ -57,7 +57,9 @@ rules:
         - context: "compliance / Code Quality"
         - context: "compliance / Exception Validation"
 
-  - type: required_linear_history
+  # ไม่มี required_linear_history: PR develop → main ต้องเป็น merge commit
+  # (github-workflow.md 1.5) · feature PR ยังเป็น squash โดยคุมที่ merge method
+  # ของ repo (ci-compliance-spec.md 4.2)
   - type: non_fast_forward          # ห้าม force push
   - type: deletion                  # ห้ามลบ branch
   - type: creation                  # ห้ามสร้าง main ใหม่ (API ไม่รับ parameters)
