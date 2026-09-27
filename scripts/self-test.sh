@@ -50,6 +50,10 @@ run_fixture_case "ARC-02-03" "check-authorized-deps.sh"
 # but forbidden_everywhere still applies there and dev tooling is still
 # rejected as a runtime dependency.
 run_fixture_case "ARC-02-DEV" "check-authorized-deps.sh"
+# ARC-02-DEV-UNLISTED is a regression case: dev_tooling_patterns used to
+# test each package name against itself, so any devDependency passed —
+# including a runtime library (lucide-react) moved there to dodge the list.
+run_fixture_case "ARC-02-DEV-UNLISTED" "check-authorized-deps.sh"
 run_fixture_case "DD-01"     "check-field-aliases.sh"
 # DD-02 is a regression case: the enum was copied wrong as
 # student|staff|faculty|admin|guest, which rejected the real value

@@ -80,6 +80,10 @@ app/layout.tsx(23,50): error TS2304: Cannot find name 'LayoutProps'.
 CI (`ARC-02`) ตรวจ dependency ทุกตัวกับรายการที่อนุญาตใน
 [`../scripts/lib/allowed-deps.json`](../scripts/lib/allowed-deps.json)
 
+`devDependencies` ตรวจกับ `allowed_dev_tooling` และ pattern `@types/*` — ไลบรารีที่ขึ้นไปอยู่ใน bundle
+(ไอคอน · แผนที่ · QR ฯลฯ) ย้ายไปไว้ใน `devDependencies` ก็ยังตก เพราะไม่ใช่เครื่องมือ build/lint/test ·
+Tailwind v4 ใช้ `@tailwindcss/postcss` ได้ (อนุญาตตั้งแต่ 1.3.0)
+
 ต้องการไลบรารีนอกรายการ → เปิด issue ขอเพิ่ม พร้อมเหตุผลว่าแก้ปัญหาอะไร
 **ห้าม**แก้ไฟล์ whitelist เองใน PR ของระบบย่อย
 
