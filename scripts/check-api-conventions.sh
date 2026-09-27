@@ -4,6 +4,12 @@
 # Usage: check-api-conventions.sh [target_dir]
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# API-04 อ่านรายการ error code จากสัญญากลาง — หาไฟล์จากที่อยู่ของสคริปต์
+# แบบเดียวกับ check-submodule-pointer.sh จึงใช้ได้ทั้งตอนเป็น submodule
+# (standards/scripts) และตอน CI checkout ไว้ที่ .compliance-tools/scripts
+ERROR_CODES_JSON="$SCRIPT_DIR/../contracts/error-codes.json"
+
 TARGET_DIR="${1:-.}"
 cd "$TARGET_DIR"
 
@@ -61,12 +67,43 @@ if [[ -d backend/src && -n "$BACKEND_TS" ]]; then
     VIOLATION=1
   fi
 
-  # API-04: error.code must be one of the 6 standard values
-  ALLOWED_CODES="BAD_REQUEST|VALIDATION_ERROR|NOT_FOUND|UNAUTHORIZED|FORBIDDEN|CONFLICT|INTERNAL_ERROR"
-  BAD_CODES=$(grep -rnE "code\s*:\s*['\"][A-Z_]+['\"]" backend/src --include='*.ts' 2>/dev/null \
+  # API-04: error.code ต้องอยู่ในรายการของ contracts/error-codes.json
+  # อ่านรายการจากไฟล์นั้นไฟล์เดียว ไม่เขียนซ้ำไว้ในสคริปต์ — เพิ่ม code ในสัญญา
+  # แล้วตัวตรวจเห็นทันที เอกสารกับ CI จึงเห็นไม่ตรงกันไม่ได้อีก
+  if command -v node >/dev/null 2>&1; then
+    ALLOWED_CODES=$(node -e \
+      'process.stdout.write(require(process.argv[1]).codes.join("|"))' \
+      "$ERROR_CODES_JSON")
+  else
+    # ไม่มี node: ดึงค่าจาก "codes" ด้วย grep — ไฟล์นี้อยู่ในการดูแลของ repo นี้
+    ALLOWED_CODES=$(sed -n '/"codes"/,/\]/p' "$ERROR_CODES_JSON" \
+      | grep -oE '"[A-Z_]+"' | tr -d '"' | paste -sd '|' -)
+  fi
+  CODE_COUNT=$(echo "$ALLOWED_CODES" | tr '|' '\n' | grep -c .)
+
+  # ไฟล์ทดสอบ (*.spec.ts, test/) ไม่ถูกตรวจทั้ง (ก) และ (ข) — ค่า code ในนั้น
+  # เป็นข้อมูลตัวอย่าง เช่น code: 'SCI' ของ reference data ไม่ใช่ error contract
+  # (เดิมตีตก false positive จนระบบที่ทำถูกต้อง merge ไม่ได้)
+
+  # (ก) รูป `code: 'X'` ที่ใช้ตอนสร้าง error response ตรง ๆ
+  BAD_CODES=$(grep -rnE "code\s*:\s*['\"][A-Z_]+['\"]" backend/src --include='*.ts' \
+    --exclude='*.spec.ts' --exclude-dir=test 2>/dev/null \
     | grep -vE "code\s*:\s*['\"]($ALLOWED_CODES)['\"]" || true)
+
+  # (ข) ค่าที่ประกาศไว้ใน `ErrorCode` — ทั้ง object (`const ErrorCode = {...}`),
+  # enum และ type union ส่วนใหญ่ระบบประกาศรายการไว้ที่นี่แล้วอ้าง
+  # `ErrorCode.X` ทีหลัง ซึ่งรูป (ก) มองไม่เห็นเลย · ตัวสแกนเป็นไฟล์ node แยก
+  # (heredoc ซ้อนใน command substitution ทำให้ bash 3.2 ของ macOS parse ไม่ผ่าน)
+  # ถ้าเครื่องไม่มี node ข้ามเฉพาะส่วนนี้
+  if command -v node >/dev/null 2>&1; then
+    DECLARED=$(node "$SCRIPT_DIR/lib/api04-errorcode-scan.js" "$ALLOWED_CODES" backend/src)
+    if [[ -n "$DECLARED" ]]; then
+      BAD_CODES=$(printf '%s\n%s' "$BAD_CODES" "$DECLARED" | sed '/^$/d')
+    fi
+  fi
+
   if [[ -n "$BAD_CODES" ]]; then
-    echo "❌ [API-04] error.code ไม่อยู่ในรายการมาตรฐาน 7 ค่า ($ALLOWED_CODES)"
+    echo "❌ [API-04] error.code ไม่อยู่ในรายการมาตรฐาน $CODE_COUNT ค่า ($ALLOWED_CODES)"
     echo "$BAD_CODES" | sed 's/^/   /'
     VIOLATION=1
   fi
@@ -98,7 +135,7 @@ if [[ "$VIOLATION" -eq 1 ]]; then
   cat <<EOF
    อ้างอิง: api-conventions.md ข้อ 1, 2, 3, 4, 5, 8
    วิธีแก้: ปรับ route ให้เป็น kebab-case พหูพจน์ใต้ /api/v1/, ห่อ response ด้วย envelope มาตรฐาน,
-            ใช้ error.code จากรายการ 7 ค่า, ใช้ page/limit สำหรับ pagination
+            ใช้ error.code จาก contracts/error-codes.json, ใช้ page/limit สำหรับ pagination
             และเพิ่ม endpoint GET /api/health
 EOF
   exit 1

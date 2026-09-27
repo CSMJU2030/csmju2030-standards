@@ -1,9 +1,62 @@
 # ทดสอบเชื่อม 3 ระบบบนเครื่องตัวเอง
 
-**Core Hub · demo-student-subsystem · ระบบย่อยของทีมตัวเอง**
+**Core Hub · demo-student-subsystem · ระบบย่อยของทีมตัวเอง** — รองรับทั้ง macOS และ Windows
 
 > ร่างตัวอย่าง — อ้างอิง `csmju2030-standards` v1.0.0 และ `main` ของทุก repo ณ 25 ก.ย. 2569
 > ตัวอย่างทั้งเอกสารใช้ระบบย่อยชื่อ **`equipment`** (repo `csmju-equipment`) ให้เปลี่ยนเป็นชื่อของทีมตัวเอง
+
+---
+
+## อ่านก่อน: วิธีอ่านคำสั่งในเอกสารนี้
+
+ทุกคำสั่งเขียนแบบนี้:
+
+```text
+csmju-core-hub/backend >> pnpm start:dev
+```
+
+| ส่วน | ความหมาย |
+|---|---|
+| `csmju-core-hub/backend` | **โฟลเดอร์ที่ต้องอยู่ก่อนรัน** นับจากโฟลเดอร์ `csmju2030/` |
+| `>>` | ตัวคั่น — **ไม่ต้องพิมพ์** |
+| `pnpm start:dev` | คำสั่งที่พิมพ์จริง |
+
+ถ้าเป็นโฟลเดอร์ `csmju2030/` เองจะเขียนว่า `csmju2030 >>`
+
+### เข้าไปอยู่ในโฟลเดอร์ที่ถูกต้อง
+
+**วิธีที่ง่ายที่สุด (VS Code):** เปิดโฟลเดอร์ `csmju2030` ใน VS Code → **คลิกขวา**ที่โฟลเดอร์ที่ต้องการ →
+**Open in Integrated Terminal** จะได้ terminal ที่อยู่ในโฟลเดอร์นั้นทันที
+
+**หรือพิมพ์ `cd` เอง** (ใช้ได้ทั้ง mac และ Windows):
+
+```text
+csmju2030 >> cd csmju-core-hub/backend
+```
+
+**ไม่แน่ใจว่าอยู่ที่ไหน** — สองคำสั่งนี้ใช้ได้ทุกระบบ:
+
+| คำสั่ง | ได้อะไร |
+|---|---|
+| `pwd` | บอกว่าตอนนี้อยู่โฟลเดอร์ไหน |
+| `pnpm run` | แสดงรายการคำสั่ง pnpm ที่ใช้ได้**ในโฟลเดอร์นี้** — ถ้าไม่เห็นคำสั่งที่จะรัน แปลว่าอยู่ผิดที่ |
+
+ถ้าอยู่ผิดโฟลเดอร์ pnpm จะตอบแบบนี้:
+
+```text
+Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL
+  × Command "start:dev" not found
+```
+
+### ใช้ terminal ตัวไหน
+
+| | macOS | Windows |
+|---|---|---|
+| ข้อ 1–6.3 และ 6.5 (ติดตั้ง · ตั้งค่า · รันระบบ) | Terminal | **PowerShell หรือ Git Bash ก็ได้** |
+| ข้อ 6.1 · 6.4 · 7 (สคริปต์ `.sh` และทดสอบด้วย `curl`) | Terminal | **Git Bash เท่านั้น** 🪟 |
+
+Git Bash มาพร้อม [Git for Windows](https://git-scm.com/download/win) — ใน VS Code เลือกได้ที่ลูกศรข้างปุ่ม `+` ของ terminal → **Git Bash**
+ส่วนที่ต้องใช้ Git Bash จะมีป้าย 🪟 กำกับไว้
 
 ---
 
@@ -23,31 +76,32 @@
 
 ### พอร์ตที่ใช้
 
-| พอร์ต | ระบบ | repo |
+| พอร์ต | ระบบ | โฟลเดอร์ที่รัน |
 |---|---|---|
 | **3000** | Core Hub backend (API · JWKS · SSO) | `csmju-core-hub/backend` |
 | **3100** | Core Hub frontend (หน้า login · เมนูระบบย่อย) | `csmju-core-hub/frontend` |
-| **3001** | demo-student-subsystem backend | `demo-student-subsystem/backend` |
+| **3001** | demo-student-subsystem | `demo-student-subsystem/backend` |
 | **3002** | ระบบย่อยของทีมตัวเอง | `csmju-equipment/backend` |
 | **5432** | PostgreSQL — 3 ฐานข้อมูลแยกกัน | — |
 
 > **3001 ห้ามให้อย่างอื่นใช้** — เป็น `callback_url` ที่ Core Hub ลงทะเบียนให้ demo ไว้ตั้งแต่ seed
 > ทีมถัดไปใช้ 3003, 3004, … ตามลำดับ
 
-ต้องเปิด **4 terminal** ค้างไว้พร้อมกัน (Core Hub backend · Core Hub frontend · demo · ระบบตัวเอง)
+ต้องเปิด **4 terminal** ค้างไว้พร้อมกัน — หนึ่งตัวต่อหนึ่งพอร์ต (3000 · 3100 · 3001 · 3002)
 
 ---
 
 ## 1. เตรียมเครื่อง
 
-| ต้องมี | ตรวจด้วย | หมายเหตุ |
-|---|---|---|
-| Node.js **22.x** | `node -v` | |
-| **pnpm** | `pnpm -v` | ติดตั้งด้วย `corepack enable pnpm` · ห้ามใช้ npm/yarn |
-| PostgreSQL **16+** | `psql --version` | หรือใช้ Docker ก็ได้ ดูข้อ 3 |
-| git | `git --version` | |
-| openssl | `openssl version` | ใช้สร้างกุญแจของ Core Hub |
-| `gh` (ไม่บังคับ) | `gh auth status` | ใช้ตอนสร้าง repo ของทีมในข้อ 6 |
+| ต้องมี | ตรวจด้วย | macOS | Windows |
+|---|---|---|---|
+| Node.js **22.x** | `node -v` | nodejs.org หรือ `brew install node@22` | nodejs.org (ตัวติดตั้ง .msi) |
+| **pnpm** | `pnpm -v` | `corepack enable pnpm` | `corepack enable pnpm` (เปิด PowerShell แบบ Run as Administrator) |
+| PostgreSQL **16+** | `psql --version` | `brew install postgresql@16` | ตัวติดตั้งจาก postgresql.org — **จำรหัสผ่านของ user `postgres` ที่ตั้งตอนติดตั้งไว้** |
+| git | `git --version` | มากับ Xcode Command Line Tools | Git for Windows (ได้ Git Bash มาด้วย) |
+| `gh` (ไม่บังคับ) | `gh auth status` | `brew install gh` | `winget install GitHub.cli` |
+
+> ไม่ต้องมี `openssl` · `rsync` · `python3` · `createdb` — เอกสารนี้ใช้ `node` ทำแทนทั้งหมด จึงได้ผลเหมือนกันทุกระบบ
 
 ---
 
@@ -56,25 +110,25 @@
 มาตรฐานกำหนดให้ **ทุก repo อยู่ระดับเดียวกันในโฟลเดอร์เดียว** (`repo-structure.md` ข้อ 1)
 สคริปต์หลายตัวอ้าง path แบบ `../csmju2030-standards` ถ้าวางผิดที่จะรันไม่ได้
 
-```bash
-mkdir csmju2030 && cd csmju2030
+เลือกที่เก็บงานก่อน (เช่น `Documents`) แล้วสร้างโฟลเดอร์ `csmju2030`:
+
+```text
+(ที่เก็บงาน) >> mkdir csmju2030
+(ที่เก็บงาน) >> cd csmju2030
 ```
 
-```bash
-git clone https://github.com/CSMJU2030/csmju2030-standards.git
-```
-
-```bash
-git clone https://github.com/CSMJU2030/csmju-core-hub.git
-```
-
-```bash
-git clone --recurse-submodules https://github.com/CSMJU2030/demo-student-subsystem.git
+```text
+csmju2030 >> git clone https://github.com/CSMJU2030/csmju2030-standards.git
+csmju2030 >> git clone https://github.com/CSMJU2030/csmju-core-hub.git
+csmju2030 >> git clone --recurse-submodules https://github.com/CSMJU2030/demo-student-subsystem.git
 ```
 
 > **`--recurse-submodules` จำเป็นสำหรับ demo** — โฟลเดอร์ `standards/` ข้างในเป็น submodule
-> ถ้าลืมจะได้โฟลเดอร์ว่าง และสคริปต์ตรวจกับ conformance จะรันไม่ได้
-> แก้ทีหลังได้ด้วย `git -C demo-student-subsystem submodule update --init --recursive`
+> ถ้าลืมจะได้โฟลเดอร์ว่าง แก้ทีหลังได้ด้วย:
+>
+> ```text
+> demo-student-subsystem >> git submodule update --init --recursive
+> ```
 
 ผลที่ต้องได้:
 
@@ -92,22 +146,23 @@ csmju2030/
 
 ---
 
-## 3. สร้างฐานข้อมูล 3 ก้อน
+## 3. ฐานข้อมูล — ไม่ต้องสร้างเอง
 
-**หนึ่งระบบ = หนึ่งฐานข้อมูล** ห้ามใช้ร่วมกัน (กฎ `ARC-01`)
+**หนึ่งระบบ = หนึ่งฐานข้อมูล** ห้ามใช้ร่วมกัน (กฎ `ARC-01`) แต่**ไม่ต้องสั่งสร้างเอง** —
+คำสั่ง `pnpm exec prisma migrate deploy` ในข้อ 4–6 จะสร้างฐานข้อมูลให้ถ้ายังไม่มี
 
-```bash
-createdb core_hub && createdb demo_student_db && createdb equipment_db
-```
+สิ่งที่ต้องมีแค่อย่างเดียว คือ **PostgreSQL เปิดอยู่** และรู้ user/รหัสผ่านที่จะใส่ใน `DATABASE_URL`:
 
-ตรวจ:
+| | macOS (Homebrew) | Windows (ตัวติดตั้ง) |
+|---|---|---|
+| user | ชื่อ user ของเครื่อง (ไม่มีรหัสผ่าน) | `postgres` |
+| รหัสผ่าน | — | ที่ตั้งไว้ตอนติดตั้ง |
+| ตัวอย่าง `DATABASE_URL` | `postgresql://mac@localhost:5432/core_hub` | `postgresql://postgres:<รหัสผ่าน>@localhost:5432/core_hub` |
 
-```bash
-psql -lqt | cut -d'|' -f1 | grep -E "core_hub|demo_student_db|equipment_db"
-```
-
+> user ต้องมีสิทธิ์สร้างฐานข้อมูล — user `postgres` และ user ของ Homebrew มีสิทธิ์นี้อยู่แล้ว
+>
 > ใช้ Docker แทนได้ — `demo-student-subsystem` มี `docker-compose.yml` ที่เปิด PostgreSQL ไว้ที่พอร์ต **5433**
-> ถ้าใช้แบบนั้น ให้แก้ `DATABASE_URL` ของ demo ในข้อ 5 เป็น `:5433` ส่วนที่เหลือใช้ 5432 เหมือนเดิม
+> ถ้าใช้แบบนั้น ให้ใส่ `:5433` ใน `DATABASE_URL` ของ demo ในข้อ 5
 
 ---
 
@@ -117,55 +172,65 @@ psql -lqt | cut -d'|' -f1 | grep -E "core_hub|demo_student_db|equipment_db"
 
 กุญแจส่วนตัว**ไม่ได้อยู่ใน git** ถ้าไม่สร้าง backend จะล้มตอนเปิดด้วย `ENOENT: keys/jwt-private.pem`
 
-```bash
-cd csmju-core-hub/backend && mkdir -p keys
+```text
+csmju-core-hub/backend >> mkdir keys
 ```
 
-```bash
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out keys/jwt-private.pem
+คำสั่งยาวแต่พิมพ์บรรทัดเดียว (คัดลอกไปวางได้เลย ใช้ได้ทั้ง mac และ Windows):
+
+```text
+csmju-core-hub/backend >> node -e "const {generateKeyPairSync}=require('crypto');const fs=require('fs');const k=generateKeyPairSync('rsa',{modulusLength:2048,publicKeyEncoding:{type:'spki',format:'pem'},privateKeyEncoding:{type:'pkcs8',format:'pem'}});fs.writeFileSync('keys/jwt-private.pem',k.privateKey);fs.writeFileSync('keys/jwt-public.pem',k.publicKey);console.log('created keys/jwt-private.pem and keys/jwt-public.pem')"
 ```
 
-```bash
-openssl rsa -in keys/jwt-private.pem -pubout -out keys/jwt-public.pem
-```
+ต้องขึ้นว่า `created keys/jwt-private.pem and keys/jwt-public.pem`
+
+> ได้ไฟล์แบบเดียวกับ `openssl genpkey` ทุกประการ (PKCS#8 + SPKI, RSA 2048) — ถ้าเครื่องมี openssl ก็ใช้ได้เหมือนกัน
 
 ### 4.2 ตั้งค่า environment
 
-```bash
-cp .env.example .env
+```text
+csmju-core-hub/backend >> cp .env.example .env
 ```
 
-แก้ `DATABASE_URL` ใน `backend/.env` ให้ตรงกับ PostgreSQL ของเครื่องตัวเอง:
+เปิดไฟล์ `csmju-core-hub/backend/.env` แล้วแก้บรรทัดนี้ให้ตรงกับเครื่องตัวเอง (ดูตารางในข้อ 3):
 
 ```bash
 DATABASE_URL="postgresql://<user>:<password>@localhost:5432/core_hub"
 ```
 
-**`NODE_ENV` ต้องเป็น `development`** — ถ้าเป็น `production` Core Hub จะปฏิเสธ `callback_url` ที่เป็น `http://localhost` ทุกกรณี และจะลงทะเบียนระบบย่อยในข้อ 6 ไม่ได้
+**`NODE_ENV` ต้องเป็น `development`** (ค่าเริ่มต้นเป็นแบบนี้อยู่แล้ว) — ถ้าเป็น `production`
+Core Hub จะปฏิเสธ `callback_url` ที่เป็น `http://localhost` และจะลงทะเบียนระบบย่อยในข้อ 6 ไม่ได้
 
-```bash
-cd ../frontend && cp .env.example .env
+```text
+csmju-core-hub/frontend >> cp .env.example .env
 ```
 
 (ค่าในนั้นใช้ได้เลย: `BACKEND_API_URL=http://127.0.0.1:3000/api/v1` · `PORT=3100`)
 
 ### 4.3 ติดตั้ง · สร้างตาราง · ใส่ข้อมูลเริ่มต้น
 
-```bash
-cd .. && pnpm install
+**ติดตั้งที่รากของ repo** (ครั้งเดียวได้ทั้ง backend และ frontend):
+
+```text
+csmju-core-hub >> pnpm install
 ```
 
-`postinstall` จะรัน `prisma generate` ให้เอง ไม่ต้องสั่ง
+**สร้างฐานข้อมูลและตาราง** (สร้าง `core_hub` ให้เองถ้ายังไม่มี):
 
-```bash
-pnpm --filter core-api exec prisma migrate deploy
+```text
+csmju-core-hub/backend >> pnpm exec prisma migrate deploy
 ```
 
-```bash
-pnpm --filter core-api build && (cd backend && node dist/prisma/seed.js)
+ต้องจบด้วย `All migrations have been successfully applied.`
+
+**ใส่ข้อมูลเริ่มต้น** — ต้อง build ก่อน แล้วรัน seed จากไฟล์ที่ build แล้ว:
+
+```text
+csmju-core-hub/backend >> pnpm build
+csmju-core-hub/backend >> node dist/prisma/seed.js
 ```
 
-> seed ต้องรันจาก `dist/` หลัง build — อย่าใช้ `ts-node prisma/seed.ts` จะล้มด้วย `Cannot find module './internal/class.js'`
+> อย่าใช้ `ts-node prisma/seed.ts` — จะล้มด้วย `Cannot find module './internal/class.js'`
 
 seed จะสร้างผู้ใช้ทดสอบ 4 คน และลงทะเบียน `student-service` (demo) ไว้ให้แล้ว:
 
@@ -182,39 +247,37 @@ seed จะสร้างผู้ใช้ทดสอบ 4 คน และ�
 
 **Terminal 1 — backend :3000**
 
-```bash
-cd csmju2030/csmju-core-hub && pnpm --filter core-api start:dev
+```text
+csmju-core-hub/backend >> pnpm start:dev
 ```
 
 **Terminal 2 — frontend :3100**
 
-```bash
-cd csmju2030/csmju-core-hub && pnpm --filter frontend dev
+```text
+csmju-core-hub/frontend >> pnpm dev
 ```
 
-### 4.5 ตรวจว่าใช้ได้
+> ทางลัด: `csmju-core-hub >> pnpm dev` เปิดทั้งสองฝั่งใน terminal เดียว แต่ log จะปนกันอ่านยาก — ครั้งแรกแนะนำแยก terminal
 
-```bash
-curl -s http://localhost:3000/api/v1/health
-```
+### 4.5 ตรวจว่าใช้ได้ — เปิดในเบราว์เซอร์
 
-```bash
-curl -s http://localhost:3000/api/v1/.well-known/jwks.json
-```
+| เปิดลิงก์นี้ | ต้องเห็น |
+|---|---|
+| http://localhost:3000/api/v1/health | `"status":"ok"` |
+| http://localhost:3000/api/v1/.well-known/jwks.json | **ขึ้นต้นด้วย `{"keys":[`** ตรง ๆ |
+| http://127.0.0.1:3100 | หน้า login → เข้าด้วย `admin@core.local` / `password1` ได้ |
 
-JWKS ต้อง**ขึ้นต้นด้วย `{"keys":[`** ตรง ๆ — ถ้าเห็น `{"success":true,"data":...}` แปลว่าผิด ระบบย่อยทุกตัวจะตอบ 401
-
-เปิด http://127.0.0.1:3100 แล้ว login ด้วย `admin@core.local` ได้ = Core Hub พร้อม
+> ถ้า JWKS ขึ้นต้นด้วย `{"success":true,"data":...}` แปลว่าผิด — ระบบย่อยทุกตัวจะตอบ 401
 
 ---
 
 ## 5. demo-student-subsystem — :3001
 
-```bash
-cd csmju2030/demo-student-subsystem/backend && cp .env.example .env
+```text
+demo-student-subsystem/backend >> cp .env.example .env
 ```
 
-แก้ `backend/.env` สองจุด:
+เปิด `demo-student-subsystem/backend/.env` แล้วแก้ `DATABASE_URL`:
 
 ```bash
 DATABASE_URL=postgresql://<user>:<password>@localhost:5432/demo_student_db
@@ -224,38 +287,31 @@ DATABASE_URL=postgresql://<user>:<password>@localhost:5432/demo_student_db
 
 ค่า `CORE_HUB_URL=http://localhost:3000` และ `PORT=3001` ใช้ได้เลย ไม่ต้องแก้
 
-```bash
-cd .. && pnpm install
-```
-
-```bash
-pnpm --filter backend exec prisma migrate deploy
+```text
+demo-student-subsystem >> pnpm install
+demo-student-subsystem/backend >> pnpm exec prisma migrate deploy
 ```
 
 **Terminal 3 — demo :3001**
 
-```bash
-cd csmju2030/demo-student-subsystem && pnpm --filter backend start:dev
+```text
+demo-student-subsystem/backend >> pnpm start:dev
 ```
 
-ตรวจ:
-
-```bash
-curl -s http://localhost:3001/api/health
-```
-
-ต้องได้ `"service":"student-service"` ซึ่งตรงกับชื่อในทะเบียนของ Core Hub
+เปิด http://localhost:3001/api/health — ต้องได้ `"service":"student-service"` ซึ่งตรงกับชื่อในทะเบียนของ Core Hub
 
 ---
 
 ## 6. ระบบย่อยของทีมตัวเอง — :3002
 
-### 6.1 สร้าง repo ด้วยสคริปต์ของมาตรฐาน
+### 6.1 สร้าง repo ด้วยสคริปต์ของมาตรฐาน 🪟
 
-**รันจากโฟลเดอร์ `csmju2030/`** — สคริปต์สร้างโฟลเดอร์ใหม่ไว้ในที่ที่สั่งรัน จะได้วางถูกที่ทันที
+> 🪟 Windows ใช้ **Git Bash** — สคริปต์นี้เป็น `.sh`
 
-```bash
-cd csmju2030 && ./csmju2030-standards/new-subsystem.sh equipment "ระบบครุภัณฑ์"
+**ต้องรันจากโฟลเดอร์ `csmju2030`** — สคริปต์สร้างโฟลเดอร์ใหม่ไว้ในที่ที่สั่งรัน จะได้วางถูกที่ทันที
+
+```text
+csmju2030 >> ./csmju2030-standards/new-subsystem.sh equipment "ระบบครุภัณฑ์"
 ```
 
 สคริปต์สร้างไฟล์มาตรฐาน → **ตรวจ compliance กับสิ่งที่เพิ่งสร้าง 15 ข้อ** → `git init` + commit แรก → สร้าง repo บน GitHub → ผูก `standards/`
@@ -266,12 +322,11 @@ cd csmju2030 && ./csmju2030-standards/new-subsystem.sh equipment "ระบบ�
 
 ถ้าไม่มี `gh` ให้ผูก submodule เอง (ทดสอบในเครื่องได้โดยไม่ต้องมี repo บน GitHub):
 
-```bash
-cd csmju-equipment && git submodule add https://github.com/CSMJU2030/csmju2030-standards.git standards
-```
-
-```bash
-git -C standards checkout -q v1.0.0 && git add .gitmodules standards && git commit -m "chore(equipment): pin standards submodule at v1.0.0"
+```text
+csmju-equipment >> git submodule add https://github.com/CSMJU2030/csmju2030-standards.git standards
+csmju-equipment/standards >> git checkout -q v1.0.0
+csmju-equipment >> git add .gitmodules standards
+csmju-equipment >> git commit -m "chore(equipment): pin standards submodule at v1.0.0"
 ```
 
 ### 6.2 วางโค้ดเริ่มต้น (เร็วที่สุดสำหรับทดสอบการเชื่อมต่อ)
@@ -279,30 +334,35 @@ git -C standards checkout -q v1.0.0 && git add .gitmodules standards && git comm
 สคริปต์ให้แค่โครงเปล่า (`backend/src/.gitkeep`) — วิธีที่เร็วและถูกต้องตามมาตรฐานคือ**ตั้งต้นจาก demo**
 เพราะชั้น auth ต้องคัดลอกจาก reference implementation อยู่แล้ว (`aie-workflow.md` ขั้น 4)
 
-(คำสั่งในข้อนี้รันจากในโฟลเดอร์ `csmju-equipment/`)
+**คัดลอก backend ของ demo** (ไม่เอา `node_modules` · `dist` · `generated` · `.env` มาด้วย):
 
-```bash
-rsync -a --exclude node_modules --exclude dist --exclude generated --exclude .env ../demo-student-subsystem/backend/ backend/
+```text
+csmju-equipment >> node -e "const fs=require('fs'),path=require('path');const skip=['node_modules','dist','generated','.env'];fs.cpSync('../demo-student-subsystem/backend','backend',{recursive:true,filter:(s)=>!skip.includes(path.basename(s))});console.log('copied backend')"
+```
+
+ต้องขึ้นว่า `copied backend`
+
+**คัดลอกไฟล์ที่รากของ demo มาอีก 2 ไฟล์:**
+
+```text
+csmju-equipment >> cp ../demo-student-subsystem/package.json .
+csmju-equipment >> cp ../demo-student-subsystem/pnpm-workspace.yaml .
 ```
 
 > ได้ทั้งโค้ด ชั้น auth และ schema ของ demo (ตาราง students) มาเป็นจุดตั้งต้น — พอทดสอบการเชื่อมต่อผ่านแล้ว
 > ค่อยเปลี่ยน schema/API เป็นของโดเมนตัวเอง **โดยไม่แตะไฟล์ใน `backend/src/auth/`** ยกเว้น `role-mapping.ts` กับ `permissions.ts`
 
-```bash
-cp ../demo-student-subsystem/package.json ../demo-student-subsystem/pnpm-workspace.yaml .
-```
+**แก้ 4 ไฟล์ให้เป็นของระบบตัวเอง:**
 
-แก้ 4 ไฟล์ให้เป็นของระบบตัวเอง:
-
-**`package.json` (ที่ราก)** — เปลี่ยน `name` ให้ไม่ซ้ำกับ `backend` (ไม่งั้นโดนกฎ `QA-06`)
+`csmju-equipment/package.json` — เปลี่ยน `name` ให้ไม่ซ้ำกับ `backend` (ไม่งั้นโดนกฎ `QA-06`):
 
 ```json
 "name": "csmju-equipment"
 ```
 
-**`pnpm-workspace.yaml`** — ต้องมีส่วน `allowBuilds` ติดมาด้วย ไม่งั้น pnpm บล็อก postinstall ของ Prisma
+`csmju-equipment/pnpm-workspace.yaml` — ไม่ต้องแก้ แต่**ต้องมีส่วน `allowBuilds`** ติดมาด้วย ไม่งั้น pnpm บล็อก postinstall ของ Prisma
 
-**`subsystem.yaml`** — แก้เฉพาะส่วนหัว เก็บ `probes` ของ demo ไว้ (ใช้ได้เพราะโค้ดเป็นชุดเดียวกัน)
+`csmju-equipment/subsystem.yaml` — แก้เฉพาะส่วนหัว เก็บ `probes` ของ demo ไว้ (ใช้ได้เพราะโค้ดเป็นชุดเดียวกัน):
 
 ```yaml
 name: csmju-equipment
@@ -311,15 +371,15 @@ display_name: "ระบบครุภัณฑ์"
 repo: github.com/CSMJU2030/csmju-equipment
 ```
 
-**`backend/src/auth/role-mapping.ts`** — ต้อง**ตรงกับ** `defaultRoleMapping` ที่จะลงทะเบียนในข้อ 6.4 เป๊ะ
+`csmju-equipment/backend/src/auth/role-mapping.ts` — ต้อง**ตรงกับ** `defaultRoleMapping` ที่จะลงทะเบียนในข้อ 6.4 เป๊ะ
 
 ### 6.3 ตั้งค่า environment
 
-```bash
-cp backend/.env.example backend/.env
+```text
+csmju-equipment/backend >> cp .env.example .env
 ```
 
-แก้ `backend/.env`:
+เปิด `csmju-equipment/backend/.env` แล้วแก้ 4 บรรทัด:
 
 ```bash
 PORT=3002
@@ -330,32 +390,33 @@ SUBSYSTEM_NAME=ระบบครุภัณฑ์
 
 `SUBSYSTEM_ID` ต้องตรงกัน**สามที่**: ไฟล์นี้ · `name` ใน `subsystem.yaml` · ชื่อในทะเบียน Core Hub
 
-```bash
-pnpm install && pnpm --filter backend exec prisma migrate deploy
+```text
+csmju-equipment >> pnpm install
+csmju-equipment/backend >> pnpm exec prisma migrate deploy
 ```
 
-### 6.4 ลงทะเบียนกับ Core Hub
+### 6.4 ลงทะเบียนกับ Core Hub 🪟
+
+> 🪟 Windows ใช้ **Git Bash** — ใช้ `curl` และตัวแปรแบบ bash
+> คำสั่งในข้อนี้**รันจากโฟลเดอร์ไหนก็ได้** และต้องรันใน terminal เดียวกันทั้งหมด (ตัวแปร `TOKEN` อยู่แค่ใน terminal นั้น)
 
 **ขอ token ของ admin:**
 
-```bash
-TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@core.local","password":"password1"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['access_token'])")
+```text
+csmju2030 >> TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d '{"email":"admin@core.local","password":"password1"}' | node -e "let s='';process.stdin.on('data',(d)=>s+=d).on('end',()=>console.log(JSON.parse(s).data.access_token))")
 ```
 
 **สร้างทะเบียน** — ตัวอย่างนี้ตั้งใจ**ไม่ใส่ `alumni`** เพื่อใช้ทดสอบกรณีโดนปฏิเสธในข้อ 7
 
-```bash
-curl -s -X POST http://localhost:3000/api/v1/subsystems -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{"name":"csmju-equipment","displayName":"ระบบครุภัณฑ์","owner":"admin","repo":"CSMJU2030/csmju-equipment","standardsVersion":"1.0.0","callbackUrl":"http://localhost:3002/auth/callback","defaultRoleMapping":{"student":"STUDENT","staff":"STAFF","admin":"ADMIN"},"requestedExceptions":[]}'
+```text
+csmju2030 >> curl -s -X POST http://localhost:3000/api/v1/subsystems -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{"name":"csmju-equipment","displayName":"ระบบครุภัณฑ์","owner":"admin","repo":"CSMJU2030/csmju-equipment","standardsVersion":"1.0.0","callbackUrl":"http://localhost:3002/auth/callback","defaultRoleMapping":{"student":"STUDENT","staff":"STAFF","admin":"ADMIN"},"requestedExceptions":[]}'
 ```
 
-จด `id` ที่ได้กลับมา แล้ว approve + activate:
+จด `"id"` ที่ได้กลับมา แล้ว approve + activate (เปลี่ยน `<ID>` เป็นค่านั้น):
 
-```bash
-curl -s -X POST http://localhost:3000/api/v1/subsystems/<ID>/approve -H "Authorization: Bearer $TOKEN"
-```
-
-```bash
-curl -s -X POST http://localhost:3000/api/v1/subsystems/<ID>/activate -H "Authorization: Bearer $TOKEN"
+```text
+csmju2030 >> curl -s -X POST http://localhost:3000/api/v1/subsystems/<ID>/approve -H "Authorization: Bearer $TOKEN"
+csmju2030 >> curl -s -X POST http://localhost:3000/api/v1/subsystems/<ID>/activate -H "Authorization: Bearer $TOKEN"
 ```
 
 | พลาดบ่อย | ผล |
@@ -363,6 +424,7 @@ curl -s -X POST http://localhost:3000/api/v1/subsystems/<ID>/activate -H "Author
 | ไม่ส่ง `requestedExceptions` | 400 — ฟิลด์นี้บังคับ ไม่มีคำขอก็ต้องส่ง `[]` |
 | `callbackUrl` ไม่ใช่ URL เต็ม | 400 — ต้องมี `http://` |
 | ลืม approve หรือ activate | เข้า SSO ไม่ได้ และไม่ขึ้นในเมนูของ Core Hub |
+| ปิด terminal แล้วเปิดใหม่ | `$TOKEN` หาย ได้ 401 — ขอ token ใหม่ (อายุ 15 นาทีด้วย) |
 
 > seed ของ Core Hub ลงทะเบียนให้แค่ `student-service` — ฐานข้อมูลใหม่จะไม่ชนชื่อ
 > แต่ถ้าใช้ฐานข้อมูลเก่าที่เคยมีชื่อนี้อยู่ จะได้ `409 Subsystem name already exists`
@@ -372,28 +434,26 @@ curl -s -X POST http://localhost:3000/api/v1/subsystems/<ID>/activate -H "Author
 
 **Terminal 4 — ระบบตัวเอง :3002**
 
-```bash
-cd csmju2030/csmju-equipment && pnpm --filter backend start:dev
+```text
+csmju-equipment/backend >> pnpm start:dev
 ```
 
-```bash
-curl -s http://localhost:3002/api/health
-```
-
-ต้องได้ `"service":"csmju-equipment"`
+เปิด http://localhost:3002/api/health — ต้องได้ `"service":"csmju-equipment"`
 
 ---
 
-## 7. ทดสอบการเชื่อมต่อ
+## 7. ทดสอบการเชื่อมต่อ 🪟
 
-ตั้งตัวช่วยไว้ก่อน (ใช้ต่อทุกข้อ):
+> 🪟 Windows ใช้ **Git Bash** ทั้งข้อนี้ · คำสั่งรันจากโฟลเดอร์ไหนก็ได้ ยกเว้นที่ระบุไว้
+> ต้องเปิดครบทั้ง 4 ระบบ (ข้อ 4.4 · 5 · 6.5) ก่อนเริ่ม
 
-```bash
-login() { curl -s -X POST http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d "{\"email\":\"$1@core.local\",\"password\":\"$2\"}" | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['access_token'])"; }
-```
+**เตรียมตัวช่วย** — สร้างคำสั่ง `login` แล้วขอ token ของ 3 บทบาทเก็บไว้ (รันใน terminal เดียวกับที่จะทดสอบ):
 
-```bash
-ADMIN=$(login admin password1) && STUDENT=$(login student password2) && ALUMNI=$(login alumni password4)
+```text
+csmju2030 >> login() { curl -s -X POST http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d "{\"email\":\"$1@core.local\",\"password\":\"$2\"}" | node -e "let s='';process.stdin.on('data',(d)=>s+=d).on('end',()=>console.log(JSON.parse(s).data.access_token))"; }
+csmju2030 >> ADMIN=$(login admin password1)
+csmju2030 >> STUDENT=$(login student password2)
+csmju2030 >> ALUMNI=$(login alumni password4)
 ```
 
 ### ตารางทดสอบ
@@ -407,12 +467,12 @@ ADMIN=$(login admin password1) && STUDENT=$(login student password2) && ALUMNI=$
 | T5 | token ปลอม | `curl -s -o /dev/null -w '%{http_code}' localhost:3002/api/v1/me -H "Authorization: Bearer abc.def.ghi"` | `401` |
 | T6 | SSO ไป demo | `curl -s -D - -o /dev/null "localhost:3000/api/v1/auth/sso/authorize?subsystem=student-service&state=t6" -H "Authorization: Bearer $ADMIN" \| grep -i location` | `Location: http://localhost:3001/auth/callback?...` |
 | T7 | SSO ไประบบตัวเอง | เหมือน T6 แต่ `subsystem=csmju-equipment` | `Location: http://localhost:3002/auth/callback?...` |
-| T8 | **บทบาทที่ไม่ได้รับอนุญาต** | เหมือน T7 แต่ใช้ `$ALUMNI` แล้วดู `%{http_code}` | **`403`** — Core Hub ปฏิเสธก่อนส่งต่อ |
-| T9 | alumni ยังเข้า demo ได้ | เหมือน T6 แต่ใช้ `$ALUMNI` | `302` — เพราะ demo อนุญาต alumni |
+| T8 | **บทบาทที่ไม่ได้รับอนุญาต** | `curl -s -o /dev/null -w '%{http_code}' "localhost:3000/api/v1/auth/sso/authorize?subsystem=csmju-equipment&state=t8" -H "Authorization: Bearer $ALUMNI"` | **`403`** — Core Hub ปฏิเสธก่อนส่งต่อ |
+| T9 | alumni ยังเข้า demo ได้ | เหมือน T8 แต่ `subsystem=student-service` | `302` — เพราะ demo อนุญาต alumni |
 
 T8 กับ T9 รวมกันคือหลักฐานว่า**สิทธิ์ถูกตัดสินที่ Core Hub ตามทะเบียน** — ผู้ใช้คนเดียวกัน เข้าระบบหนึ่งได้ อีกระบบไม่ได้
 
-### ทดสอบผ่านหน้าเว็บ
+### ทดสอบผ่านหน้าเว็บ (ไม่ต้องใช้ terminal)
 
 1. เปิด http://127.0.0.1:3100 → login `admin@core.local`
 2. แถบซ้ายหัวข้อ **"ระบบย่อย"** ต้องมี **CSMJU Student Service** และ **ระบบครุภัณฑ์**
@@ -420,18 +480,22 @@ T8 กับ T9 รวมกันคือหลักฐานว่า**ส�
 4. ออกจากระบบ → login ใหม่เป็น `alumni@core.local`
 5. แถบซ้ายต้อง**เหลือแค่ CSMJU Student Service** — ระบบครุภัณฑ์หายไปเพราะไม่ได้อนุญาต alumni
 
-### ตรวจตามมาตรฐาน (ในโฟลเดอร์ระบบตัวเอง)
+### ตรวจตามมาตรฐาน
 
-```bash
-cd csmju2030/csmju-equipment && ./standards/scripts/run-all-checks.sh .
+**ตรวจกฎทั้งหมด** 🪟 (Git Bash):
+
+```text
+csmju-equipment >> ./standards/scripts/run-all-checks.sh .
 ```
 
-```bash
-node standards/conformance/run.js --level L1
-```
+> กฎ `ARC-02` ต้องใช้โปรแกรม `jq` — ถ้าไม่มีจะขึ้น `ข้ามการตรวจ (ไม่พบ jq)` ซึ่ง**ในเครื่องยอมได้** เพราะ CI มี jq และตรวจให้จริง
+> อยากตรวจครบในเครื่อง: macOS `brew install jq` · Windows `winget install jqlang.jq`
 
-```bash
-node standards/conformance/run.js
+**conformance** — ใช้ได้ทั้ง PowerShell และ Git Bash:
+
+```text
+csmju-equipment >> node standards/conformance/run.js --level L1
+csmju-equipment >> node standards/conformance/run.js
 ```
 
 ผลสุดท้ายที่ต้องได้:
@@ -447,15 +511,14 @@ RESULT: 62 passed · 0 failed · 0 skipped
 
 ## 8. ปิดระบบ
 
-กด `Ctrl-C` ในแต่ละ terminal ถ้าพอร์ตยังค้าง:
+กด `Ctrl + C` ในแต่ละ terminal ถ้าปิดแล้วพอร์ตยังค้าง:
 
-```bash
-lsof -nP -iTCP:3000 -iTCP:3001 -iTCP:3002 -iTCP:3100 -sTCP:LISTEN
-```
+| | macOS / Git Bash บน mac | Windows (PowerShell) |
+|---|---|---|
+| ดูว่าใครใช้พอร์ต 3002 | `lsof -nP -iTCP:3002 -sTCP:LISTEN` | `netstat -ano \| findstr :3002` |
+| ปิด | `kill <PID>` | `taskkill /PID <PID> /F` |
 
-```bash
-kill $(lsof -tiTCP:3002 -sTCP:LISTEN)
-```
+`<PID>` คือตัวเลขที่ได้จากคำสั่งแถวบน — ดูให้แน่ใจก่อนว่าเป็นโปรแกรมที่ตั้งใจจะปิด
 
 ---
 
@@ -463,16 +526,22 @@ kill $(lsof -tiTCP:3002 -sTCP:LISTEN)
 
 | อาการ | สาเหตุ | แก้ |
 |---|---|---|
-| `ENOENT: keys/jwt-private.pem` | ยังไม่สร้างกุญแจ | ทำข้อ 4.1 |
-| `EADDRINUSE :3001` | Core Hub frontend รุ่นเก่ายังจองพอร์ต 3001 | frontend ต้องอยู่ 3100 · ปิดตัวที่ค้างด้วยคำสั่งในข้อ 8 |
+| `Command "start:dev" not found` | **อยู่ผิดโฟลเดอร์** | `pwd` ดูว่าอยู่ไหน · `pnpm run` ดูว่าโฟลเดอร์นี้มีคำสั่งอะไร · เทียบกับ path หน้า `>>` |
+| `ENOENT: keys/jwt-private.pem` | ยังไม่สร้างกุญแจ หรือสร้างผิดโฟลเดอร์ | ทำข้อ 4.1 ใน `csmju-core-hub/backend` |
+| `EADDRINUSE :3001` | Core Hub frontend รุ่นเก่ายังจองพอร์ต 3001 | frontend ต้องอยู่ 3100 · ปิดตัวที่ค้างด้วยข้อ 8 |
 | demo ต่อฐานข้อมูลไม่ได้ | `.env.example` ของ demo ชี้พอร์ต 5433 | เปลี่ยนเป็น 5432 ถ้าใช้ PostgreSQL ในเครื่อง |
-| `pnpm install` ล้มที่ `prisma generate` | ใช้ repo รุ่นเก่า / ไฟล์ `prisma.config.ts` ที่ยังใช้ `env('DATABASE_URL')` | `git pull` ให้ได้ `main` ล่าสุด |
-| `ERR_PNPM_IGNORED_BUILDS` | `pnpm-workspace.yaml` ไม่มี `allowBuilds` | คัดลอกส่วนนั้นจาก demo (ข้อ 6.2) |
+| `password authentication failed` | user/รหัสผ่านใน `DATABASE_URL` ผิด | Windows ใช้ user `postgres` + รหัสที่ตั้งตอนติดตั้ง (ข้อ 3) |
+| `permission denied to create database` | user ใน `DATABASE_URL` ไม่มีสิทธิ์สร้างฐานข้อมูล | ใช้ user `postgres` หรือให้ผู้ดูแลเครื่องสร้างฐานข้อมูลให้ก่อน |
+| `pnpm install` ล้มที่ `prisma generate` | ใช้ repo รุ่นเก่า | `git pull` ให้ได้ `main` ล่าสุด |
+| `ERR_PNPM_IGNORED_BUILDS` | `pnpm-workspace.yaml` ไม่มี `allowBuilds` | คัดลอกไฟล์นั้นจาก demo (ข้อ 6.2) |
+| `pnpm` ไม่รู้จักบน Windows | ยังไม่ได้เปิด corepack | PowerShell แบบ Run as Administrator → `corepack enable pnpm` แล้วเปิด terminal ใหม่ |
+| `./...sh: command not found` หรือเปิดเป็นไฟล์ | รันสคริปต์ `.sh` ใน PowerShell | เปลี่ยนไปใช้ Git Bash |
+| `curl` ใน PowerShell ตอบเป็นตารางแปลก ๆ | PowerShell แปลง `curl` เป็นคำสั่งของตัวเอง | ข้อ 6.4 และ 7 ใช้ Git Bash |
 | ระบบย่อยตอบ 401 ทุกคำขอ | JWKS ถูกห่อ envelope หรือสร้างกุญแจใหม่ทับ | ตรวจ T1 · login ใหม่ · รีสตาร์ตระบบย่อยเพื่อล้าง cache กุญแจ |
 | `callbackUrl must use HTTPS` | Core Hub ตั้ง `NODE_ENV=production` | เปลี่ยนเป็น `development` |
-| SSO ได้ 403 ทั้งที่ลงทะเบียนแล้ว | role ของผู้ใช้ไม่อยู่ใน `defaultRoleMapping` หรือยังไม่ approve/activate | ตรวจทะเบียนด้วย `GET /api/v1/subsystems/all` |
+| SSO ได้ 403 ทั้งที่ลงทะเบียนแล้ว | role ไม่อยู่ใน `defaultRoleMapping` หรือยังไม่ approve/activate | ตรวจทะเบียนด้วย `GET /api/v1/subsystems/all` |
 | ระบบย่อยไม่ขึ้นในเมนู Core Hub | เหมือนข้อบน — เมนูกรองด้วยกฎเดียวกับ SSO | เหมือนข้อบน |
-| `standards/` ว่าง | clone โดยไม่ใส่ `--recurse-submodules` | `git submodule update --init --recursive` |
+| `standards/` ว่าง | clone โดยไม่ใส่ `--recurse-submodules` | ข้อ 2 · `git submodule update --init --recursive` |
 | conformance ขึ้น SKIP | `probes` ไม่ครบ | ประกาศให้ครบใน `subsystem.yaml` |
 | `pnpm test` ที่รากผ่านแต่ไม่มีเทสต์รันเลย | `name` ของ `package.json` ที่รากซ้ำกับ `backend` | ตั้งชื่อไม่ให้ซ้ำ (กฎ `QA-06`) |
 
@@ -481,7 +550,7 @@ kill $(lsof -tiTCP:3002 -sTCP:LISTEN)
 ## 10. เช็คลิสต์ผ่าน
 
 - [ ] โฟลเดอร์จัดตามข้อ 2 · `demo-student-subsystem/standards/` ไม่ว่าง
-- [ ] 3 ฐานข้อมูลแยกกัน
+- [ ] 3 ฐานข้อมูลแยกกัน (สร้างอัตโนมัติจาก `migrate deploy`)
 - [ ] 4 พอร์ตเปิดครบ: 3000 · 3100 · 3001 · 3002
 - [ ] T1–T9 ผ่านทั้งหมด
 - [ ] หน้าเว็บ: admin เห็น 2 ระบบ · alumni เห็น 1 ระบบ
@@ -495,7 +564,7 @@ kill $(lsof -tiTCP:3002 -sTCP:LISTEN)
 
 ---
 
-## ภาคผนวก — ทำไมต้องใช้ pnpm และ npx ใช้ได้มั้ย
+## ภาคผนวก ก — ทำไมต้องใช้ pnpm และ npx ใช้ได้มั้ย
 
 ทุกคำสั่งในเอกสารนี้ใช้ `pnpm` ไม่ใช่ `npm` — กฎ `QA-05` ของ CI บังคับกับทุก repo ในโครงการ
 รวมถึงระบบย่อยของทุกทีม
@@ -542,9 +611,8 @@ error `ERR_PNPM_IGNORED_BUILDS` ในข้อ 9 คือกลไกนี้
 
 **4. monorepo และเวอร์ชันตรงกันทุกเครื่อง**
 
-แต่ละ repo มี `backend/` และ `frontend/` อยู่ด้วยกัน สคริปต์ทั้งมาตรฐานสร้างบน `pnpm --filter`
-และ `package.json` ล็อก `"packageManager": "pnpm@12.3.4"` ไว้ — สั่ง `corepack enable pnpm` แล้วทุกคน
-รวมถึง CI ได้ pnpm เวอร์ชันเดียวกัน
+แต่ละ repo มี `backend/` และ `frontend/` อยู่ด้วยกัน และ `package.json` ล็อก `"packageManager": "pnpm@12.3.4"` ไว้ —
+สั่ง `corepack enable pnpm` แล้วทุกคนรวมถึง CI ได้ pnpm เวอร์ชันเดียวกัน
 
 ### แล้ว npx ล่ะ
 
@@ -554,131 +622,129 @@ error `ERR_PNPM_IGNORED_BUILDS` ในข้อ 9 คือกลไกนี้
 **จุดอันตรายมีข้อเดียว:** ถ้าหาในเครื่องไม่เจอ npx จะ**ดาวน์โหลดเวอร์ชันล่าสุดมารันเงียบ ๆ**
 เช่นได้ Prisma 7.10 ทั้งที่มาตรฐานล็อกไว้ 7.9.1 — แล้ว migration อาจทำงานต่างจากที่ทดสอบไว้
 
-### ตารางคำสั่งสำหรับ dev
-
-คอลัมน์ **npm / npx มีไว้เทียบให้คนที่คุ้นกับ npm เท่านั้น — ในโครงการนี้ใช้คอลัมน์ pnpm**
-ช่องที่เป็น `—` คือคำสั่งที่ไม่เกี่ยวกับ package manager ใช้เหมือนกันทุกคน
-
-**ชื่อที่ใช้กับ `--filter` ไม่เหมือนกันทุก repo** — ดูให้ถูกก่อนพิมพ์:
-
-| repo | backend | frontend |
-|---|---|---|
-| `csmju-core-hub` | `core-api` | `frontend` |
-| `demo-student-subsystem` | `backend` | — |
-| `csmju-<ระบบของทีม>` | `backend` | `frontend` |
-
-ตารางข้างล่างใช้ `backend` เป็นตัวอย่าง ถ้าทำใน Core Hub ให้เปลี่ยนเป็น `core-api`
-
-#### เตรียมเครื่อง
-
-| อยากทำอะไร | npm / npx | pnpm | หมายเหตุ |
-|---|---|---|---|
-| เปิดใช้ pnpm | — | `corepack enable pnpm` | corepack มากับ Node 22 · ได้เวอร์ชันตาม `packageManager` ของ repo อัตโนมัติ |
-| ดูเวอร์ชัน | `npm -v` | `pnpm -v` | ต้องได้ 12.x |
-| ดูว่า store ของ pnpm อยู่ไหน | — | `pnpm store path` | |
-
-#### ติดตั้งและจัดการ dependency
-
-| อยากทำอะไร | npm / npx | pnpm | หมายเหตุ |
-|---|---|---|---|
-| ติดตั้งทั้งโปรเจกต์ | `npm install` | `pnpm install` | รันที่รากของ repo · `prisma generate` รันตามให้เอง |
-| ติดตั้งแบบเดียวกับ CI | `npm ci` | `pnpm install --frozen-lockfile` | ห้ามแก้ lockfile — ใช้ตรวจก่อนเปิด PR |
-| เพิ่ม package | `npm install zod -w backend` | `pnpm --filter backend add zod` | ต้องอยู่ใน whitelist ไม่งั้นโดน `ARC-02` |
-| เพิ่ม dev dependency | `npm install -D x -w backend` | `pnpm --filter backend add -D x` | |
-| เพิ่มเครื่องมือที่ใช้ทั้ง repo | `npm install -D x` | `pnpm add -Dw x` | `-w` = ติดตั้งที่รากของ workspace |
-| ลบ package | `npm uninstall x -w backend` | `pnpm --filter backend remove x` | |
-| อัปเดต package ตัวเดียว | `npm update x` | `pnpm --filter backend update x` | **ห้ามอัปเดต Prisma** — ล็อก 7.9.1 เป๊ะทั้งสามตัว |
-| ดูว่าอะไรตกรุ่น | `npm outdated` | `pnpm outdated -r` | |
-| ดูว่าติดตั้งอะไรไว้ | `npm ls` | `pnpm list -r --depth 0` | |
-| ดูว่าใครลาก package นี้มา | `npm explain x` | `pnpm why x` | ใช้ไล่ dependency ที่ไม่ได้ประกาศไว้ |
-| อนุญาตให้ package รันสคริปต์ตอนติดตั้ง | — | `pnpm approve-builds` | เขียนลง `allowBuilds` ใน `pnpm-workspace.yaml` · ใช้เมื่อเจอ `ERR_PNPM_IGNORED_BUILDS` |
-| ติดตั้งใหม่ทั้งหมด | `rm -rf node_modules && npm install` | `rm -rf node_modules */node_modules && pnpm install` | ใช้เมื่อ node_modules เพี้ยน |
-| คืนพื้นที่ดิสก์ | — | `pnpm store prune` | ลบ package ใน store ที่ไม่มีโปรเจกต์ไหนใช้แล้ว |
-
-#### รันระบบ
-
-| อยากทำอะไร | npm / npx | pnpm | หมายเหตุ |
-|---|---|---|---|
-| Core Hub backend | `npm run start:dev -w core-api` | `pnpm --filter core-api start:dev` | :3000 |
-| Core Hub frontend | `npm run dev -w frontend` | `pnpm --filter frontend dev` | :3100 |
-| Core Hub ทั้งสองฝั่งพร้อมกัน | — | `pnpm dev` | รันที่รากของ Core Hub · log ปนกันใน terminal เดียว |
-| demo backend | `npm run start:dev -w backend` | `pnpm --filter backend start:dev` | :3001 |
-| ระบบของทีม | `npm run start:dev -w backend` | `pnpm --filter backend start:dev` | :3002 |
-| build ทุก workspace | `npm run build --workspaces` | `pnpm -r build` | |
-| รันสคริปต์ที่รากของ repo | `npm run checks` | `pnpm checks` | สคริปต์ที่ประกาศใน `package.json` ที่ราก |
-
-#### ตรวจคุณภาพโค้ด
-
-| อยากทำอะไร | npm / npx | pnpm | หมายเหตุ |
-|---|---|---|---|
-| lint | `npm run lint --workspaces` | `pnpm -r lint` | `QA-01` |
-| แก้ lint อัตโนมัติ | — | `pnpm --filter core-api lint:fix` | มีเฉพาะ Core Hub · CI ไม่แก้ให้ |
-| ตรวจ type | `npm run typecheck --workspaces` | `pnpm -r typecheck` | `QA-02` · frontend ต้องเป็น `next typegen && tsc --noEmit` |
-| unit test | `npm test --workspaces` | `pnpm -r test` | `QA-03` |
-| unit test แบบเฝ้าไฟล์ | `npm run test:watch -w backend` | `pnpm --filter backend test:watch` | รันใหม่ทุกครั้งที่บันทึกไฟล์ |
-| ดู coverage | `npm run test:cov -w backend` | `pnpm --filter backend test:cov` | |
-| e2e test | `npm run test:e2e -w backend` | `pnpm --filter backend test:e2e` | ต้องมีฐานข้อมูล |
-| integration test ของ demo | `npm run test:integration -w backend` | `pnpm --filter backend test:integration` | ต้องเปิด Core Hub ไว้ ไม่งั้นเคสจะถูกข้าม |
-| **ตรวจแบบเดียวกับ CI** | — | `rm -rf frontend/.next && pnpm -r lint && pnpm -r typecheck && pnpm -r test && pnpm -r build` | ลบของค้างก่อน ไม่งั้นผ่านหลอก |
-
-#### Prisma และฐานข้อมูล
-
-| อยากทำอะไร | npm / npx | pnpm | หมายเหตุ |
-|---|---|---|---|
-| สร้างฐานข้อมูล | — | `createdb equipment_db` | ของ PostgreSQL · หนึ่งระบบหนึ่งฐานข้อมูล |
-| ดูรายชื่อฐานข้อมูล | — | `psql -lqt` | |
-| เข้า psql | — | `psql -d equipment_db` | |
-| สร้าง Prisma client | `npx prisma generate` | `pnpm --filter backend exec prisma generate` | ปกติไม่ต้องสั่ง — `pnpm install` ทำให้แล้ว |
-| สร้างตารางตาม migration ที่มี | `npx prisma migrate deploy` | `pnpm --filter backend exec prisma migrate deploy` | ใช้ตอนตั้งเครื่องใหม่ · ไม่สร้าง migration ใหม่ |
-| สร้าง migration ใหม่หลังแก้ schema | `npx prisma migrate dev --name add_x` | `pnpm --filter backend exec prisma migrate dev --name add_x` | ใช้ตอน dev เท่านั้น · **เปลี่ยนชื่อคอลัมน์ต้องเขียน `RENAME COLUMN` เอง** ไม่งั้นข้อมูลหาย |
-| ดูสถานะ migration | `npx prisma migrate status` | `pnpm --filter backend exec prisma migrate status` | |
-| ล้างฐานข้อมูลทั้งหมด | `npx prisma migrate reset` | `pnpm --filter backend exec prisma migrate reset` | ⚠️ **ข้อมูลหายหมด** ใช้กับเครื่อง dev เท่านั้น |
-| เปิดหน้าจัดการข้อมูล | `npx prisma studio` | `pnpm --filter backend exec prisma studio` | :5555 · **ห้ามเปิดออกอินเทอร์เน็ต** |
-| seed ของ Core Hub | — | `pnpm --filter core-api build && (cd backend && node dist/prisma/seed.js)` | ต้อง build ก่อน · ห้ามใช้ `ts-node` |
-| seed ของ demo | `npm run prisma:seed` | `pnpm prisma:seed` | ข้อมูลตัวอย่าง — ไม่จำเป็นต่อการทดสอบเชื่อมต่อ |
-
-#### เครื่องมือที่ใช้ครั้งเดียว
-
-| อยากทำอะไร | npm / npx | pnpm | หมายเหตุ |
-|---|---|---|---|
-| สร้าง type ของ route (Next.js) | `npx next typegen` | `pnpm --filter frontend exec next typegen` | typecheck เรียกให้อยู่แล้ว |
-| สร้างแอป Next.js ใหม่ | `npx create-next-app@latest frontend` | `pnpm dlx create-next-app@latest frontend` | ใช้ตอนเริ่ม frontend ของทีม · ต้องเป็น 15.5+ |
-| สร้าง backend ใหม่ด้วย Nest CLI | `npx @nestjs/cli new backend` | `pnpm dlx @nestjs/cli new backend` | **ไม่แนะนำ** — ตั้งต้นจาก demo แทน (ข้อ 6.2) เพราะชั้น auth ต้องคัดลอกอยู่แล้ว |
-
-#### มาตรฐานและ conformance
-
-| อยากทำอะไร | npm / npx | pnpm | หมายเหตุ |
-|---|---|---|---|
-| สร้าง repo ระบบย่อยใหม่ | — | `./csmju2030-standards/new-subsystem.sh <slug> "<ชื่อ>"` | รันจากโฟลเดอร์ `csmju2030/` |
-| ตรวจตามกฎทั้งหมด (ระบบย่อย) | — | `./standards/scripts/run-all-checks.sh .` | ตัวเดียวกับที่ CI ใช้ |
-| ตรวจตามกฎของ Core Hub | — | `pnpm checks` | รันที่รากของ Core Hub · ต้องมี `csmju2030-standards` อยู่ข้าง ๆ |
-| conformance ระดับเดียว | — | `node standards/conformance/run.js --level L1` | ไล่ทีละระดับ L1 → L2 → L3 |
-| conformance ตามที่ประกาศไว้ | — | `node standards/conformance/run.js` | อ่านระดับจาก `subsystem.yaml` |
-| conformance ออกเป็นไฟล์ | — | `node standards/conformance/run.js --json` | ได้ `conformance-report.json` แนบ PR |
-| ดึง submodule `standards/` | — | `git submodule update --init --recursive` | ใช้เมื่อโฟลเดอร์ `standards/` ว่าง |
-| ดูว่าผูกมาตรฐานเวอร์ชันไหน | — | `git submodule status` | ต้องตรงกับ `.standards-version` |
-
-#### git ตามมาตรฐาน
-
-| อยากทำอะไร | npm / npx | pnpm | หมายเหตุ |
-|---|---|---|---|
-| แตก branch ใหม่ | — | `git checkout -b feature/<slug>/<เรื่อง>` | `GH-01` · ตัวพิมพ์เล็กและขีดกลางเท่านั้น |
-| commit | — | `git commit -m "feat(<slug>): <คำอธิบาย>"` | `GH-02` · type ได้แค่ `feat` `fix` `chore` `refactor` `docs` `test` `ci` |
-| ดึงของใหม่จาก main | — | `git fetch origin && git merge origin/main` | ทำก่อนเปิด PR ทุกครั้ง |
-| push branch | — | `git push -u origin feature/<slug>/<เรื่อง>` | แล้วเปิด PR บน GitHub |
-
-#### พอร์ตและ process
-
-| อยากทำอะไร | npm / npx | pnpm | หมายเหตุ |
-|---|---|---|---|
-| ดูว่าพอร์ตไหนเปิดอยู่ | — | `lsof -nP -iTCP -sTCP:LISTEN` | macOS / Linux |
-| ดูว่าใครใช้พอร์ตนี้ | — | `lsof -nP -iTCP:3002 -sTCP:LISTEN` | |
-| ปิด process ที่ค้างพอร์ต | — | `kill $(lsof -tiTCP:3002 -sTCP:LISTEN)` | ดูก่อนว่าใช่ตัวที่ตั้งใจจะปิด |
-| ดูพอร์ตบน Windows | — | `netstat -ano \| findstr :3002` | |
-
 **หลักจำ:** เครื่องมือในโปรเจกต์ → `pnpm exec` (ไม่มีก็ error ไม่แอบดาวน์โหลด) ·
 เครื่องมือใช้ครั้งเดียว → `pnpm dlx` · `npx` ใช้ได้แต่ต้องรู้ว่าอาจดึงเวอร์ชันอื่นมา
 
 > ถ้าเห็น `npx prisma migrate deploy` ใน `backend/docker/entrypoint.sh` ของบาง repo ไม่ต้องตกใจ —
 > ใน Docker image ติดตั้ง prisma เวอร์ชันที่ล็อกไว้แล้ว npx จึงใช้ตัวในเครื่องเสมอ
-> แต่ในเครื่องตัวเองให้ใช้ `pnpm exec` ตามตารางข้างบน
+
+---
+
+## ภาคผนวก ข — ตารางคำสั่งสำหรับ dev
+
+### วิธีอ่านตาราง
+
+| คอลัมน์ | ความหมาย |
+|---|---|
+| **รันที่** | โฟลเดอร์ที่ต้องอยู่ก่อนรัน — `ราก` = รากของ repo (โฟลเดอร์ที่มี `pnpm-workspace.yaml`) · `backend` / `frontend` = โฟลเดอร์ย่อยนั้นของ repo |
+| **npm / npx** | มีไว้เทียบให้คนที่คุ้นกับ npm — **ในโครงการนี้ใช้คอลัมน์ pnpm** |
+| **pnpm** | คำสั่งที่ใช้จริง |
+
+ช่องที่เป็น `—` คือคำสั่งที่ไม่เกี่ยวกับ package manager ใช้เหมือนกันทุกคน · ป้าย 🪟 = บน Windows ต้องใช้ Git Bash
+
+> **เห็น `--filter` ในเอกสารอื่น?** เช่น `pnpm --filter backend start:dev` — คือการสั่งจากรากของ repo
+> โดยระบุโฟลเดอร์ ได้ผล**เหมือนกับ** เข้าไปที่ `backend` แล้วพิมพ์ `pnpm start:dev` เป๊ะ ใช้แบบที่ถนัดได้เลย
+> (ชื่อที่ใช้กับ `--filter`: backend ของ Core Hub คือ `core-api` · ของ demo และของทีมคือ `backend` · frontend คือ `frontend`)
+
+### เตรียมเครื่อง
+
+| อยากทำอะไร | รันที่ | npm / npx | pnpm | หมายเหตุ |
+|---|---|---|---|---|
+| เปิดใช้ pnpm | ที่ไหนก็ได้ | — | `corepack enable pnpm` | corepack มากับ Node 22 · Windows ต้องเปิด PowerShell แบบ Administrator |
+| ดูเวอร์ชัน | ที่ไหนก็ได้ | `npm -v` | `pnpm -v` | ต้องได้ 12.x |
+| ดูว่าอยู่โฟลเดอร์ไหน | ที่ไหนก็ได้ | — | `pwd` | ใช้ได้ทั้ง mac · PowerShell · Git Bash |
+| ดูว่าโฟลเดอร์นี้มีคำสั่งอะไร | ที่ไหนก็ได้ | `npm run` | `pnpm run` | ไม่เห็นคำสั่งที่จะรัน = อยู่ผิดที่ |
+
+### ติดตั้งและจัดการ dependency
+
+| อยากทำอะไร | รันที่ | npm / npx | pnpm | หมายเหตุ |
+|---|---|---|---|---|
+| ติดตั้งทั้งโปรเจกต์ | ราก | `npm install` | `pnpm install` | `prisma generate` รันตามให้เอง |
+| ติดตั้งแบบเดียวกับ CI | ราก | `npm ci` | `pnpm install --frozen-lockfile` | ห้ามแก้ lockfile — ใช้ตรวจก่อนเปิด PR |
+| เพิ่ม package | `backend` | `npm install zod` | `pnpm add zod` | ต้องอยู่ใน whitelist ไม่งั้นโดน `ARC-02` |
+| เพิ่ม dev dependency | `backend` | `npm install -D x` | `pnpm add -D x` | |
+| เพิ่มเครื่องมือที่ใช้ทั้ง repo | ราก | `npm install -D x` | `pnpm add -Dw x` | `-w` = ติดตั้งที่รากของ workspace |
+| ลบ package | `backend` | `npm uninstall x` | `pnpm remove x` | |
+| อัปเดต package ตัวเดียว | `backend` | `npm update x` | `pnpm update x` | **ห้ามอัปเดต Prisma** — ล็อก 7.9.1 เป๊ะทั้งสามตัว |
+| ดูว่าอะไรตกรุ่น | ราก | `npm outdated` | `pnpm outdated -r` | |
+| ดูว่าติดตั้งอะไรไว้ | ราก | `npm ls` | `pnpm list -r --depth 0` | |
+| ดูว่าใครลาก package นี้มา | ราก | `npm explain x` | `pnpm why x` | ใช้ไล่ dependency ที่ไม่ได้ประกาศไว้ |
+| อนุญาตให้ package รันสคริปต์ตอนติดตั้ง | ราก | — | `pnpm approve-builds` | เขียนลง `allowBuilds` · ใช้เมื่อเจอ `ERR_PNPM_IGNORED_BUILDS` |
+| คืนพื้นที่ดิสก์ | ที่ไหนก็ได้ | — | `pnpm store prune` | ลบ package ใน store ที่ไม่มีโปรเจกต์ไหนใช้แล้ว |
+
+### รันระบบ
+
+| อยากทำอะไร | รันที่ | npm / npx | pnpm | หมายเหตุ |
+|---|---|---|---|---|
+| Core Hub backend | `csmju-core-hub/backend` | `npm run start:dev` | `pnpm start:dev` | :3000 |
+| Core Hub frontend | `csmju-core-hub/frontend` | `npm run dev` | `pnpm dev` | :3100 |
+| Core Hub ทั้งสองฝั่งพร้อมกัน | `csmju-core-hub` | — | `pnpm dev` | log ปนกันใน terminal เดียว |
+| demo | `demo-student-subsystem/backend` | `npm run start:dev` | `pnpm start:dev` | :3001 |
+| ระบบของทีม | `csmju-equipment/backend` | `npm run start:dev` | `pnpm start:dev` | :3002 |
+| build | `backend` หรือ `frontend` | `npm run build` | `pnpm build` | |
+| build ทุกโฟลเดอร์ | ราก | `npm run build --workspaces` | `pnpm -r build` | `-r` = ทุก workspace |
+
+### ตรวจคุณภาพโค้ด
+
+| อยากทำอะไร | รันที่ | npm / npx | pnpm | หมายเหตุ |
+|---|---|---|---|---|
+| lint | `backend` | `npm run lint` | `pnpm lint` | `QA-01` |
+| แก้ lint อัตโนมัติ | `csmju-core-hub/backend` | `npm run lint:fix` | `pnpm lint:fix` | มีเฉพาะ Core Hub · CI ไม่แก้ให้ |
+| ตรวจ type | `backend` หรือ `frontend` | `npm run typecheck` | `pnpm typecheck` | `QA-02` · frontend ต้องเป็น `next typegen && tsc --noEmit` |
+| unit test | `backend` | `npm test` | `pnpm test` | `QA-03` |
+| unit test แบบเฝ้าไฟล์ | `backend` | `npm run test:watch` | `pnpm test:watch` | รันใหม่ทุกครั้งที่บันทึกไฟล์ |
+| ดู coverage | `backend` | `npm run test:cov` | `pnpm test:cov` | |
+| e2e test | `backend` | `npm run test:e2e` | `pnpm test:e2e` | ต้องมีฐานข้อมูล |
+| integration test ของ demo | `demo-student-subsystem/backend` | `npm run test:integration` | `pnpm test:integration` | ต้องเปิด Core Hub ไว้ ไม่งั้นเคสจะถูกข้าม |
+| ตรวจทุกโฟลเดอร์ในครั้งเดียว | ราก | `npm run lint --workspaces` | `pnpm -r lint` · `pnpm -r typecheck` · `pnpm -r test` · `pnpm -r build` | **ตรวจแบบเดียวกับ CI** — ลบ `frontend/.next` ก่อน ไม่งั้นผ่านหลอก |
+
+### Prisma และฐานข้อมูล
+
+| อยากทำอะไร | รันที่ | npm / npx | pnpm | หมายเหตุ |
+|---|---|---|---|---|
+| สร้างฐานข้อมูล + ตารางตาม migration | `backend` | `npx prisma migrate deploy` | `pnpm exec prisma migrate deploy` | สร้างฐานข้อมูลให้เองถ้ายังไม่มี |
+| สร้าง Prisma client | `backend` | `npx prisma generate` | `pnpm exec prisma generate` | ปกติไม่ต้องสั่ง — `pnpm install` ทำให้แล้ว |
+| สร้าง migration ใหม่หลังแก้ schema | `backend` | `npx prisma migrate dev --name add_x` | `pnpm exec prisma migrate dev --name add_x` | ใช้ตอน dev เท่านั้น · **เปลี่ยนชื่อคอลัมน์ต้องเขียน `RENAME COLUMN` เอง** ไม่งั้นข้อมูลหาย |
+| ดูสถานะ migration | `backend` | `npx prisma migrate status` | `pnpm exec prisma migrate status` | |
+| ล้างฐานข้อมูลทั้งหมด | `backend` | `npx prisma migrate reset` | `pnpm exec prisma migrate reset` | ⚠️ **ข้อมูลหายหมด** ใช้กับเครื่อง dev เท่านั้น |
+| เปิดหน้าจัดการข้อมูล | `backend` | `npx prisma studio` | `pnpm exec prisma studio` | :5555 · **ห้ามเปิดออกอินเทอร์เน็ต** |
+| seed ของ Core Hub | `csmju-core-hub/backend` | — | `pnpm build` แล้ว `node dist/prisma/seed.js` | ต้อง build ก่อน · ห้ามใช้ `ts-node` |
+| seed ของ demo | `demo-student-subsystem/backend` | `npm run prisma:seed` | `pnpm prisma:seed` | ข้อมูลตัวอย่าง — ไม่จำเป็นต่อการทดสอบเชื่อมต่อ |
+
+### เครื่องมือที่ใช้ครั้งเดียว
+
+| อยากทำอะไร | รันที่ | npm / npx | pnpm | หมายเหตุ |
+|---|---|---|---|---|
+| สร้าง type ของ route (Next.js) | `frontend` | `npx next typegen` | `pnpm exec next typegen` | `pnpm typecheck` เรียกให้อยู่แล้ว |
+| สร้างแอป Next.js ใหม่ | ราก | `npx create-next-app@latest frontend` | `pnpm dlx create-next-app@latest frontend` | ใช้ตอนเริ่ม frontend ของทีม · ต้องเป็น 15.5+ |
+| สร้าง backend ใหม่ด้วย Nest CLI | ราก | `npx @nestjs/cli new backend` | `pnpm dlx @nestjs/cli new backend` | **ไม่แนะนำ** — ตั้งต้นจาก demo แทน (ข้อ 6.2) |
+
+### มาตรฐานและ conformance
+
+| อยากทำอะไร | รันที่ | npm / npx | pnpm | หมายเหตุ |
+|---|---|---|---|---|
+| สร้าง repo ระบบย่อยใหม่ 🪟 | `csmju2030` | — | `./csmju2030-standards/new-subsystem.sh <slug> "<ชื่อ>"` | |
+| ตรวจตามกฎ (ระบบย่อย) 🪟 | ราก | — | `./standards/scripts/run-all-checks.sh .` | ตัวเดียวกับที่ CI ใช้ · ไม่มี `jq` จะข้าม `ARC-02` |
+| ตรวจตามกฎ (Core Hub) 🪟 | `csmju-core-hub` | `npm run checks` | `pnpm checks` | ต้องมี `csmju2030-standards` อยู่ข้าง ๆ |
+| conformance ระดับเดียว | ราก | — | `node standards/conformance/run.js --level L1` | ไล่ทีละระดับ L1 → L2 → L3 |
+| conformance ตามที่ประกาศไว้ | ราก | — | `node standards/conformance/run.js` | อ่านระดับจาก `subsystem.yaml` |
+| conformance ออกเป็นไฟล์ | ราก | — | `node standards/conformance/run.js --json` | ได้ `conformance-report.json` แนบ PR |
+| ดึง submodule `standards/` | ราก | — | `git submodule update --init --recursive` | ใช้เมื่อโฟลเดอร์ `standards/` ว่าง |
+| ดูว่าผูกมาตรฐานเวอร์ชันไหน | ราก | — | `git submodule status` | ต้องตรงกับ `.standards-version` |
+
+### git ตามมาตรฐาน
+
+| อยากทำอะไร | รันที่ | npm / npx | pnpm | หมายเหตุ |
+|---|---|---|---|---|
+| แตก branch ใหม่ | ราก | — | `git checkout -b feature/<slug>/<เรื่อง>` | `GH-01` · ตัวพิมพ์เล็กและขีดกลางเท่านั้น |
+| commit | ราก | — | `git commit -m "feat(<slug>): <คำอธิบาย>"` | `GH-02` · type ได้แค่ `feat` `fix` `chore` `refactor` `docs` `test` `ci` |
+| ดึงของใหม่จาก main | ราก | — | `git fetch origin` แล้ว `git merge origin/main` | ทำก่อนเปิด PR ทุกครั้ง |
+| push branch | ราก | — | `git push -u origin feature/<slug>/<เรื่อง>` | แล้วเปิด PR บน GitHub |
+
+### พอร์ตและ process
+
+| อยากทำอะไร | รันที่ | macOS | Windows (PowerShell) | หมายเหตุ |
+|---|---|---|---|---|
+| ดูว่าพอร์ตไหนเปิดอยู่ | ที่ไหนก็ได้ | `lsof -nP -iTCP -sTCP:LISTEN` | `netstat -ano \| findstr LISTENING` | |
+| ดูว่าใครใช้พอร์ตนี้ | ที่ไหนก็ได้ | `lsof -nP -iTCP:3002 -sTCP:LISTEN` | `netstat -ano \| findstr :3002` | ได้เลข PID |
+| ปิด process ที่ค้างพอร์ต | ที่ไหนก็ได้ | `kill <PID>` | `taskkill /PID <PID> /F` | ดูก่อนว่าใช่ตัวที่ตั้งใจจะปิด |

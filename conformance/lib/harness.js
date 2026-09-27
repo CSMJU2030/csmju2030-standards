@@ -3,6 +3,19 @@
 
 const ERROR_CODES = require('../../contracts/error-codes.json').codes;
 
+/** A 429 asking to wait at most this long is waited out and retried once. */
+const MAX_RETRY_AFTER_SEC = 5;
+
+/**
+ * What happened on the wire that is not a check of its own: retries after a
+ * 429, and error codes outside contracts/error-codes.json. Both are reported
+ * as WARN at the end - a warning never fails the run.
+ */
+const observations = {
+  retries: [],
+  unknownCodes: new Map(),
+};
+
 class Report {
   constructor() {
     this.results = [];
@@ -17,7 +30,7 @@ class Report {
   record(status, id, title, detail = '') {
     this.results.push({ group: this.currentGroup, id, title, status, detail });
 
-    const mark = { PASS: '  PASS', FAIL: '  FAIL', SKIP: '  SKIP' }[status];
+    const mark = { PASS: '  PASS', FAIL: '  FAIL', SKIP: '  SKIP', WARN: '  WARN' }[status];
     const line = `${mark}  ${id.padEnd(10)} ${title}`;
 
     console.log(detail && status !== 'PASS' ? `${line}\n            → ${detail}` : line);
@@ -33,6 +46,11 @@ class Report {
 
   skip(id, title, detail) {
     this.record('SKIP', id, title, detail);
+  }
+
+  /** Worth knowing, not a failure: it never changes the exit code. */
+  warn(id, title, detail) {
+    this.record('WARN', id, title, detail);
   }
 
   /** Asserts `actual === expected`. */
@@ -51,14 +69,25 @@ class Report {
   }
 
   get counts() {
-    const counts = { PASS: 0, FAIL: 0, SKIP: 0 };
+    const counts = { PASS: 0, FAIL: 0, SKIP: 0, WARN: 0 };
     for (const result of this.results) counts[result.status] += 1;
     return counts;
   }
 }
 
-/** GET/POST helper that never throws on HTTP status. */
-async function call(url, options = {}) {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Path of a URL without its query, which can carry an access token. */
+function redact(url) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return String(url).split('?')[0];
+  }
+}
+
+async function send(url, options) {
   const { token, cookie, json, method = 'GET', redirect = 'manual', headers = {} } = options;
 
   const requestHeaders = { accept: 'application/json', ...headers };
@@ -67,17 +96,48 @@ async function call(url, options = {}) {
   if (cookie) requestHeaders.cookie = cookie;
   if (json !== undefined) requestHeaders['content-type'] = 'application/json';
 
+  return fetch(url, {
+    method,
+    redirect,
+    headers: requestHeaders,
+    ...(json !== undefined ? { body: JSON.stringify(json) } : {}),
+  });
+}
+
+/**
+ * GET/POST helper that never throws on HTTP status.
+ *
+ * `setCookies` lists every Set-Cookie header. A callback on standards 1.1 sets
+ * two - the state removal and the session - so reading only the first header
+ * would find the removal and miss the session.
+ */
+async function call(url, options = {}) {
   let response;
 
   try {
-    response = await fetch(url, {
-      method,
-      redirect,
-      headers: requestHeaders,
-      ...(json !== undefined ? { body: JSON.stringify(json) } : {}),
-    });
+    response = await send(url, options);
+
+    // A rate limiter asking for a short pause is honoured once, and counted:
+    // the summary shows how often it happened, since a conformance run with
+    // the shipped limits should not need it at all.
+    if (response.status === 429 && !options.noRetry) {
+      const wait = Number(response.headers.get('retry-after'));
+      if (Number.isFinite(wait) && wait >= 0 && wait <= MAX_RETRY_AFTER_SEC) {
+        observations.retries.push({ url: redact(url), wait });
+        await sleep(wait * 1000 + 100);
+        response = await send(url, options);
+      }
+    }
   } catch (error) {
-    return { ok: false, status: 0, body: null, error: error.message, headers: new Headers() };
+    return {
+      ok: false,
+      status: 0,
+      body: null,
+      error: error.message,
+      headers: new Headers(),
+      setCookie: null,
+      setCookies: [],
+    };
   }
 
   const text = await response.text();
@@ -89,15 +149,41 @@ async function call(url, options = {}) {
     body = text;
   }
 
+  if (isErrorEnvelope(body) && !isKnownErrorCode(body.error.code)) {
+    const seen = observations.unknownCodes.get(body.error.code) ?? new Set();
+    seen.add(`${options.method ?? 'GET'} ${redact(url)} → ${response.status}`);
+    observations.unknownCodes.set(body.error.code, seen);
+  }
+
+  const setCookies = response.headers.getSetCookie();
+
   return {
     ok: response.ok,
     status: response.status,
     headers: response.headers,
     location: response.headers.get('location'),
-    setCookie: response.headers.get('set-cookie'),
+    setCookie: setCookies[0] ?? null,
+    setCookies,
     body,
     text,
   };
+}
+
+/** The whole Set-Cookie header for cookie `name`, or null. */
+function cookieByName(result, name) {
+  return (result.setCookies ?? []).find((entry) => entry.startsWith(`${name}=`)) ?? null;
+}
+
+/** `name=value` from a Set-Cookie header, ready for a Cookie request header. */
+function cookiePair(setCookie) {
+  return setCookie ? setCookie.split(';')[0] : '';
+}
+
+/** True when a Set-Cookie header deletes its cookie rather than setting one. */
+function deletesCookie(setCookie) {
+  if (!setCookie) return false;
+  const value = cookiePair(setCookie).split('=').slice(1).join('=');
+  return /;\s*max-age=0(\s*;|\s*$)/i.test(setCookie) || value === '';
 }
 
 /** Standard success envelope: { success: true, data, meta? } */
@@ -137,9 +223,13 @@ function leaksInternals(text) {
 module.exports = {
   Report,
   call,
+  cookieByName,
+  cookiePair,
+  deletesCookie,
   isSuccessEnvelope,
   isErrorEnvelope,
   isKnownErrorCode,
   leaksInternals,
+  observations,
   ERROR_CODES,
 };

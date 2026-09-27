@@ -23,10 +23,12 @@
 | **Every response** | Wrapped in `{ success, data }` — no exceptions |
 | **Error** | `{ success: false, error: { code, message, details } }` |
 | **Pagination** | `?page=1&limit=20` · max `limit=100` |
-| **Public endpoints** | `GET /api/health` and `GET /auth/callback` only |
+| **Public endpoints** | `GET /api/health` · `GET /auth/login` · `GET /auth/callback` · `POST /auth/logout` only |
 | **Auth header** | `Authorization: Bearer <token>` |
 | **No token** | `401 UNAUTHORIZED` |
 | **Wrong permission** | `403 FORBIDDEN` |
+| **Too many requests** | `429 TOO_MANY_REQUESTS` + `Retry-After` (seconds) |
+| **Dependency temporarily down** | `503 SERVICE_UNAVAILABLE` + `Retry-After` (seconds) — never for a bug |
 
 ---
 
@@ -48,12 +50,14 @@ https://<subsystem-domain>/api/v1/<resource>[/<id>][/<sub-resource>]
 | Path params must be UUID v4 | `/api/v1/students/550e8400-...` | `/api/v1/students/12345` → must respond `400` |
 | Query params in camelCase | `?studentId=&status=&page=` | `?student_id=&Status=` |
 
-### Endpoints outside `/api/v1/` (exactly 2 paths)
+### Endpoints outside `/api/v1/` (exactly 4 paths)
 
 | Path | Reason |
 |---|---|
 | `GET /api/health` | Used for monitoring · not version-bound · public |
+| `GET /auth/login` | Starts every sign-in and mints the `state` ([auth-contract](auth-contract.md) 5.2) · public · redirect only, no form |
 | `GET /auth/callback` | Must match the `callback_url` registered with Core Hub · public |
+| `POST /auth/logout` | Clears this subsystem's cookies, then `303` to Core Hub `/logout` · public |
 
 ### Versioning
 
@@ -156,7 +160,13 @@ https://<subsystem-domain>/api/v1/<resource>[/<id>][/<sub-resource>]
 | `FORBIDDEN` | 403 | Identity known but insufficient permission | Student calling an admin endpoint |
 | `NOT_FOUND` | 404 | Resource does not exist | `:id` not in database |
 | `CONFLICT` | 409 | Business rule violation | Borrowing an item already on loan |
+| `TOO_MANY_REQUESTS` | 429 | Caller exceeded a rate limit | Same address or user sending faster than the ceiling |
 | `INTERNAL_ERROR` | 500 | Unexpected server error | Unhandled exception |
+| `SERVICE_UNAVAILABLE` | 503 | Something this service depends on is temporarily unavailable | Database connection pool full (Prisma `P2024`) |
+
+**429 and 503 must carry a `Retry-After` header**, in whole seconds (at least `1`), so a client knows how long to back off.
+
+**503 is for a dependency that is temporarily unavailable** — the database pool is full, an upstream is restarting. It is never a substitute for `500` when the cause is a bug: `503` tells clients to retry the same request, which only repeats a bug.
 
 > Use `VALIDATION_ERROR` with **400**, not 422 — this matches NestJS `ValidationPipe` defaults so no custom exception filter is needed.
 
@@ -312,7 +322,9 @@ Endpoints accessible without a token must be declared in `subsystem.yaml`:
 ```yaml
 public_endpoints:
   - GET /api/health
+  - GET /auth/login
   - GET /auth/callback
+  - POST /auth/logout
 ```
 
 > If not declared, conformance will fail — the system assumes the endpoint is protected.
@@ -439,7 +451,7 @@ const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
 | Topic | Status |
 |---|---|
-| API Gateway / rate limit headers (`X-RateLimit-*`) | ❌ Not available — do not design assuming these exist |
+| API Gateway / rate limit headers (`X-RateLimit-*`) | ❌ Not available — do not design assuming these exist. A throttled request answers `429` with `Retry-After` only (see section 4) |
 | Cross-subsystem calls (service-to-service) | ❌ No contract yet — must go through the Change Process first |
 
 ---

@@ -38,7 +38,7 @@ csmju-<subsystem>/
 │
 ├── backend/                           NestJS
 │   ├── src/
-│   │   ├── main.ts                    setGlobalPrefix('api') + ยกเว้น GET /auth/callback
+│   │   ├── main.ts                    setGlobalPrefix('api') + ยกเว้น /auth/login · /auth/callback · /auth/logout
 │   │   ├── app.module.ts
 │   │   ├── auth/                      ⬅ คัดลอกจาก reference implementation (ห้ามแก้ตรรกะ)
 │   │   │   ├── jwks.service.ts
