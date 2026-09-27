@@ -938,7 +938,7 @@ Light mode คือประสบการณ์หลัก dark mode เป�
 
 ## 14. Icon & รูปภาพ
 
-**ไอคอน:** ใช้ชุดไอคอนกลางใน `app/components/icons.tsx` เท่านั้น (inline SVG, `viewBox 0 0 24 24`, `stroke="currentColor"`, `strokeWidth 1.8`, ปลายเส้นมน, ตั้งชื่อตาม Material Symbols เช่น `EditIcon`, `DeleteIcon`, `NotificationsIcon`) — ถ้าต้องการไอคอนใหม่ให้เพิ่มในไฟล์นี้ด้วยสไตล์เดียวกัน · ขนาด `16 / 20 / 24px` (`h-4` / `h-5` / `h-6`) · สีตาม `currentColor` · ห้ามผสมชุดไอคอนอื่น · ห้ามใช้ไอคอนตกแต่งที่ไม่มีความหมาย · ไอคอนล้วนต้องมี `aria-label` · ไอคอนประกอบข้อความใช้ `aria-hidden="true"`
+**ไอคอน:** ใช้ชุดไอคอนกลางใน `app/components/icons.tsx` (inline SVG, `viewBox 0 0 24 24`, `stroke="currentColor"`, `strokeWidth 1.8`, ปลายเส้นมน, ตั้งชื่อตาม Material Symbols เช่น `EditIcon`, `DeleteIcon`, `NotificationsIcon`) — ถ้าต้องการไอคอนใหม่ให้เพิ่มในไฟล์นี้ด้วยสไตล์เดียวกัน · หรือใช้ `lucide-react` แทนทั้งระบบ (อนุญาตตั้งแต่ 1.2.1 · ตั้ง `strokeWidth={1.8}` ให้เส้นเท่าชุดกลาง) · ขนาด `16 / 20 / 24px` (`h-4` / `h-5` / `h-6`) · สีตาม `currentColor` · ห้ามผสมสองชุดในระบบเดียวกัน และห้ามใช้ชุดอื่นนอกจากสองชุดนี้ · ห้ามใช้ไอคอนตกแต่งที่ไม่มีความหมาย · ไอคอนล้วนต้องมี `aria-label` · ไอคอนประกอบข้อความใช้ `aria-hidden="true"`
 
 **รูปภาพ:**
 - อัตราส่วนมาตรฐาน: `16:9` (ข่าว/แบนเนอร์) · `4:3` (กิจกรรม) · `1:1` (avatar)
