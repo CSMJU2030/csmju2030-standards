@@ -11,6 +11,21 @@
 
 ---
 
+## 1.1.1 — 2026-09-27
+
+- `scripts/check-api-conventions.sh` (`API-02`..`API-07`) และ `scripts/check-no-jwt-verify.sh` (`SEC-04`/`SEC-05`) —
+  หาไฟล์ `.ts` ตัวแรกด้วย `find … -print -quit` แทน `find … | head -1`
+  ภายใต้ `set -o pipefail` ถ้า `head` ปิดท่อก่อน `find` เขียนเสร็จ `find` จะโดน SIGPIPE (exit 141)
+  แล้ว `set -e` ทำให้สคริปต์จบเงียบ ๆ โดยไม่พิมพ์ว่าตกเพราะอะไร · เจอจริงบน CI ของ Core Hub
+  (PR `feature/core-hub/rate-limit` ตกที่ "API Contract" หลังรายชื่อไฟล์ใน `backend/src` ยาวเกิน buffer ของ Linux ราว 7 KB)
+  ผลเป็นแบบสุ่ม ผ่านบ้างตกบ้าง และบน Mac แทบไม่เจอ ระบบย่อยทุกตัวจะเจอเมื่อโค้ดโตขึ้น
+- `self-test.sh` เพิ่ม 2 กรณีที่สร้าง backend 1,800 ไฟล์ตอนรัน ให้รายชื่อยาวเกินความจุของท่อ — สคริปต์เดิมตก exit 141 ทุกครั้ง
+
+**ใครต้องทำอะไร:** ไม่มีกฎเปลี่ยน · repo ที่ CI ตกที่ "API Contract" หรือ "Security & Stack Scan" โดยไม่มีข้อความ ❌
+(log จบที่ `exit code 141`) ให้เลื่อน pin ใน `ci.yml` และ `.standards-version` เป็น 1.1.1 · ระหว่างรอ กด Re-run failed jobs ได้
+
+---
+
 ## 1.1.0 — 2026-09-27
 
 Central SSO ที่ใช้ได้จริงจากเบราว์เซอร์ · Silent re-SSO · error code 9 ค่า — ตาม `SSO_FIX_HANDOFF.md` ข้อ 7

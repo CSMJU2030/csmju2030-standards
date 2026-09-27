@@ -93,6 +93,32 @@ run_fixture_case "UI-01-NOSRC" "check-ui-tokens.sh"
 run_fixture_case "QA-05"     "check-qa.sh"
 run_fixture_case "EXC-01"    "check-exceptions.sh"
 
+# --- SIGPIPE regression: `find | head -1` under pipefail -------------------
+# head closes the pipe after one line; if find is still writing it dies with
+# SIGPIPE (141) and set -e ends the script silently. On Linux CI that happened
+# at random once Core Hub's file list outgrew the stdio buffer (~7 KB). This
+# tree makes the list larger than a pipe can hold, so the old code fails every
+# time. Built at runtime to keep 1,800 empty files out of the repo.
+echo
+echo "== SIGPIPE: large backend/src =="
+BIG_TREE=$(mktemp -d)
+mkdir -p "$BIG_TREE/backend/src"
+printf "%s\n" "import { NestFactory } from '@nestjs/core';" \
+  "async function bootstrap() { const app = await NestFactory.create(AppModule); app.setGlobalPrefix('api/v1'); }" \
+  > "$BIG_TREE/backend/src/main.ts"
+printf "%s\n" "@Controller('health')" "export class HealthController { @Get() ok() { return { success: true, data: {} }; } }" \
+  > "$BIG_TREE/backend/src/health.controller.ts"
+i=0
+while [ "$i" -lt 1800 ]; do
+  i=$((i + 1))
+  : > "$BIG_TREE/backend/src/generated-file-number-$i-padding-to-outgrow-the-pipe.ts"
+done
+"$SCRIPT_DIR/check-api-conventions.sh" "$BIG_TREE" >/dev/null 2>&1
+assert_exit "API-02..07 run to the end on a large backend (no SIGPIPE)" 0 "$?"
+"$SCRIPT_DIR/check-no-jwt-verify.sh" "$BIG_TREE" >/dev/null 2>&1
+assert_exit "SEC-04/05 run to the end on a large backend (no SIGPIPE)" 0 "$?"
+rm -rf "$BIG_TREE"
+
 # --- GH-01: branch naming (no fixture dir needed, branch passed as arg) --
 echo
 echo "== GH-01: branch naming =="
