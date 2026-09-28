@@ -43,6 +43,9 @@
 | **Jest / ts-jest / supertest** | `^30` / `^29.4` / `^7` | |
 
 *   **Database:** Frontend ห้ามเชื่อมต่อ PostgreSQL ตรงเด็ดขาด ต้องผ่าน Backend ของระบบย่อยเท่านั้น (กฎ `ARC-01`)
+*   **Backend ต้องเป็น NestJS ทุกระบบย่อย** (กฎ `ARC-04`) — Next.js ทำหน้าเว็บเท่านั้น: route handler / server action
+    ส่งต่อคำขอไป backend ได้ แต่ข้อมูลและ business logic ต้องอยู่ที่ backend · ระบบที่ไม่มีข้อมูลของตัวเองแต่ต้อง login
+    ก็ยังต้องมี backend บาง ๆ (auth · health จาก demo) ไว้รับ callback และตรวจ token · เว็บที่ไม่ต้อง login ไม่ใช่ระบบย่อย
 *   **ORM:** ใช้ Prisma 7 แบบ **driver adapter** (`PrismaPg`) ตาม reference implementation
 
 ---

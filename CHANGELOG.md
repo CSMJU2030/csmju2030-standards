@@ -5,6 +5,24 @@
 
 ---
 
+## 1.0.5 — 2026-09-28
+
+รุ่นในสาย **1.0.x** (ต่อจาก tag `v1.0.4`) — กฎเดียวกับ 1.5.0 บน `main`
+
+- **`ARC-04` ใหม่** (`scripts/check-backend-nestjs.sh`) — ระบบย่อยต้องมี backend NestJS ใน `backend/`:
+  `@nestjs/core` ใน `dependencies` และ `backend/src/main.ts` เริ่มด้วย `NestFactory` · PM ยืนยัน 28 ก.ย. ว่าคงหลักเดิม
+  Next.js ทำหน้าเว็บเท่านั้น (route handler ส่งต่อคำขอไป backend ได้ แต่ข้อมูลและ logic อยู่ที่ backend) ·
+  ก่อนหน้านี้ repo ที่ไม่มี `backend/` ผ่าน CI เพราะตัวตรวจฝั่ง backend ทุกตัว (`API-*` `SEC-04/05` `DD-*`) ข้ามเมื่อไม่มีโค้ด ·
+  repo ที่เพิ่ง scaffold (ยังไม่มี `package.json` ใน `frontend/` และ `backend/`) ข้าม · ไม่อยู่ในโปรไฟล์ core-hub
+  - เพิ่มใน `run-all-checks.sh` และ `subsystem-compliance.yml` (job Security & Stack Scan) · `ci-compliance-spec.md` ข้อ 7.1 ·
+    `tech-stack.md` ข้อ 1.3 · `repo-structure.md` · fixture `ARC-04` · `ARC-04-NOTNEST` · `ARC-04-SCAFFOLD`
+
+**ใครต้องทำอะไร:** **เข้มขึ้น 1 ข้อ** — ระบบย่อยที่มีแต่ Next.js ไม่มี backend NestJS จะตก `ARC-04` เมื่อเลื่อนเป็น 1.0.5 ·
+ระบบที่ไม่มีข้อมูลของตัวเองแต่ต้อง login ใช้ backend บาง ๆ ตามโครงของ demo (auth · common · health) ·
+AIE ที่รันตัวตรวจบน Windows ได้ `ARC-02` ตรงกับ CI แล้ว
+
+---
+
 ## 1.0.4 — 2026-09-28
 
 รุ่นในสาย **1.0.x** (ต่อจาก tag `v1.0.3`) — การแก้ชุดเดียวกับ 1.4.1 บน `main`

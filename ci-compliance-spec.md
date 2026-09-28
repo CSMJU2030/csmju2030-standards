@@ -325,6 +325,7 @@ jobs:
 | `ARC-01` | ไม่มี Prisma client / `pg` import ใน `frontend/` | ❌ Fail | tech-stack.md 1.2 |
 | `ARC-02` | Dependency ทั้งหมดอยู่ใน whitelist ของ stack | ❌ Fail | tech-stack.md 1 |
 | `ARC-03` | ไม่มี UI library ต้องห้าม (MUI/Antd/Bootstrap ฯลฯ) | ❌ Fail | ui-prompt-template.md 2 |
+| `ARC-04` | มี backend NestJS ใน `backend/` (`@nestjs/core` ใน dependencies · `main.ts` ใช้ `NestFactory`) — repo ที่เพิ่ง scaffold ข้าม | ❌ Fail | repo-structure.md 2 · tech-stack.md 1.3 |
 | `API-01` | `openapi.json` sync กับโค้ด backend | ❌ Fail | tech-stack.md 3 |
 | `API-02` | URL เป็น kebab-case + noun พหูพจน์ + มี `/v1/` | ❌ Fail | api-conventions.md 1 |
 | `API-03` | ทุก endpoint ห่อ response ด้วย envelope มาตรฐาน | ❌ Fail | api-conventions.md 3 |

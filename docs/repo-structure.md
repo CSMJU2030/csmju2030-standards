@@ -36,7 +36,7 @@ csmju-<subsystem>/
 ├── pnpm-workspace.yaml                workspace ของ frontend + backend
 ├── docker-compose.yml
 │
-├── backend/                           NestJS
+├── backend/                           NestJS — ต้องมีทุกระบบย่อย (ARC-04)
 │   ├── src/
 │   │   ├── main.ts                    setGlobalPrefix('api') + ยกเว้น GET /auth/callback
 │   │   ├── app.module.ts
