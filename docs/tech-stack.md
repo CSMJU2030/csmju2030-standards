@@ -18,7 +18,7 @@
 |---|---|---|
 | **Node.js** | `22.x` | ตรงกับ Core Hub |
 | **TypeScript** | `^5.9` | เปิด `strictNullChecks` อย่างน้อย |
-| **package manager** | **pnpm** | ต้อง commit `pnpm-lock.yaml` · ห้ามมี `package-lock.json` / `yarn.lock` (กฎ `QA-05`) |
+| **package manager** | **pnpm `12.3.4`** | ตั้ง `"packageManager": "pnpm@12.3.4"` ใน `package.json` ที่ราก (CI ใช้เลขนี้) · ต้อง commit `pnpm-lock.yaml` · ห้ามมี `package-lock.json` / `yarn.lock` (กฎ `QA-05`) |
 | **Docker + docker compose** | — | ต้องมี `Dockerfile` และ `docker-compose.yml` |
 
 ### 1.2 Frontend Stack

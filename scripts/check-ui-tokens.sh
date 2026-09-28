@@ -9,8 +9,13 @@
 # Usage: check-ui-tokens.sh [target_dir]
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_DIR="${1:-.}"
 cd "$TARGET_DIR"
+
+# shellcheck source=lib/exceptions.sh
+source "$SCRIPT_DIR/lib/exceptions.sh"
+UI01_EXCEPTIONS=$(active_exceptions UI-01)
 
 VIOLATION=0
 SCAN_OPTS=(--include='*.tsx' --include='*.ts' --include='*.css'
@@ -20,6 +25,22 @@ SCAN_OPTS=(--include='*.tsx' --include='*.ts' --include='*.css'
 RESULT=$(grep -rnE '#[0-9a-fA-F]{3,8}\b' frontend "${SCAN_OPTS[@]}" \
   --exclude='*.config.*' --exclude='globals.css' --exclude-dir=csmju \
   2>/dev/null || true)
+# Files an approved UI-01 exception covers (ci-compliance-spec 11.1) — such
+# as the drawn art of a game — drop out of the result; the rest is checked.
+if [[ -n "$RESULT" && -n "$UI01_EXCEPTIONS" ]]; then
+  KEPT=""
+  while IFS= read -r HIT; do
+    [[ -z "$HIT" ]] && continue
+    COVERED=0
+    while IFS='|' read -r SCOPE _; do
+      if exception_covers_path "$SCOPE" "${HIT%%:*}"; then COVERED=1; break; fi
+    done <<< "$UI01_EXCEPTIONS"
+    [[ "$COVERED" -eq 1 ]] || KEPT="$KEPT$HIT"$'\n'
+  done <<< "$RESULT"
+  RESULT="${KEPT%$'\n'}"
+fi
+warn_exceptions UI-01 "$UI01_EXCEPTIONS"
+
 if [[ -n "$RESULT" ]]; then
   cat <<MSG
 ❌ [UI-01] พบค่าสี hex ดิบในโค้ด frontend

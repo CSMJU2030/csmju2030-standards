@@ -11,6 +11,25 @@
 
 ---
 
+## 1.4.0 — 2026-09-28
+
+- `scripts/check-ui-tokens.sh` (`UI-01`) และ `scripts/check-authorized-deps.sh` (`ARC-02`) **อ่าน `.compliance-exceptions.yml`**
+  ตาม `ci-compliance-spec.md` ข้อ 11.1 แล้ว — ก่อนหน้านี้กระบวนการยกเว้นมีแค่ในเอกสาร ต่อให้ DevOps อนุมัติ CI ก็ยังตก
+  - `UI-01`: `scope` เป็นไฟล์ หรือโฟลเดอร์ที่ลงท้ายด้วย `/` · ไฟล์อื่นตรวจตามปกติ
+  - `ARC-02`: ต้องระบุ `package.json` + `dependency` · ไม่ยกเว้น `ARC-03`
+  - exception ที่ไม่มี `issue` / `scope: "*"` / หมดอายุ ไม่มีผล · exception ที่มีผลขึ้น warning ทุกครั้ง
+  - ตัวอ่านอยู่ที่ `scripts/lib/exceptions.sh` (bash ล้วน รันบน bash 3.2 ได้)
+- `docs/tech-stack.md` ข้อ 1.1 — pnpm เลขเดียวทั้งโครงการ: **`12.3.4`** ตรงกับ Core Hub และ demo · `new-subsystem.sh` เคยใส่ `9.15.9` ลง `packageManager` ของ repo ใหม่
+- fixture `UI-01-EXC` · `UI-01-EXC-EXPIRED` · `ARC-02-EXC` + `scripts/self-test.sh`
+
+**ใครต้องทำอะไร:** ไม่มีกฎที่เข้มขึ้น · ระบบย่อยที่ได้รับอนุมัติข้อยกเว้น (เช่น ภาพของเกม · แพ็กเกจที่ใช้ร่วมกันในรีโปเดียวกัน)
+ให้ DevOps/PM เพิ่มรายการใน `.compliance-exceptions.yml` ของ repo นั้น (มี `issue` และ `expires` เสมอ) แล้วเลื่อน pin เป็น 1.4.0 (สาย 1.0.x ใช้ 1.0.3) ·
+repo ที่ยังใช้ pnpm รุ่นอื่นให้ตั้ง `packageManager` เป็น `pnpm@12.3.4` แล้วรัน `pnpm install` ใหม่หนึ่งครั้ง
+
+เป็น minor เพราะ CI ทำได้มากขึ้น (อ่านข้อยกเว้น) โดยไม่มี repo ใดตกเพิ่ม
+
+---
+
 ## 1.3.0 — 2026-09-28
 
 - `scripts/check-authorized-deps.sh` (`ARC-02`) — แก้ `dev_tooling_patterns` ที่ตรงกับ**ทุก** devDependency
@@ -208,6 +227,13 @@ Central SSO ที่ใช้ได้จริงจากเบราว์�
    DevOps ต้องรัน `org-settings/apply-rulesets.sh repo <ชื่อ repo>` ให้แต่ละ repo ที่จะใช้ `develop`
 
 Core Hub ยังรับระบบย่อย 1.0 อยู่ (กดจาก sidebar แล้วเข้าได้เหมือนเดิม) แต่ละทีมจึงเลื่อนตามจังหวะของตัวเองได้
+
+---
+
+## 1.0.3 — 2026-09-28
+
+ออกจาก tag `v1.0.2` โดยตรง (commit ไม่อยู่บน `main`) — `UI-01` / `ARC-02` อ่าน `.compliance-exceptions.yml`
+และ pnpm `12.3.4` ใน `tech-stack.md` เหมือน 1.4.0 · รายละเอียดเต็มอยู่ใน `CHANGELOG.md` ของ tag `v1.0.3`
 
 ---
 
