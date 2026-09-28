@@ -8,6 +8,14 @@
 # Usage: check-qa.sh [target_dir]
 set -euo pipefail
 
+# jq.exe on Windows (Git Bash) ends every output line with CR, so "true\r"
+# never equals "true" and names carry a trailing CR. Strip it here; on Linux,
+# where CI runs, nothing changes. Defined only when jq exists, so the
+# "no jq" checks below still work, and it keeps jq's own exit status.
+if command -v jq >/dev/null 2>&1; then
+  jq() { command jq "$@" | tr -d '\r'; return "${PIPESTATUS[0]}"; }
+fi
+
 TARGET_DIR="${1:-.}"
 cd "$TARGET_DIR"
 
