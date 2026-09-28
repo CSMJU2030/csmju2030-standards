@@ -5,6 +5,25 @@
 
 ---
 
+## 1.0.3 — 2026-09-28
+
+รุ่นในสาย **1.0.x** (ต่อจาก tag `v1.0.2`) สำหรับระบบย่อยที่ทดสอบกับ Core Hub `main` — การแก้ชุดเดียวกับ 1.4.0 บน `main`
+
+- `scripts/check-ui-tokens.sh` (`UI-01`) และ `scripts/check-authorized-deps.sh` (`ARC-02`) **อ่าน `.compliance-exceptions.yml`**
+  ตาม `ci-compliance-spec.md` ข้อ 11.1 แล้ว — ก่อนหน้านี้กระบวนการยกเว้นมีแค่ในเอกสาร ต่อให้ DevOps อนุมัติ CI ก็ยังตก
+  - `UI-01`: `scope` เป็นไฟล์ หรือโฟลเดอร์ที่ลงท้ายด้วย `/` · ไฟล์อื่นตรวจตามปกติ
+  - `ARC-02`: ต้องระบุ `package.json` + `dependency` · ไม่ยกเว้น `ARC-03`
+  - exception ที่ไม่มี `issue` / `scope: "*"` / หมดอายุ ไม่มีผล · exception ที่มีผลขึ้น warning ทุกครั้ง
+  - ตัวอ่านอยู่ที่ `scripts/lib/exceptions.sh` (bash ล้วน รันบน bash 3.2 ได้)
+- `docs/tech-stack.md` ข้อ 1.1 — pnpm เลขเดียวทั้งโครงการ: **`12.3.4`** ตรงกับ Core Hub และ demo
+- fixture `UI-01-EXC` · `UI-01-EXC-EXPIRED` · `ARC-02-EXC` + `scripts/self-test.sh`
+
+**ใครต้องทำอะไร:** ไม่มีกฎที่เข้มขึ้น · ระบบย่อยที่ได้รับอนุมัติข้อยกเว้น (เช่น ภาพของเกม · แพ็กเกจที่ใช้ร่วมกันในรีโปเดียวกัน)
+ให้ DevOps/PM เพิ่มรายการใน `.compliance-exceptions.yml` ของ repo นั้น (มี `issue` และ `expires` เสมอ) แล้วเลื่อน pin เป็น 1.0.3 ·
+repo ที่ยังใช้ pnpm รุ่นอื่นให้ตั้ง `packageManager` เป็น `pnpm@12.3.4` แล้วรัน `pnpm install` ใหม่หนึ่งครั้ง
+
+---
+
 ## 1.0.2 — 2026-09-28
 
 รุ่นในสาย **1.0.x** สำหรับระบบย่อยที่ทดสอบกับ Core Hub `main` (SSO 1.0 — เข้าระบบจาก portal ของ Core Hub ผ่าน `/api/sso/<ชื่อ>`)

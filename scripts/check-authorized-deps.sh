@@ -22,6 +22,10 @@ ALLOWED_DEPS="$SCRIPT_DIR/lib/allowed-deps.json"
 TARGET_DIR="${1:-.}"
 cd "$TARGET_DIR"
 
+# shellcheck source=lib/exceptions.sh
+source "$SCRIPT_DIR/lib/exceptions.sh"
+ARC02_EXCEPTIONS=$(active_exceptions ARC-02)
+
 # profile=core-hub เปิดใช้ allowed_core_hub เพิ่มจาก allowed_backend
 # csmju-core-hub เป็นผู้ออก token เอง จึงต้องมีไลบรารีเซ็น/ตรวจของตัวเอง
 # (ดู docs/core-hub-rules.md) — ระบบย่อยห้ามใช้ profile นี้
@@ -66,6 +70,17 @@ report_forbidden() {
 EOF
 }
 
+# An approved ARC-02 exception (ci-compliance-spec 11.1) names both the
+# package.json and the dependency. It never lifts ARC-03 (forbidden).
+dependency_excepted() {
+  local pkg="$1" dep="$2" scope edep rest
+  [[ -n "$ARC02_EXCEPTIONS" ]] || return 1
+  while IFS='|' read -r scope edep rest; do
+    [[ "${scope#./}" == "${pkg#./}" && "$edep" == "$dep" ]] && return 0
+  done <<< "$ARC02_EXCEPTIONS"
+  return 1
+}
+
 check_section() {
   local pkg="$1" section="$2" allowed_key="$3" kind="$4"
   local deps
@@ -86,6 +101,10 @@ check_section() {
     # devDependencies ผ่านได้อีกทางถ้าเป็น build tooling หรือ type stub
     if [[ "$kind" == "dev" ]] \
       && { in_list "$DEP" "allowed_dev_tooling" || matches_dev_pattern "$DEP"; }; then
+      continue
+    fi
+
+    if dependency_excepted "$pkg" "$DEP"; then
       continue
     fi
 
@@ -110,6 +129,7 @@ check_side() {
 
 check_side "frontend" "allowed_frontend"
 check_side "backend"  "allowed_backend"
+warn_exceptions ARC-02 "$ARC02_EXCEPTIONS"
 
 if [[ "$VIOLATION" -eq 1 ]]; then
   exit 1
