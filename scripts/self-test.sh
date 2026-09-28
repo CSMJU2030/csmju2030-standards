@@ -57,6 +57,10 @@ run_fixture_case "ARC-02-MAP" "check-authorized-deps.sh"
 # test each package name against itself, so any devDependency passed —
 # including a library outside the whitelist (react-leaflet) moved there to dodge it.
 run_fixture_case "ARC-02-DEV-UNLISTED" "check-authorized-deps.sh"
+# ARC-02-EXC: an approved exception in .compliance-exceptions.yml (spec 11.1)
+# names the package.json and the dependency; the same dependency in another
+# package.json is still refused.
+run_fixture_case "ARC-02-EXC" "check-authorized-deps.sh"
 run_fixture_case "DD-01"     "check-field-aliases.sh"
 # DD-02 is a regression case: the enum was copied wrong as
 # student|staff|faculty|admin|guest, which rejected the real value
@@ -97,6 +101,10 @@ run_fixture_case "UI-01"     "check-ui-tokens.sh"
 # so a Next.js app with app/ at the root of frontend/ passed without being
 # checked. fail-only fixture.
 run_fixture_case "UI-01-NOSRC" "check-ui-tokens.sh"
+# UI-01-EXC: an approved exception lifts UI-01 for the file or folder it
+# names and nothing else; one past its expiry lifts nothing (fail-only).
+run_fixture_case "UI-01-EXC" "check-ui-tokens.sh"
+run_fixture_case "UI-01-EXC-EXPIRED" "check-ui-tokens.sh"
 run_fixture_case "QA-05"     "check-qa.sh"
 run_fixture_case "EXC-01"    "check-exceptions.sh"
 

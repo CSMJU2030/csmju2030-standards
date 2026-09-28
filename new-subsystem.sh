@@ -30,7 +30,7 @@ set -euo pipefail
 ORG="CSMJU2030"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STANDARDS_VERSION="$(tr -d '[:space:]' < "$SCRIPT_DIR/VERSION")"
-PNPM_VERSION="9.15.9"
+PNPM_VERSION="12.3.4"
 
 SUBSYSTEM="${1:?ระบุชื่อ subsystem เช่น payroll}"
 DISPLAY_NAME="${2:-$SUBSYSTEM}"
