@@ -134,6 +134,27 @@ assert_exit "API-02..07 run to the end on a large backend (no SIGPIPE)" 0 "$?"
 assert_exit "SEC-04/05 run to the end on a large backend (no SIGPIPE)" 0 "$?"
 rm -rf "$BIG_TREE"
 
+# --- jq CRLF regression: Windows jq.exe ----------------------------------
+# jq.exe ends every line with CR, so "true\r" never matched "true" and ARC-02
+# refused every dependency, even next and react (reported by an AIE team on
+# Windows). A stand-in jq that answers the same with CRLF line endings must
+# leave the pass fixtures passing.
+echo
+echo "== jq CRLF (Windows jq.exe) =="
+if command -v jq >/dev/null 2>&1; then
+  FAKE_JQ_DIR=$(mktemp -d)
+  REAL_JQ=$(type -P jq)
+  printf '#!/bin/bash\n"%s" "$@" | awk '"'"'{ printf "%%s\\r\\n", $0 }'"'"'\nexit "${PIPESTATUS[0]}"\n' "$REAL_JQ" > "$FAKE_JQ_DIR/jq"
+  chmod +x "$FAKE_JQ_DIR/jq"
+  PATH="$FAKE_JQ_DIR:$PATH" "$SCRIPT_DIR/check-authorized-deps.sh" "$FIXTURES_DIR/ARC-02-03/pass" >/dev/null 2>&1
+  assert_exit "ARC-02 with a CRLF jq still passes the pass fixture" 0 "$?"
+  PATH="$FAKE_JQ_DIR:$PATH" "$SCRIPT_DIR/check-authorized-deps.sh" "$FIXTURES_DIR/ARC-02-03/fail" >/dev/null 2>&1
+  assert_exit "ARC-02 with a CRLF jq still fails the fail fixture" 1 "$?"
+  PATH="$FAKE_JQ_DIR:$PATH" "$SCRIPT_DIR/check-qa.sh" "$FIXTURES_DIR/QA-06/pass" >/dev/null 2>&1
+  assert_exit "QA-06 with a CRLF jq still passes the pass fixture" 0 "$?"
+  rm -rf "$FAKE_JQ_DIR"
+fi
+
 # --- GH-01: branch naming (no fixture dir needed, branch passed as arg) --
 echo
 echo "== GH-01: branch naming =="

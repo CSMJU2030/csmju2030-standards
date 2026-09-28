@@ -11,6 +11,17 @@
 
 ---
 
+## 1.4.1 — 2026-09-28
+
+- `scripts/check-authorized-deps.sh` (`ARC-02`) · `scripts/check-qa.sh` (`QA-06`) — รองรับ `jq.exe` บน Windows (Git Bash)
+  ซึ่งจบทุกบรรทัดด้วย CR: `"true\r"` ไม่เคยเท่ากับ `"true"` จึงตกหลอก**ทุก** dependency แม้แต่ `next` `react` `@nestjs/common`
+  (ทีม lost-and-found รายงาน 28 ก.ย.) · ครอบ `jq` ให้ตัด `\r` ออกและคงรหัสจบของ jq ไว้ · CI บน Linux ไม่เปลี่ยน
+- `scripts/self-test.sh` — ชุดทดสอบ jq จำลองที่ตอบแบบ CRLF: fixture pass ของ `ARC-02` / `QA-06` ต้องยังผ่าน และ fail ต้องยังตก
+
+**ใครต้องทำอะไร:** ไม่มีกฎที่เข้มขึ้น · CI ไม่ต้องเปลี่ยน · AIE ที่รันตัวตรวจบนเครื่อง Windows เลื่อน pin เป็น 1.4.1 (สาย 1.0.x ใช้ 1.0.4) แล้ว `ARC-02` ในเครื่องจะตรงกับ CI
+
+---
+
 ## 1.4.0 — 2026-09-28
 
 - `scripts/check-ui-tokens.sh` (`UI-01`) และ `scripts/check-authorized-deps.sh` (`ARC-02`) **อ่าน `.compliance-exceptions.yml`**
@@ -227,6 +238,12 @@ Central SSO ที่ใช้ได้จริงจากเบราว์�
    DevOps ต้องรัน `org-settings/apply-rulesets.sh repo <ชื่อ repo>` ให้แต่ละ repo ที่จะใช้ `develop`
 
 Core Hub ยังรับระบบย่อย 1.0 อยู่ (กดจาก sidebar แล้วเข้าได้เหมือนเดิม) แต่ละทีมจึงเลื่อนตามจังหวะของตัวเองได้
+
+---
+
+## 1.0.4 — 2026-09-28
+
+ออกจาก tag `v1.0.3` โดยตรง — `jq.exe` บน Windows แบบเดียวกับ 1.4.1 · รายละเอียดใน `CHANGELOG.md` ของ tag `v1.0.4`
 
 ---
 
