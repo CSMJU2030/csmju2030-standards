@@ -83,6 +83,9 @@ jobs:
       - name: Authorized dependencies
         if: always() && steps.tools.outcome == 'success'
         run: bash .compliance-tools/scripts/check-authorized-deps.sh .
+      - name: NestJS backend (ARC-04)
+        if: always() && steps.tools.outcome == 'success'
+        run: bash .compliance-tools/scripts/check-backend-nestjs.sh .
 
   api-contract-sync:
     name: API Contract Sync
