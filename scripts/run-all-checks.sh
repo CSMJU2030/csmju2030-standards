@@ -20,6 +20,7 @@ declare -a JOBS=(
   "Security & Stack Scan|check-no-jwt-verify.sh"
   "Security & Stack Scan|check-db-isolation.sh"
   "Security & Stack Scan|check-authorized-deps.sh"
+  "Security & Stack Scan|check-backend-nestjs.sh"
   "API Contract Sync|check-openapi-sync.sh"
   "API Contract Sync|check-api-conventions.sh"
   "Data Dictionary Compliance|check-field-aliases.sh"

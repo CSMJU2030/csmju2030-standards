@@ -61,6 +61,12 @@ run_fixture_case "ARC-02-DEV-UNLISTED" "check-authorized-deps.sh"
 # names the package.json and the dependency; the same dependency in another
 # package.json is still refused.
 run_fixture_case "ARC-02-EXC" "check-authorized-deps.sh"
+# ARC-04: every subsystem has a NestJS backend. A Next.js app doing the
+# backend work used to pass, since each backend check skips without code;
+# a non-NestJS backend fails too, and a fresh scaffold is skipped.
+run_fixture_case "ARC-04" "check-backend-nestjs.sh"
+run_fixture_case "ARC-04-NOTNEST" "check-backend-nestjs.sh"
+run_fixture_case "ARC-04-SCAFFOLD" "check-backend-nestjs.sh"
 run_fixture_case "DD-01"     "check-field-aliases.sh"
 # DD-02 is a regression case: the enum was copied wrong as
 # student|staff|faculty|admin|guest, which rejected the real value
