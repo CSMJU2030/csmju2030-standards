@@ -11,6 +11,26 @@
 
 ---
 
+## 1.6.0 — 2026-09-29
+
+- **core role ใหม่ 2 ค่า** (PM ตัดสิน 29 ก.ย.): `lecturer` (อาจารย์) · `guest` (ผู้เยี่ยมชม) —
+  enum เป็น `student` · `alumni` · `staff` · `lecturer` · `guest` · `admin`
+  - `staff` หมายถึงบุคลากรที่ไม่ใช่อาจารย์ · Core Hub ให้ `lecturer` กับบุคลากรที่ `staff_type` = `LECTURER` ตอนเข้า MJU SSO ·
+    `guest` สร้างโดย admin ของ Core Hub เท่านั้น
+  - admin ของระบบย่อยไม่ใช่ core role — เจ้าของในทะเบียน + role mapping หรือสิทธิ์พิเศษรายบุคคล (`authorization.md` ข้อ 2)
+  - แก้: `contracts/jwt-contract.json` · `contracts/openapi.yaml` · `auth-contract.md` · `authorization.md` ข้อ 2 ·
+    `data-dictionary.md` · `aie-workflow.md` · `ci-compliance-spec.md` (`DD-02`)
+- `scripts/check-field-aliases.sh` (`DD-02`) รับ `lecturer` / `guest` · fixture `DD-02-ROLES` + `scripts/self-test.sh`
+- `STANDARDS_ENTRY_REF` เป็น `v1.6.0` ตามขั้นออกเวอร์ชัน (ตัวกลางไม่เปลี่ยน — repo ที่ปัก `@v1.5.2` ไม่ต้องย้าย)
+
+**ใครต้องทำอะไร:** ไม่มีกฎที่เข้มขึ้น · ระบบย่อยที่ยังไม่ map role ใหม่ ผู้ใช้ role นั้นได้ `403` ตามเดิม ·
+ระบบที่จะรองรับอาจารย์/ผู้เยี่ยมชม: เลื่อน `.standards-version` (1.6.0 · สาย 1.0.x: 1.0.6) แล้วเพิ่ม role ใน mapping ทั้งในโค้ดและในทะเบียน ·
+Core Hub ต้องขึ้นเวอร์ชันที่รองรับ role ใหม่ก่อนจึงจะมีผู้ใช้ role นี้
+
+เป็น minor เพราะเพิ่มค่าใน enum โดยไม่มี repo ใดตก
+
+---
+
 ## 1.5.2 — 2026-09-29
 
 - **ตัวกลางถูกปักหมุดจริงแล้ว** — `subsystem-compliance.yml` และ `core-hub-compliance.yml` ดึง `csmju2030-standards`

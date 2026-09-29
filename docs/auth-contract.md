@@ -75,7 +75,7 @@ Login     : POST {CORE_HUB_URL}/api/v1/auth/login   { email, password }
 |---|---|---|
 | `sub` | string | **Global Identity** — id ผู้ใช้ของ Core Hub · เป็นตัวตนเดียวที่ระบบย่อยเชื่อได้ |
 | `email` | string | อีเมลของผู้ใช้ |
-| `role` | enum | core role: `student` · `alumni` · `staff` · `admin` |
+| `role` | enum | core role: `student` · `alumni` · `staff` · `lecturer` · `guest` · `admin` (ความหมายใน [`authorization.md`](authorization.md) ข้อ 2) |
 | `sid` | string | session id ของ Core Hub |
 | `iss` / `aud` | string | `core-hub` / `csmju2030` |
 | `iat` / `exp` | number | Unix timestamp |

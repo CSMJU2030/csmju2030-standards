@@ -138,7 +138,7 @@ components:
           properties:
             id: { type: string, description: "ค่า sub จาก Core Hub token" }
             email: { type: string, format: email }
-            coreRole: { type: string, enum: [student, alumni, staff, admin] }
+            coreRole: { type: string, enum: [student, alumni, staff, lecturer, guest, admin] }
             subsystemRole: { type: string, description: "ผลของ role mapping ของ subsystem" }
             session:
               type: object

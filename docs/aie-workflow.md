@@ -72,7 +72,7 @@ curl -s $CORE_HUB_URL/api/v1/.well-known/jwks.json
 | `aud` | `csmju2030` |
 | `kid` | `core-hub-2026` |
 | อายุ access token | 15 นาที |
-| core role | `student` · `alumni` · `staff` · `admin` เท่านั้น |
+| core role | `student` · `alumni` · `staff` · `lecturer` · `guest` · `admin` เท่านั้น ([`authorization.md`](authorization.md) ข้อ 2) |
 
 **สามข้อที่ทำให้ตกทันทีโดยไม่ต้องดูอย่างอื่น**
 
@@ -293,7 +293,7 @@ PR แรกของ repo เป็นข้อยกเว้นของ `GH-
 - [ ] `run-all-checks.sh` ผ่านทุกข้อ
 - [ ] `conformance` ได้ `0 failed` `0 skipped` ที่ระดับที่ตกลงกับ PL
 - [ ] เข้าระบบผ่าน SSO ได้จริงตั้งแต่ Core Hub login → callback → `/api/v1/me`
-- [ ] ทดสอบครบ 4 role: `student` `alumni` `staff` `admin` — role ที่ไม่ได้อยู่ใน mapping ต้องโดน 403
+- [ ] ทดสอบทุก core role ที่ระบบรับตาม mapping (`student` `alumni` `staff` `lecturer` `guest` `admin`) — role ที่ไม่ได้อยู่ใน mapping ต้องโดน 403
 - [ ] ไม่มี `.env` / `*.pem` / `generated/` / `dist/` ใน git
 - [ ] `README.md` มีคำสั่งติดตั้ง–รัน–ทดสอบ ที่ **ใช้ได้จริงทุกบรรทัด**
 - [ ] `REPORT.md` แนบผลรันจริง (ไม่ใช่ "น่าจะผ่าน") ตาม [`../ai/AGENTS.md`](../ai/AGENTS.md) ข้อ 6

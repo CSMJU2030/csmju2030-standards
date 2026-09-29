@@ -23,13 +23,26 @@ Core JWT  →  Core Role  →  Subsystem Role  →  Permission  →  Business Op
 
 ## 2. Core role (Layer 1)
 
-ค่าปิด 4 ค่า ห้ามเพิ่มเอง:
+ค่าปิด 6 ค่า ห้ามเพิ่มเอง (`lecturer` กับ `guest` เพิ่มใน 1.6.0 · สาย 1.0.x ตั้งแต่ 1.0.6):
 
 ```text
-student · alumni · staff · admin
+student · alumni · staff · lecturer · guest · admin
 ```
 
+| core role | คือใคร | Core Hub ให้ role นี้เมื่อ |
+|---|---|---|
+| `student` | นักศึกษาปัจจุบัน | เข้าด้วย MJU SSO และอยู่ในทะเบียนเป็น `STUDENT` สถานะ `ACTIVE` |
+| `alumni` | ศิษย์เก่า | `STUDENT` สถานะ `GRADUATED` |
+| `staff` | บุคลากรที่**ไม่ใช่**อาจารย์ | `STAFF` ที่ `staff_type` ไม่ใช่ `LECTURER` |
+| `lecturer` | อาจารย์ | `STAFF` ที่ `staff_type` = `LECTURER` |
+| `guest` | ผู้เยี่ยมชม | admin ของ Core Hub สร้างบัญชีให้ (ไม่ผ่าน MJU SSO) |
+| `admin` | ผู้ดูแลระบบกลาง | admin ของ Core Hub กำหนด |
+
 มาจาก claim `role` ใน access token เท่านั้น
+
+- **admin ของระบบย่อยไม่ใช่ core role** — คือบัญชีที่เป็นเจ้าของระบบในทะเบียน (ยื่นและแก้ทะเบียนของตัวเองได้)
+  ส่วนสิทธิ์ภายในระบบย่อยให้ผ่าน role mapping (ข้อ 3) หรือสิทธิ์พิเศษรายบุคคล (ข้อ 7)
+- ระบบย่อยที่ยังไม่ได้ใส่ `lecturer` / `guest` ใน mapping ไม่ต้องแก้อะไร ผู้ใช้ role นั้นได้ `403` ตามข้อ 3
 
 ---
 

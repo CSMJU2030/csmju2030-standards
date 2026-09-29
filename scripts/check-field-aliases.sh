@@ -44,7 +44,7 @@ for ALIAS in "${FORBIDDEN_ALIASES[@]}"; do
 done
 
 # DD-02: core role enum — ตรวจเฉพาะโค้ดแอปพลิเคชัน (ข้ามไฟล์ทดสอบที่จงใจใช้ค่าผิด)
-ALLOWED_ROLES="student|alumni|staff|admin"
+ALLOWED_ROLES="student|alumni|staff|lecturer|guest|admin"
 BAD_ROLES=$(grep -rnE "(core_role|coreRole)\s*[:=]\s*['\"][a-zA-Z_-]+['\"]" \
   frontend/src backend/src 2>/dev/null \
   --include='*.ts' --include='*.tsx' \

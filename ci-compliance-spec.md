@@ -342,7 +342,7 @@ jobs:
 | `API-07` | pagination ใช้ `?page=&limit=` (ห้าม `per_page`) | ❌ Fail | api-conventions.md 5 |
 | `API-06` | ประกาศ `public_endpoints` ใน `subsystem.yaml` | ⚠️ Warn | api-conventions.md 7 |
 | `DD-01` | Global Identity ใช้ชื่อ `core_user_id`/`coreUserId` · ห้าม alias (`user_id`, `userId`, `user_code`, `userCode`, `std_id`, `stdId`) | ❌ Fail | data-dictionary.md 9.2 |
-| `DD-02` | core role (`coreRole`/`core_role`) ใช้ค่าจาก enum `student\|alumni\|staff\|admin` | ❌ Fail | data-dictionary.md 4 |
+| `DD-02` | core role (`coreRole`/`core_role`) ใช้ค่าจาก enum `student\|alumni\|staff\|lecturer\|guest\|admin` | ❌ Fail | data-dictionary.md 4 |
 | `DD-03` | ตาราง/คอลัมน์ในฐานข้อมูลเป็น `snake_case` ผ่าน `@map`/`@@map` (field ใน TS/JSON เป็น camelCase) | ❌ Fail | data-dictionary.md 9.1 |
 | `DD-04` | ไม่ hardcode รายชื่อคณะ (ต้องเรียก `/v1/faculties`) | ❌ Fail | data-dictionary.md 3 |
 | `DD-05` | ฟิลด์เงินเป็น integer ไม่ใช่ float | ❌ Fail | data-dictionary.md 5 |
