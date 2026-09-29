@@ -11,6 +11,22 @@
 
 ---
 
+## 1.6.1 — 2026-09-30
+
+- **`docs/reference-data.md` ตรงกับ Core Hub ที่รันจริง** (เวอร์ชันเอกสาร 1.2 · PM สั่ง 29 ก.ย.)
+  - ทุกชุดข้อมูลเป็น ✅ — endpoint อยู่บน `develop` ของ `csmju-core-hub` แล้ว (เดิมยังเขียนว่า "รอ merge")
+  - เพิ่ม filter/endpoint ที่มีจริง: รายวิชา `curriculumCode` · `q` · `GET /courses/:code` · หลักสูตร `GET /curricula/:code` ·
+    `GET /academic-terms/current` ตอบ 404 เมื่อยังไม่กำหนด · รายการ `roomType`
+  - ข้อมูลบุคคล: `people:read` และ `people:contact:read` เป็นของ `staff` · `lecturer` · `admin` (เดิมเขียนแค่ staff/admin ก่อนมี `lecturer` ใน 1.6.0) ·
+    `/people/me` ใช้ได้ทุก role ยกเว้น `guest`
+  - เขียนให้ชัด: เรียกจาก backend ด้วย token ของผู้ใช้ (Core Hub ไม่เปิด CORS) · ห้ามสร้างตารางของชุดข้อมูลเหล่านี้ซ้ำ ·
+    reference implementation ชี้โฟลเดอร์ `backend/src/core-hub/` ของ demo ซึ่งตอนนี้ใช้ห้องของ Core Hub จริง
+- `STANDARDS_ENTRY_REF` เป็น `v1.6.1` ตามขั้นออกเวอร์ชัน
+
+**ใครต้องทำอะไร:** ไม่มี — เอกสารอย่างเดียว ไม่มีกฎหรือสคริปต์เปลี่ยน
+
+---
+
 ## 1.6.0 — 2026-09-29
 
 - **core role ใหม่ 2 ค่า** (PM ตัดสิน 29 ก.ย.): `lecturer` (อาจารย์) · `guest` (ผู้เยี่ยมชม) —
