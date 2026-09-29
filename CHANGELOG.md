@@ -1,13 +1,42 @@
 # Changelog
 
 รูปแบบเวอร์ชัน: เอกสารมาตรฐานใช้ `MAJOR.MINOR` (เช่น `1.0`) · repo และ git tag ใช้ semver (`1.0.0`)
-ค่า `standards_version` ใน `subsystem.yaml` ของทุกระบบย่อยต้องตรงกับ `VERSION` ของ repo นี้
+ระบบย่อยเลือกเวอร์ชันใน `.standards-version` และเลื่อนเองได้ตั้งแต่ 1.5.1 ([`docs/standards-versioning.md`](docs/standards-versioning.md))
 
 ---
 
 ## ยังไม่ออกเวอร์ชัน
 
 (ยังไม่มี)
+
+---
+
+## 1.5.1 — 2026-09-29
+
+- **ทีมเลื่อนเวอร์ชัน standards เองได้** ([`docs/standards-versioning.md`](docs/standards-versioning.md)) — ก่อนหน้านี้ PR เลื่อนเวอร์ชันต้องแก้ `ci.yml`
+  กับ submodule `standards` ซึ่ง `GH-03` ตกทุกกรณี และ CODEOWNERS ให้ DevOps เป็นเจ้าของ จึง merge เองไม่ได้
+  (PR เลื่อนเป็น 1.5.0 ของทีม gamification-knowledge ติดข้อนี้ 29 ก.ย.)
+  - tag ใน `ci.yml` ปักหมุดแค่ตัวกลาง ชุดตรวจมาจากเวอร์ชันใน `.standards-version` · ทีมแก้ `.standards-version` กับ submodule แล้ว PL approve ก็ merge ได้
+  - `scripts/select-standards-version.sh` ใหม่ (`GH-04`) — ทุก job อ่าน `.standards-version` แล้วสลับชุดตรวจไปที่ tag นั้น ·
+    ตกเมื่อไม่ใช่ `X.Y.Z` · ไม่มี tag · ต่ำกว่า `MIN_VERSION` · ต่ำกว่าที่ branch ปลายทางใช้ (ห้ามถอย) ·
+    อ่านไฟล์ที่ Windows เขียนได้ (CRLF · BOM · UTF-16 จาก PowerShell)
+  - `scripts/run-job.sh` + `scripts/lib/jobs.tsv` ใหม่ — รายการเช็คของแต่ละ job ย้ายจาก workflow มาอยู่ในไฟล์นี้ ·
+    เช็คที่เวอร์ชันที่เลือกยังไม่มีจะข้าม · `GH-03` และ `GH-04` มาจากตัวกลางเสมอ เลือกเวอร์ชันเก่าเพื่อเลี่ยงไม่ได้
+  - `MIN_VERSION` ใหม่ (`1.0.0`) — DevOps ยกเลขบน `main` เมื่อต้องการบังคับเวอร์ชันขั้นต่ำ
+  - `scripts/check-ci-untouched.sh` (`GH-03`) — submodule `standards` ไม่อยู่ในรายการห้ามแก้แล้ว ·
+    `scripts/check-submodule-pointer.sh` (`GH-04`) — ตรวจว่า submodule ชี้ commit ของ tag เดียวกับ `.standards-version`
+  - `templates/ci.yml` ปักที่ `@v1.5.1` · `templates/CODEOWNERS` เอา `/standards` ออก ·
+    `subsystem.yaml` ไม่ต้องมี `standards_version` แล้ว (schema ยังรับ)
+  - `org-settings/migrate-ci-entry.sh` ใหม่ — ย้าย `ci.yml` และ CODEOWNERS ของ repo เดิมครั้งเดียว (dry run เป็นค่าเริ่มต้น)
+- เอกสารเลิกสั่ง `git submodule update --remote standards/` (`README.md` · `github-workflow.md` · `ui-design-system.md` ·
+  `ci-compliance-spec.md` · PR template) เพราะเลื่อน submodule ไป `main` ซึ่งไม่ใช่ tag ที่ `.standards-version` ระบุ · ใช้ `--init` แทน
+- `scripts/self-test.sh` — ทดสอบการเลือกเวอร์ชัน · ขั้นต่ำ · ห้ามถอย · submodule · ไฟล์จาก Windows · รายการเช็คของ `run-job.sh`
+
+**ใครต้องทำอะไร:** **DevOps** ติด tag แล้วรัน `org-settings/migrate-ci-entry.sh v1.5.1` ย้าย repo เดิมครั้งเดียว
+(PR ตก `GH-03` โดยตั้งใจ merge แบบ bypass) · **ทีม** หลังย้ายแล้ว ชุดตรวจยังเป็นเวอร์ชันเดิมจนกว่าจะเลื่อนเอง ·
+PR เลื่อนเวอร์ชันที่แก้ `ci.yml` เองให้ปิด แล้วเลื่อนใหม่ตาม `standards-versioning.md` ข้อ 2
+
+เป็น patch ตามที่ตกลง เพราะไม่มีกฎของโค้ดที่เข้มขึ้น · กฎ `GH-04` เปลี่ยนความหมาย: เดิมตรวจว่าตรงกับเวอร์ชันที่ปักหมุด ตอนนี้ตรวจว่าเลือกเวอร์ชันที่ใช้ได้
 
 ---
 

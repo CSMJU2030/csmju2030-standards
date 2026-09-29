@@ -104,8 +104,7 @@ POST /api/v1/subsystems/:id/exceptions/:exceptionId/approve   # หรือ /re
 
 ```yaml
 name: csmju-equipment
-standards_version: "1.0.0"
-conformance_level: L3
+conformance_level: L3                     # เวอร์ชัน standards อยู่ใน .standards-version (ตั้งแต่ 1.5.1)
 
 base_url: http://localhost:3002
 core_hub_url: http://localhost:3000

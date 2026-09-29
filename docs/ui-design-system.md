@@ -1191,8 +1191,8 @@ jobs:
 # 0. เริ่มระบบใหม่จาก template ส่วนกลางเท่านั้น (ครั้งแรกครั้งเดียว)
 npx create-csmju-subsystem csmju-<ชื่อระบบ>   # ได้ Next.js + NestJS + design system + CI มาครบ
 
-# 1. ดึงมาตรฐานล่าสุดเสมอ (ห้ามข้าม)
-git submodule update --remote standards/
+# 1. ให้ standards/ ตรงกับเวอร์ชันใน .standards-version เสมอ (ห้ามข้าม · ห้ามใส่ --remote)
+git submodule update --init standards/
 npm update @csmju2030/design-system
 
 # 2. เช็คว่าเวอร์ชันตรงกับที่ประกาศใน subsystem.yaml ไหม
@@ -1526,7 +1526,7 @@ Accessibility (บังคับ):
 ### 20.4 สิ่งที่ AIE ต้องทำเองเสมอ (AI ทำแทนไม่ได้)
 
 0. **สร้างระบบใหม่จาก template ส่วนกลางเท่านั้น** — `npx create-csmju-subsystem csmju-<ชื่อระบบ>` (ได้ Next.js + NestJS + design system + CI มาครบ) ห้ามเริ่มจาก `create-next-app` เปล่าๆ เพราะจะขาด config ที่ CI ตรวจ
-1. **ดึงมาตรฐานล่าสุดก่อนเริ่มงานทุกครั้ง** — `git submodule update --remote standards/` และ `npm update @csmju2030/design-system` (AI ไม่รู้ว่ามาตรฐานเพิ่งเปลี่ยน)
+1. **ให้มาตรฐานในเครื่องตรงกับเวอร์ชันของ repo ก่อนเริ่มงานทุกครั้ง** — `git submodule update --init standards/` (เลื่อนเวอร์ชันตาม [`standards-versioning.md`](standards-versioning.md)) และ `npm update @csmju2030/design-system` (AI ไม่รู้ว่ามาตรฐานเพิ่งเปลี่ยน)
 2. **ทดสอบบนเครื่องจริง** — มือถือ Android + iPhone/iPad อย่างน้อยอย่างละ 1 เครื่อง AI ยืนยันให้ไม่ได้
 3. **ทดสอบด้วยคีย์บอร์ดจริง** — กด Tab ไล่ทั้งหน้า
 4. **ตรวจข้อความไทยด้วยตาตัวเอง** — AI มักสร้างประโยคไทยที่ถูกไวยากรณ์แต่ไม่ใช่ภาษาที่คนใช้จริงในบริบทมหาวิทยาลัย

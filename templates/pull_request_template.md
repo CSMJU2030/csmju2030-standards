@@ -12,7 +12,7 @@
 ## Checklist (AIE ต้องติ๊กก่อน request review)
 
 ### มาตรฐานกลาง
-- [ ] รัน `git submodule update --remote standards/` ก่อนเริ่มงานแล้ว
+- [ ] อ่านมาตรฐานใน `standards/` ตรงกับเวอร์ชันใน `.standards-version` (รัน `git submodule update --init standards/` แล้ว)
 - [ ] Branch name ตรงรูปแบบ `feature/<subsystem>/<เรื่อง>`
 - [ ] Commit message ตาม Conventional Commits ทุก commit
 - [ ] PR นี้โฟกัสเรื่องเดียว (ไม่ปนหลายเรื่องที่ไม่เกี่ยวกัน)

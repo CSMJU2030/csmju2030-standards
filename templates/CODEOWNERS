@@ -5,10 +5,11 @@
 *                       @csmju2030/pl-<subsystem-name>
 
 # ไฟล์ที่ AIE ห้ามแก้เอง — DevOps เท่านั้นที่ approve ได้
+# (submodule /standards กับ .standards-version ทีมเลื่อนเองได้ PL approve ตามปกติ
+#  CI ตรวจว่าชี้ tag เดียวกัน — docs/standards-versioning.md)
 /.github/               @csmju2030/devops
 /.github/workflows/     @csmju2030/devops
 /.github/CODEOWNERS     @csmju2030/devops
-/standards              @csmju2030/devops
 /.compliance-exceptions.yml @csmju2030/devops
 /subsystem.yaml         @csmju2030/devops @csmju2030/pm
 

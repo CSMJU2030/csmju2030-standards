@@ -23,7 +23,7 @@
 - [ ] `POST /api/v1/subsystems` สำเร็จ → approve → activate
 - [ ] `default_role_mapping` ใส่ครบทุก core role ที่ต้องการให้เข้าได้
 - [ ] `callback_url` ตรงกับ URL จริง และเป็น https (ยกเว้น localhost ตอน dev)
-- [ ] `standards_version` ตรงกับ `VERSION` ของ standards ที่ผูกอยู่
+- [ ] `standards_version` ที่ลงทะเบียนตรงกับ `.standards-version` ของ repo
 
 ## โค้ด
 

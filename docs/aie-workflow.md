@@ -280,8 +280,8 @@ git commit -m "feat(<slug>): <คำอธิบาย>"
 |---|---|
 | ชื่อ branch (`GH-01`) | `feature/<slug>/<เรื่อง>` ตัวพิมพ์เล็กและขีดกลางเท่านั้น |
 | commit (`GH-02`) | Conventional Commits · type ได้แค่ **`feat` `fix` `chore` `refactor` `docs` `test` `ci`** (ไม่มี `build`/`perf`/`style`) |
-| ห้ามแก้ (`GH-03`) | `.github/workflows/` · `CODEOWNERS` · `standards/` |
-| `.standards-version` (`GH-04`) | ต้องตรงกับ `VERSION` ของ standards ที่ผูกอยู่ |
+| ห้ามแก้ (`GH-03`) | `.github/workflows/` · `CODEOWNERS` |
+| `.standards-version` (`GH-04`) | เลือกเวอร์ชันชุดตรวจของ CI · submodule `standards/` ต้องชี้ tag เดียวกัน · เลื่อนเองได้ ห้ามถอย ([`standards-versioning.md`](standards-versioning.md)) |
 | PR | เล็กและโฟกัสเรื่องเดียว · แนบ `REPORT.md` |
 
 PR แรกของ repo เป็นข้อยกเว้นของ `GH-03` (ต้องเพิ่มไฟล์ CI เอง) ให้ DevOps เป็นคน merge

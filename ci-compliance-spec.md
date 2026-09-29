@@ -278,13 +278,16 @@ on:
 
 jobs:
   compliance:
-    uses: csmju2030/csmju2030-standards/.github/workflows/subsystem-compliance.yml@v1.0.0
+    uses: CSMJU2030/csmju2030-standards/.github/workflows/subsystem-compliance.yml@v1.5.1
     with:
       subsystem_name: csmju-equipment
     secrets: inherit
 ```
 
-**สำคัญ:** ต้อง pin ด้วย tag เวอร์ชัน (`@v1.0.0`) หรือ commit SHA เท่านั้น **ห้ามใช้ `@main`** เพราะจะทำให้ CI เปลี่ยนพฤติกรรมโดยไม่ได้ประกาศ
+**สำคัญ:** ต้อง pin ด้วย tag เวอร์ชัน (`@v1.5.1`) หรือ commit SHA เท่านั้น **ห้ามใช้ `@main`** เพราะจะทำให้ CI เปลี่ยนพฤติกรรมโดยไม่ได้ประกาศ
+
+ตั้งแต่ 1.5.1 tag ใน `ci.yml` ปักหมุดแค่**ตัวกลาง** (workflow, `GH-03`, `GH-04`) ส่วนชุดตรวจอื่นมาจากเวอร์ชันใน `.standards-version`
+ทีมจึงเลื่อนเวอร์ชันเองได้โดยไม่ต้องแก้ไฟล์นี้ ([`docs/standards-versioning.md`](docs/standards-versioning.md))
 
 ### 6.3 ข้อกำหนดของข้อความ error
 
@@ -320,8 +323,8 @@ jobs:
 |---|---|---|---|
 | `GH-01` | Branch name ตรงรูปแบบ `feature/<subsystem>/<เรื่อง>` ยกเว้น PR `develop` → `main` และ `main` → `develop` | ❌ Fail | github-workflow.md 1.1, 1.5 |
 | `GH-02` | Commit message ตาม Conventional Commits | ❌ Fail | github-workflow.md 1.3 |
-| `GH-03` | ไม่มีการแก้ไข `.github/workflows/` | ❌ Fail | github-workflow.md 5 |
-| `GH-04` | `standards/` submodule pointer ตรงกับที่ PM อนุมัติ | ❌ Fail | github-workflow.md 3.6 |
+| `GH-03` | ไม่มีการแก้ไข `.github/workflows/` และ `.github/CODEOWNERS` (submodule `standards` เลื่อนเองได้ตั้งแต่ 1.5.1) | ❌ Fail | github-workflow.md 5 |
+| `GH-04` | `.standards-version` มี tag จริง · ไม่ต่ำกว่า `MIN_VERSION` · ไม่ถอยจาก branch ปลายทาง · submodule `standards/` ชี้ tag เดียวกัน · CI ตรวจด้วยชุดตรวจของเวอร์ชันนั้น | ❌ Fail | standards-versioning.md |
 | `SEC-01` | ไม่มี hardcoded connection string / API key / secret | ❌ Fail | github-workflow.md 4 |
 | `SEC-02` | ไม่มีไฟล์ `.env` ที่มีค่าจริงใน repo | ❌ Fail | github-workflow.md 4 |
 | `SEC-03` | ไม่มี token เก็บใน `localStorage` | ❌ Fail | ui-design-system.md 16.2 |
@@ -418,8 +421,7 @@ BASE_SHA="${GITHUB_BASE_SHA:-origin/main}"
 PROTECTED=(
   '^\.github/workflows/'
   '^\.github/CODEOWNERS$'
-  '^standards$'
-)
+)   # submodule standards ไม่อยู่ในรายการตั้งแต่ 1.5.1 — GH-04 ตรวจว่าชี้ tag ที่ .standards-version ระบุ
 
 CHANGED=$(git diff --name-only "$BASE_SHA...HEAD")
 VIOLATION=0
@@ -704,7 +706,7 @@ csmju-<subsystem-name>/
 ## Checklist (AIE ต้องติ๊กก่อน request review)
 
 ### มาตรฐานกลาง
-- [ ] รัน `git submodule update --remote standards/` ก่อนเริ่มงานแล้ว
+- [ ] อ่านมาตรฐานใน `standards/` ตรงกับเวอร์ชันใน `.standards-version` (รัน `git submodule update --init standards/` แล้ว)
 - [ ] Branch name ตรงรูปแบบ `feature/<subsystem>/<เรื่อง>`
 - [ ] Commit message ตาม Conventional Commits ทุก commit
 - [ ] PR นี้โฟกัสเรื่องเดียว (ไม่ปนหลายเรื่องที่ไม่เกี่ยวกัน)
@@ -1103,7 +1105,7 @@ Subsystem repo (ทำซ้ำทุก repo)
 > ถ้าเพิ่มกฎในเอกสารมาตรฐาน ต้องเพิ่มสคริปต์ตรวจในรอบเดียวกัน หรือระบุชัดว่าเป็นกฎที่ต้องพึ่งการ review ของคน
 
 > **2. ผู้ถูกตรวจต้องไม่ควบคุมเครื่องมือตรวจ**
-> AIE แก้ไฟล์ CI, CODEOWNERS, submodule pointer, หรือ exception file เองไม่ได้
+> AIE แก้ไฟล์ CI, CODEOWNERS หรือ exception file เองไม่ได้ (submodule pointer เลื่อนพร้อม `.standards-version` ได้ตั้งแต่ 1.5.1)
 
 > **3. Error ต้องสอนได้ ไม่ใช่แค่ปฏิเสธ**
 > ทุกข้อความ fail ต้องบอกไฟล์ บรรทัด ค่าที่ผิด ค่าที่ถูก เอกสารอ้างอิง และวิธีแก้

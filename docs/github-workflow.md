@@ -28,10 +28,12 @@ git pull
 git switch -c feature/equipment/add-borrow-return
 ```
 
-**ขั้นตอนที่ 2:** อัปเดตมาตรฐานส่วนกลางก่อนเขียนโค้ดเสมอ (เพื่อดึง `csmju2030-standards` ล่าสุด)
+**ขั้นตอนที่ 2:** ให้ `standards/` ในเครื่องตรงกับเวอร์ชันที่ repo ผูกไว้ก่อนเขียนโค้ดเสมอ (อ่านกฎชุดเดียวกับที่ CI ใช้ตรวจ)
 ```bash
-git submodule update --remote standards/
+git submodule update --init standards/
 ```
+ห้ามใช้ `--remote` เพราะจะเลื่อน submodule ไปที่ `main` ของ standards ซึ่งไม่ใช่ tag ที่ `.standards-version` ระบุ
+และ CI จะตก `GH-04` ถ้า commit ไป · การเลื่อนเวอร์ชันทำเป็น PR แยกตาม [`standards-versioning.md`](standards-versioning.md)
 
 **ขั้นตอนที่ 3:** พัฒนาโค้ด เมื่อเสร็จแล้วให้เพิ่มไฟล์และ Commit
 ```bash
@@ -87,7 +89,8 @@ fix(equipment): correct due-date calculation timezone bug
 
 แต่ละ subsystem มี AIE รับผิดชอบ 1 คน (1 คน = 1 ระบบย่อย) จึงไม่มี concurrent conflict ภายใน repo เดียวกัน แต่ยังต้องรักษาวินัยดังนี้:
 
-1. **Sync กับ standards กลางสม่ำเสมอ:** ก่อนเริ่มงานแต่ละวัน ให้ `git fetch origin` และ `git submodule update --remote standards/` เพื่อไม่ให้ตกรุ่นจากมาตรฐานกลางที่อาจถูกอัปเดตโดยทีมอื่น
+1. **ตามเวอร์ชัน standards ให้ทัน:** ดู `CHANGELOG.md` ของ standards เมื่อมี tag ใหม่ แล้วเลื่อน `.standards-version` กับ submodule `standards`
+   เป็น PR แยกตามจังหวะของทีม ([`standards-versioning.md`](standards-versioning.md)) — ไม่ต้องรอ DevOps เพราะไม่ต้องแตะ `ci.yml`
 2. **Branch อายุสั้น:** feature branch ไม่ควรค้างเกิน 2-3 วัน เพื่อให้ PL review ทัน และลดความเสี่ยงที่ branch หลักเปลี่ยนไปมากจนต้อง resolve conflict ตอน merge
 3. **Merge strategy:** PR จาก feature branch ใช้ **Squash and merge** เท่านั้น เพื่อให้ 1 PR = 1 commit ใน history
    ส่วน PR ระหว่าง `develop` กับ `main` ใช้ **Create a merge commit** (เหตุผลอยู่ในข้อ 1.5)
@@ -166,7 +169,8 @@ merge commit ทำให้ `main` มี commit ชุดเดียวกั
 3. **Unit Test:** รัน test suite ของ workspace ที่ถูกแก้ (ผ่าน coverage ขั้นต่ำที่ทีมกำหนด)
 4. **Stack Compliance Scan:** สคริปต์ตรวจ `package.json` ว่าไม่มี dependency นอกเหนือจาก Next.js/NestJS/Prisma stack ที่อนุญาต
 5. **Secret/DB-Isolation Scan:** grep หา connection string หรือ `pg`/`prisma client` import ใน `frontend/` — ถ้าเจอ ให้ CI fail ทันที
-6. **Submodule Check:** ตรวจว่า `standards/` submodule pointer ตรงกับ commit ล่าสุดที่ PL อนุมัติ 
+6. **Standards Version Check (`GH-04`):** CI ตรวจด้วยชุดตรวจของเวอร์ชันใน `.standards-version` และ submodule `standards/` ต้องชี้ tag เดียวกัน
+   (ไม่ต่ำกว่า `MIN_VERSION` และไม่ถอยจาก branch ปลายทาง — [`standards-versioning.md`](standards-versioning.md))
 7. **Build:** `next build` และ `nest build` ต้องผ่านทั้งคู่ก่อน merge ได้
 
 > **PR แรกของ repo (bootstrap) เป็นข้อยกเว้นของกฎ `GH-03`**
