@@ -83,7 +83,6 @@ printf '%s\n' "$STANDARDS_VERSION" > .standards-version
 
 sed -e "s#csmju-<subsystem-name>#${REPO_NAME}#" \
     -e "s#<subsystem-name>#${SUBSYSTEM}#g" \
-    -e "s#^standards_version: .*#standards_version: \"${STANDARDS_VERSION}\"#" \
     "$SCRIPT_DIR/templates/subsystem.yaml" > subsystem.yaml
 {
   echo ""
@@ -131,12 +130,12 @@ cat > README.md <<EOF
 ${DISPLAY_NAME} — ระบบย่อยของโครงการ CSMJU2030
 
 มาตรฐานกลางอยู่ใน \`standards/\` (submodule ของ ${ORG}/csmju2030-standards)
-สร้างจาก standards v${STANDARDS_VERSION}
+สร้างจาก standards v${STANDARDS_VERSION} · เลื่อนเวอร์ชันเองได้ตาม \`standards/docs/standards-versioning.md\`
 
 ## เริ่มทำงาน
 
 \`\`\`bash
-git submodule update --init --remote standards/
+git submodule update --init standards/
 pnpm install
 git checkout -b feature/${SUBSYSTEM}/<เรื่องที่ทำ>
 \`\`\`

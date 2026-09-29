@@ -1,11 +1,20 @@
 name: CSMJU2030 Subsystem Compliance (Reusable)
 
-# Called from every csmju-<subsystem> repo's .github/workflows/ci.yml,
-# pinned by tag/SHA (see templates/ci.yml). Each job checks out the calling
-# repo (default, into ".") plus this standards repo pinned to the same ref
-# the caller pinned in its `uses:` line (into ".compliance-tools"), so the
-# scripts that actually enforce the rules always come from the untouchable
-# central source, never from the subsystem repo being checked.
+# Called from every csmju-<subsystem> repo's .github/workflows/ci.yml, pinned
+# by tag (see templates/ci.yml). The pin chooses only this entry point. The
+# checks come from the version the subsystem names in `.standards-version`,
+# so a team bumps by changing that file and the `standards` submodule, never
+# ci.yml (docs/standards-versioning.md).
+#
+# Each job checks out the calling repo (into ".") and this standards repo with
+# every tag (into ".compliance-tools"), keeps a copy of the pinned entry point
+# outside the workspace, then select-standards-version.sh switches
+# .compliance-tools to the chosen tag and run-job.sh runs that version's checks
+# (scripts/lib/jobs.tsv). The scripts that enforce the rules still come from
+# the untouchable central source, never from the subsystem repo being checked.
+#
+# Every job selects on its own instead of depending on a shared job: a
+# required check whose job is skipped counts as passed.
 
 on:
   workflow_call:
@@ -18,6 +27,9 @@ on:
         type: string
         default: '22'   # tech-stack.md ข้อ 1.1 ล็อก Node 22.x
 
+env:
+  PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+
 jobs:
   convention-check:
     name: Convention Check
@@ -26,20 +38,17 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/checkout@v4
-        id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
+          fetch-depth: 0
           path: .compliance-tools
-      - name: Branch naming
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-branch-name.sh . "${GITHUB_HEAD_REF}"
-      - name: Commit messages
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-commit-messages.sh . "${{ github.event.pull_request.base.sha }}"
-      - name: Guard CI files
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-ci-untouched.sh . "${{ github.event.pull_request.base.sha }}"
+      - name: Select standards version (.standards-version)
+        run: |
+          cp -R .compliance-tools "$RUNNER_TEMP/csmju-entry"
+          bash "$RUNNER_TEMP/csmju-entry/scripts/select-standards-version.sh" .
+      - name: Branch naming · commit messages · CI guard
+        run: bash "$RUNNER_TEMP/csmju-entry/scripts/run-job.sh" convention .
 
   standards-version-check:
     name: Standards Version Check
@@ -47,14 +56,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
-        id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
+          fetch-depth: 0
           path: .compliance-tools
-      - name: Standards submodule pointer
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-submodule-pointer.sh .
+      - name: Select standards version (.standards-version)
+        run: |
+          cp -R .compliance-tools "$RUNNER_TEMP/csmju-entry"
+          bash "$RUNNER_TEMP/csmju-entry/scripts/select-standards-version.sh" .
+      - name: Standards version · submodule pointer
+        run: bash "$RUNNER_TEMP/csmju-entry/scripts/run-job.sh" version .
 
   security-scan:
     name: Security & Stack Scan
@@ -63,29 +75,17 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/checkout@v4
-        id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
+          fetch-depth: 0
           path: .compliance-tools
-      - name: Secret scan
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-no-secrets.sh .
-      - name: No token in localStorage
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-no-local-storage.sh .
-      - name: No self-rolled JWT verify / login
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-no-jwt-verify.sh .
-      - name: DB isolation
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-db-isolation.sh .
-      - name: Authorized dependencies
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-authorized-deps.sh .
-      - name: NestJS backend (ARC-04)
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-backend-nestjs.sh .
+      - name: Select standards version (.standards-version)
+        run: |
+          cp -R .compliance-tools "$RUNNER_TEMP/csmju-entry"
+          bash "$RUNNER_TEMP/csmju-entry/scripts/select-standards-version.sh" .
+      - name: Secrets · localStorage · JWT · DB isolation · dependencies · NestJS
+        run: bash "$RUNNER_TEMP/csmju-entry/scripts/run-job.sh" security .
 
   api-contract-sync:
     name: API Contract Sync
@@ -93,11 +93,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
-        id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
+          fetch-depth: 0
           path: .compliance-tools
+      - name: Select standards version (.standards-version)
+        run: |
+          cp -R .compliance-tools "$RUNNER_TEMP/csmju-entry"
+          bash "$RUNNER_TEMP/csmju-entry/scripts/select-standards-version.sh" .
       # API-01 รัน `pnpm run generate:openapi` ของ subsystem จริง จึงต้องมี
       # toolchain ใน job นี้ด้วย ไม่ใช่แค่ใน Code Quality — ไม่มีแล้ว check
       # จะ skip เงียบ ๆ ทั้งที่ดูเหมือนผ่าน
@@ -114,12 +118,8 @@ jobs:
           else
             echo "ไม่พบ pnpm-lock.yaml — ข้ามการติดตั้ง (API-01 จะถูก skip)"
           fi
-      - name: openapi.json sync
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-openapi-sync.sh .
-      - name: API conventions
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-api-conventions.sh .
+      - name: openapi.json sync · API conventions
+        run: bash "$RUNNER_TEMP/csmju-entry/scripts/run-job.sh" api .
 
   data-dictionary-compliance:
     name: Data Dictionary Compliance
@@ -127,23 +127,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
-        id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
+          fetch-depth: 0
           path: .compliance-tools
-      - name: Forbidden field aliases
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-field-aliases.sh .
-      - name: snake_case fields
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-snake-case.sh .
-      - name: No hardcoded faculty list
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-no-hardcoded-faculty.sh .
-      - name: Money fields are integers
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-money-fields.sh .
+      - name: Select standards version (.standards-version)
+        run: |
+          cp -R .compliance-tools "$RUNNER_TEMP/csmju-entry"
+          bash "$RUNNER_TEMP/csmju-entry/scripts/select-standards-version.sh" .
+      - name: Field aliases · snake_case · faculty list · money fields
+        run: bash "$RUNNER_TEMP/csmju-entry/scripts/run-job.sh" data-dictionary .
 
   ui-token-compliance:
     name: UI Token Compliance
@@ -151,14 +145,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
-        id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
+          fetch-depth: 0
           path: .compliance-tools
+      - name: Select standards version (.standards-version)
+        run: |
+          cp -R .compliance-tools "$RUNNER_TEMP/csmju-entry"
+          bash "$RUNNER_TEMP/csmju-entry/scripts/select-standards-version.sh" .
       - name: Design token usage
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-ui-tokens.sh .
+        run: bash "$RUNNER_TEMP/csmju-entry/scripts/run-job.sh" ui .
 
   code-quality:
     name: Code Quality
@@ -166,11 +163,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
-        id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
+          fetch-depth: 0
           path: .compliance-tools
+      - name: Select standards version (.standards-version)
+        run: |
+          cp -R .compliance-tools "$RUNNER_TEMP/csmju-entry"
+          bash "$RUNNER_TEMP/csmju-entry/scripts/select-standards-version.sh" .
       # ไม่ระบุ version — pnpm/action-setup อ่าน "packageManager" ใน package.json
       # ของ repo ที่เรียก ถ้าฮาร์ดโค้ดไว้แล้วไม่ตรงกัน action จะ error ทันที
       - uses: pnpm/action-setup@v4
@@ -185,8 +186,7 @@ jobs:
             echo "ไม่พบ pnpm-lock.yaml — ข้ามการติดตั้ง (QA-01..04 จะถูก skip)"
           fi
       - name: QA checks (lint/typecheck/test/build/pnpm-only)
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-qa.sh .
+        run: bash "$RUNNER_TEMP/csmju-entry/scripts/run-job.sh" quality .
 
   exception-validation:
     name: Exception Validation
@@ -194,11 +194,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
-        id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
           ref: ${{ github.job_workflow_sha }}
+          fetch-depth: 0
           path: .compliance-tools
+      - name: Select standards version (.standards-version)
+        run: |
+          cp -R .compliance-tools "$RUNNER_TEMP/csmju-entry"
+          bash "$RUNNER_TEMP/csmju-entry/scripts/select-standards-version.sh" .
       - name: Validate .compliance-exceptions.yml
-        if: always() && steps.tools.outcome == 'success'
-        run: bash .compliance-tools/scripts/check-exceptions.sh .
+        run: bash "$RUNNER_TEMP/csmju-entry/scripts/run-job.sh" exceptions .

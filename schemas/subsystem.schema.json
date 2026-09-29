@@ -4,15 +4,16 @@
   "title": "Subsystem",
   "type": "object",
   "required": [
-    "name",
-    "standards_version"
+    "name"
   ],
   "properties": {
     "name": {
       "type": "string"
     },
     "standards_version": {
-      "type": "string"
+      "type": "string",
+      "deprecated": true,
+      "description": "ไม่ใช้แล้วตั้งแต่ 1.5.1 — CI อ่านเวอร์ชันจาก .standards-version (docs/standards-versioning.md)"
     },
     "public_endpoints": {
       "type": "array",

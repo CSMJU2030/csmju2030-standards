@@ -32,13 +32,14 @@ repo นี้เป็นแหล่งความจริงเพียง
 | ลงทะเบียนระบบย่อยกับ Core Hub | [`docs/subsystem-registry.md`](docs/subsystem-registry.md) |
 | เกณฑ์ผ่าน/ไม่ผ่าน และวิธีรัน | [`docs/conformance.md`](docs/conformance.md) |
 | วิธีแตก branch, ตั้งชื่อ commit, เปิด PR | [`docs/github-workflow.md`](docs/github-workflow.md) ข้อ 1 |
+| เลื่อนเวอร์ชัน standards ของระบบย่อย (ทำเองได้) | [`docs/standards-versioning.md`](docs/standards-versioning.md) |
 | กฎของ Core Hub และข้อยกเว้น (ทีม Core Hub เท่านั้น) | [`docs/core-hub-rules.md`](docs/core-hub-rules.md) |
 | ใช้ AI ช่วยเขียนโค้ด | [`ai/AGENTS.md`](ai/AGENTS.md) · [`ai/TASK_TEMPLATE.md`](ai/TASK_TEMPLATE.md) |
 
 ขั้นตอนทำงานปกติ
 
 ```bash
-git submodule update --remote standards/      # ดึงมาตรฐานล่าสุดก่อนเริ่มทุกวัน
+git submodule update --init standards/        # ให้ standards/ ตรงกับ .standards-version (ห้ามใส่ --remote)
 git checkout -b feature/<subsystem>/<เรื่องที่ทำ>  # repo ที่มี develop ให้แตกจาก develop
 # ...เขียนโค้ด...
 git commit -m "feat(<subsystem>): <คำอธิบาย>"
@@ -77,7 +78,7 @@ CI ตรวจว่า "เขียนถูกกฎ" · conformance ตร�
 | Job | ตรวจอะไร |
 |---|---|
 | Convention Check | ชื่อ branch, commit message, ห้ามแก้ไฟล์ CI เอง |
-| Standards Version Check | `.standards-version` ตรงกับเวอร์ชันที่ PM อนุมัติ |
+| Standards Version Check | `.standards-version` มี tag จริง ไม่ต่ำกว่า `MIN_VERSION` ไม่ถอยเวอร์ชัน และ submodule `standards` ชี้ tag เดียวกัน |
 | Security & Stack Scan | secret, token ใน localStorage, JWT verify เอง, DB isolation, dependency นอก whitelist |
 | API Contract Sync | `openapi.json` sync กับโค้ด, รูปแบบ API |
 | Data Dictionary Compliance | ชื่อฟิลด์ต้องห้าม, snake_case, รายชื่อคณะ hardcode, ฟิลด์เงินเป็น float |
@@ -167,10 +168,11 @@ __fixtures__/      ตัวอย่าง pass/fail สำหรับ self-te
 3. เพิ่ม fixture `__fixtures__/<รหัสกฎ>/{pass,fail}` ที่พิสูจน์กฎใหม่
 4. `./scripts/self-test.sh` ต้องผ่าน
 5. bump `VERSION` + เขียน `CHANGELOG.md`
-6. ติด tag ใหม่ แล้วแจ้งให้แต่ละ subsystem เลื่อน pin ใน `ci.yml`
-   และ `.standards-version` ตามจังหวะตัวเอง
+6. ติด tag ใหม่ แล้วแจ้งให้แต่ละ subsystem เลื่อน `.standards-version` และ submodule `standards`
+   ตามจังหวะตัวเอง (ไม่ต้องแก้ `ci.yml` — [`docs/standards-versioning.md`](docs/standards-versioning.md))
 
-subsystem ปักหมุดเวอร์ชันไว้ (`@v1.0.0`) จึงไม่มีใครถูกเปลี่ยนกฎกลางคันโดยไม่รู้ตัว
+subsystem แต่ละตัวเลือกเวอร์ชันเองใน `.standards-version` จึงไม่มีใครถูกเปลี่ยนกฎกลางคันโดยไม่รู้ตัว
+ถ้าต้องบังคับให้ทุกทีมขึ้นเวอร์ชันใด DevOps ยก `MIN_VERSION` บน `main`
 
 ---
 

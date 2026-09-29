@@ -260,21 +260,173 @@ setup_and_run_gh03() {
   local base_sha
   base_sha="$(cd "$dir" && git rev-parse HEAD)"
 
-  if [[ "$variant" == "pass" ]]; then
-    (cd "$dir" && echo "more text" >> README.md && git add -A && git commit -qm "docs: update readme") >/dev/null 2>&1
-  else
-    (cd "$dir" && echo "name: CI modified" > .github/workflows/ci.yml && git add -A && git commit -qm "ci: sneak change") >/dev/null 2>&1
-  fi
+  case "$variant" in
+    pass)
+      (cd "$dir" && echo "more text" >> README.md && git add -A && git commit -qm "docs: update readme") >/dev/null 2>&1
+      ;;
+    submodule)
+      # moving the standards submodule is part of a bump since 1.5.1 — GH-04 checks where it points
+      (cd "$dir" && git update-index --add --cacheinfo "160000,$(printf '1%.0s' {1..40}),standards" \
+        && git commit -qm "chore(equipment): bump standards") >/dev/null 2>&1
+      ;;
+    codeowners)
+      (cd "$dir" && echo "* @someone" > .github/CODEOWNERS && git add -A && git commit -qm "chore: own everything") >/dev/null 2>&1
+      ;;
+    *)
+      (cd "$dir" && echo "name: CI modified" > .github/workflows/ci.yml && git add -A && git commit -qm "ci: sneak change") >/dev/null 2>&1
+      ;;
+  esac
 
-  "$SCRIPT_DIR/check-ci-untouched.sh" "$dir" "$base_sha" >/dev/null 2>&1
+  "${GH03_RUNNER:-$SCRIPT_DIR/check-ci-untouched.sh}" "$dir" "$base_sha" >/dev/null 2>&1
   local code=$?
   rm -rf "$dir"
   return $code
 }
 setup_and_run_gh03 "pass"
 assert_exit "GH-03 pass (only README changed)" 0 "$?"
+setup_and_run_gh03 "submodule"
+assert_exit "GH-03 pass (standards submodule moved)" 0 "$?"
 setup_and_run_gh03 "fail"
 assert_exit "GH-03 fail (workflow file changed)" 1 "$?"
+setup_and_run_gh03 "codeowners"
+assert_exit "GH-03 fail (CODEOWNERS changed)" 1 "$?"
+
+# --- GH-04: version selection + submodule pointer (git repos built on the fly)
+# A stand-in standards repo: one commit and one annotated tag per version,
+# and a branch per floor holding MIN_VERSION (the real one is read from main).
+echo
+echo "== GH-04: .standards-version เลือกชุดตรวจ · submodule ชี้ tag เดียวกัน =="
+new_repo() {
+  git init -q "$1" && git -C "$1" config user.email "test@example.com" && git -C "$1" config user.name "Test"
+}
+make_tools_repo() {
+  local dir="$1"
+  shift
+  new_repo "$dir"
+  (
+    cd "$dir" || exit 1
+    for v in "$@"; do
+      echo "$v" > VERSION
+      git add -A && git commit -qm "chore: release $v" && git tag -a "v$v" -m "v$v"
+    done
+    git branch -q -M main
+    for floor in 1.0.0 1.5.1; do
+      git switch -qc "floor-$floor" main
+      echo "$floor" > MIN_VERSION
+      git add -A && git commit -qm "chore: floor $floor"
+    done
+    git switch -q main
+  ) >/dev/null 2>&1
+}
+# make_target_repo <dir> <version>... — one commit per version of .standards-version
+make_target_repo() {
+  local dir="$1"
+  shift
+  new_repo "$dir"
+  for v in "$@"; do
+    (cd "$dir" && echo "$v" > .standards-version && git add -A && git commit -qm "chore(equipment): standards $v") >/dev/null 2>&1
+  done
+}
+# with_submodule <dir> <sha> — point the standards gitlink at <sha>
+with_submodule() {
+  (cd "$1" && git update-index --add --cacheinfo "160000,$2,standards" && git commit -qm "chore(equipment): pin standards") >/dev/null 2>&1
+}
+
+GH04_TMP="$(mktemp -d)"
+TOOLS="$GH04_TMP/tools"
+make_tools_repo "$TOOLS" 1.0.0 1.5.1
+SHA_100="$(git -C "$TOOLS" rev-parse 'v1.0.0^{commit}')"
+SHA_151="$(git -C "$TOOLS" rev-parse 'v1.5.1^{commit}')"
+
+select_version() { # select_version <target> <floor> [base_sha]
+  CSMJU_MIN_VERSION_REF="floor-$2" PR_BASE_SHA="${3:-}" GITHUB_OUTPUT="" GITHUB_STEP_SUMMARY="" \
+    "$SCRIPT_DIR/select-standards-version.sh" "$1" "$TOOLS" >/dev/null 2>&1
+}
+
+make_target_repo "$GH04_TMP/t-old" 1.0.0
+select_version "$GH04_TMP/t-old" 1.0.0
+assert_exit "GH-04 เลือก 1.0.0 ได้เมื่อขั้นต่ำ 1.0.0" 0 "$?"
+[[ "$(git -C "$TOOLS" rev-parse HEAD)" == "$SHA_100" ]]
+assert_exit "GH-04 ชุดตรวจถูกสลับไปที่ tag v1.0.0" 0 "$?"
+select_version "$GH04_TMP/t-old" 1.5.1
+assert_exit "GH-04 ตก 1.0.0 เมื่อขั้นต่ำเป็น 1.5.1" 1 "$?"
+
+make_target_repo "$GH04_TMP/t-missing-tag" 9.9.9
+select_version "$GH04_TMP/t-missing-tag" 1.0.0
+assert_exit "GH-04 ตกเมื่อไม่มี tag ของเวอร์ชันนั้น" 1 "$?"
+make_target_repo "$GH04_TMP/t-prefixed" v1.5.1
+select_version "$GH04_TMP/t-prefixed" 1.0.0
+assert_exit "GH-04 ตกเมื่อมี v นำหน้า (ต้องเป็น semver ล้วน)" 1 "$?"
+new_repo "$GH04_TMP/t-nofile"
+select_version "$GH04_TMP/t-nofile" 1.0.0
+assert_exit "GH-04 ตกเมื่อไม่มี .standards-version" 1 "$?"
+# PowerShell 5 `echo 1.0.0 > .standards-version` writes UTF-16 with a BOM and CRLF
+new_repo "$GH04_TMP/t-windows"
+printf '\xff\xfe1\x00.\x000\x00.\x000\x00\r\x00\n\x00' > "$GH04_TMP/t-windows/.standards-version"
+select_version "$GH04_TMP/t-windows" 1.0.0
+assert_exit "GH-04 อ่านไฟล์ UTF-16 + CRLF ที่ PowerShell เขียนได้" 0 "$?"
+
+make_target_repo "$GH04_TMP/t-up" 1.0.0 1.5.1
+select_version "$GH04_TMP/t-up" 1.0.0 "$(git -C "$GH04_TMP/t-up" rev-parse HEAD~1)"
+assert_exit "GH-04 เลื่อนขึ้น 1.0.0 → 1.5.1 ได้" 0 "$?"
+make_target_repo "$GH04_TMP/t-down" 1.5.1 1.0.0
+select_version "$GH04_TMP/t-down" 1.0.0 "$(git -C "$GH04_TMP/t-down" rev-parse HEAD~1)"
+assert_exit "GH-04 ตกเมื่อถอย 1.5.1 → 1.0.0" 1 "$?"
+
+git -C "$TOOLS" checkout -q "$SHA_151"
+make_target_repo "$GH04_TMP/p-ok" 1.5.1
+with_submodule "$GH04_TMP/p-ok" "$SHA_151"
+"$SCRIPT_DIR/check-submodule-pointer.sh" "$GH04_TMP/p-ok" "$TOOLS" >/dev/null 2>&1
+assert_exit "GH-04 pass (submodule ชี้ tag เดียวกับ .standards-version)" 0 "$?"
+make_target_repo "$GH04_TMP/p-behind" 1.5.1
+with_submodule "$GH04_TMP/p-behind" "$SHA_100"
+"$SCRIPT_DIR/check-submodule-pointer.sh" "$GH04_TMP/p-behind" "$TOOLS" >/dev/null 2>&1
+assert_exit "GH-04 fail (เลื่อน .standards-version แต่ลืมเลื่อน submodule)" 1 "$?"
+make_target_repo "$GH04_TMP/p-nosub" 1.5.1
+"$SCRIPT_DIR/check-submodule-pointer.sh" "$GH04_TMP/p-nosub" "$TOOLS" >/dev/null 2>&1
+assert_exit "GH-04 pass (ไม่มี submodule — ตรวจแค่เลขเวอร์ชัน)" 0 "$?"
+make_target_repo "$GH04_TMP/p-mismatch" 1.0.0
+"$SCRIPT_DIR/check-submodule-pointer.sh" "$GH04_TMP/p-mismatch" "$TOOLS" >/dev/null 2>&1
+assert_exit "GH-04 fail (.standards-version ไม่ตรงกับชุดตรวจ)" 1 "$?"
+new_repo "$GH04_TMP/p-bom"
+printf '\xef\xbb\xbf1.5.1\r\n' > "$GH04_TMP/p-bom/.standards-version"
+"$SCRIPT_DIR/check-submodule-pointer.sh" "$GH04_TMP/p-bom" "$TOOLS" >/dev/null 2>&1
+assert_exit "GH-04 pass (.standards-version มี BOM + CRLF)" 0 "$?"
+rm -rf "$GH04_TMP"
+
+# --- run-job.sh: the job list, and policy checks that no version can swap out
+echo
+echo "== run-job.sh: รายการเช็คของแต่ละ job =="
+MANIFEST="$SCRIPT_DIR/lib/jobs.tsv"
+WORKFLOW="$SCRIPT_DIR/../.github/workflows/subsystem-compliance.yml"
+MISSING=""
+for job in $(grep -o 'run-job.sh" [a-z-]*' "$WORKFLOW" | awk '{ print $2 }'); do
+  awk -F'\t' -v j="$job" '$1 == j { found = 1 } END { exit !found }' "$MANIFEST" || MISSING="$MISSING job:$job"
+done
+for script in $(grep -v '^#' "$MANIFEST" | awk -F'\t' '{ print $3 }'); do
+  [[ -f "$SCRIPT_DIR/$script" ]] || MISSING="$MISSING script:$script"
+done
+[[ -z "$MISSING" ]]
+assert_exit "ทุก job ใน workflow มีเช็คใน jobs.tsv และทุกสคริปต์มีจริง${MISSING:+ (ขาด$MISSING)}" 0 "$?"
+
+"$SCRIPT_DIR/run-job.sh" no-such-job . "$SCRIPT_DIR/.." >/dev/null 2>&1
+assert_exit "run-job ตกเมื่อไม่พบเช็คของ job (ไม่ผ่านแบบเงียบ ๆ)" 1 "$?"
+
+# A version whose GH-03 always passes must not help: GH-03 comes from the entry copy.
+FAKE_TOOLS="$(mktemp -d)"
+mkdir -p "$FAKE_TOOLS/scripts/lib"
+echo "0.0.1" > "$FAKE_TOOLS/VERSION"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$FAKE_TOOLS/scripts/check-ci-untouched.sh"
+printf 'convention\tGuard CI files (GH-03)\tcheck-ci-untouched.sh\t{base_sha}\n' > "$FAKE_TOOLS/scripts/lib/jobs.tsv"
+printf 'skiponly\tNot in this version\tcheck-not-shipped-yet.sh\n' >> "$FAKE_TOOLS/scripts/lib/jobs.tsv"
+run_job_with_fake_tools() {
+  PR_BASE_SHA="$2" "$SCRIPT_DIR/run-job.sh" convention "$1" "$FAKE_TOOLS" >/dev/null 2>&1
+}
+GH03_RUNNER=run_job_with_fake_tools setup_and_run_gh03 "fail"
+assert_exit "run-job ใช้ GH-03 ของตัวกลางเสมอ แม้เวอร์ชันที่เลือกจะมี GH-03 ที่ปล่อยผ่าน" 1 "$?"
+"$SCRIPT_DIR/run-job.sh" skiponly . "$FAKE_TOOLS" >/dev/null 2>&1
+assert_exit "run-job ข้ามเช็คที่เวอร์ชันนั้นยังไม่มี" 0 "$?"
+rm -rf "$FAKE_TOOLS"
 
 echo ""
 echo "== QA-06: workspace filter ต้องชี้ถูก =="

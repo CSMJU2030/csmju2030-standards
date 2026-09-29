@@ -74,8 +74,8 @@ csmju-<subsystem>/
 
 | ไฟล์ | ทำไม |
 |---|---|
-| `subsystem.yaml` | CI อ่าน `name`, `standards_version`, `public_endpoints` · conformance อ่าน `base_url`, `probes` |
-| `.standards-version` | กฎ `GH-04` ตรวจว่าตรงกับ submodule pointer |
+| `subsystem.yaml` | CI อ่าน `name`, `public_endpoints` · conformance อ่าน `base_url`, `probes` (`standards_version` ไม่ใช้แล้วตั้งแต่ 1.5.1) |
+| `.standards-version` | เลือกว่า CI ตรวจด้วย standards เวอร์ชันไหน · กฎ `GH-04` ตรวจว่า submodule ชี้ tag เดียวกัน ([`standards-versioning.md`](standards-versioning.md)) |
 | `standards/` (submodule) | ดึงกฎกลางมาใช้ ไม่ต้องคัดลอกกฎเข้ามาเก็บเอง |
 | `pnpm-workspace.yaml` | กฎ `QA-05` |
 | `README.md` | วิธีติดตั้ง/รัน/ทดสอบ ที่คำสั่งใช้ได้จริงทุกบรรทัด |

@@ -5,11 +5,13 @@ on:
     paths:
       - 'scripts/**'
       - '__fixtures__/**'
+      - '.github/workflows/subsystem-compliance.yml'
   push:
     branches: [main]
     paths:
       - 'scripts/**'
       - '__fixtures__/**'
+      - '.github/workflows/subsystem-compliance.yml'
 
 jobs:
   self-test:
