@@ -28,7 +28,7 @@
 |---|---|---|---|
 | `sub` | `core_user_id` / `coreUserId` | string | **Global Identity** — id ผู้ใช้ของ Core Hub เช่น `user-002` |
 | `email` | `email` | string | อีเมลของผู้ใช้ |
-| `role` | `core_role` / `coreRole` | enum | `student` · `alumni` · `staff` · `admin` |
+| `role` | `core_role` / `coreRole` | enum | `student` · `alumni` · `staff` · `lecturer` · `guest` · `admin` |
 | `sid` | — | string | session id ของ Core Hub (ไม่ต้องเก็บ) |
 
 ### 1.2 สิ่งที่ Core Hub มีแต่ **ไม่ได้ส่งมาใน token**
@@ -80,7 +80,7 @@ CoreIdentityReference:
     writable: false        # ระบบย่อยห้ามแก้ค่านี้เอง
   core_role:
     type: enum
-    values: [student, alumni, staff, admin]
+    values: [student, alumni, staff, lecturer, guest, admin]
     source: Core (JWT claim `role`)
     writable: false
 ```
@@ -91,7 +91,7 @@ CoreIdentityReference:
 CoreRole:                    # claim `role` ใน access token (Layer 1)
   type: enum
   source: Core Hub
-  values: [student, alumni, staff, admin]
+  values: [student, alumni, staff, lecturer, guest, admin]
 
 SubsystemRole:               # role ภายในระบบย่อย (Layer 2) — แต่ละระบบตั้งเอง
   type: string

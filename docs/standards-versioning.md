@@ -86,6 +86,7 @@ git push -u origin feature/<slug>/bump-standards-v1-5-2
 | devDependency กลุ่ม eslint/prettier (`eslint-config-next` ฯลฯ) | ไม่ตรวจ devDependency | 1.3.0 ขึ้นไป (เริ่มตรวจ devDependency ด้วย) |
 | ข้อยกเว้นเฉพาะทีมใน `.compliance-exceptions.yml` (`UI-01` · `ARC-02`) | 1.0.3 ขึ้นไป | 1.4.0 ขึ้นไป |
 | ⚠️ เข้มขึ้น: ต้องมี backend NestJS (`ARC-04`) | 1.0.5 | 1.5.0 ขึ้นไป |
+| core role `lecturer` (อาจารย์) · `guest` (ผู้เยี่ยมชม) | 1.0.6 | 1.6.0 ขึ้นไป |
 
 ไม่มีในเวอร์ชันไหนเลย: ถ้าหลายทีมน่าจะใช้ เปิด issue ใน standards ขอเพิ่ม whitelist (ออกเป็น tag ใหม่แล้วทีมเลื่อนเอง) ·
 ถ้าใช้ทีมเดียว ขอข้อยกเว้นใน `.compliance-exceptions.yml` ของ repo (DevOps/PM approve · ต้องมี `issue` และ `expires`)
