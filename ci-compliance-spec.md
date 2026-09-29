@@ -278,15 +278,15 @@ on:
 
 jobs:
   compliance:
-    uses: CSMJU2030/csmju2030-standards/.github/workflows/subsystem-compliance.yml@v1.5.1
+    uses: CSMJU2030/csmju2030-standards/.github/workflows/subsystem-compliance.yml@v1.5.2
     with:
       subsystem_name: csmju-equipment
     secrets: inherit
 ```
 
-**สำคัญ:** ต้อง pin ด้วย tag เวอร์ชัน (`@v1.5.1`) หรือ commit SHA เท่านั้น **ห้ามใช้ `@main`** เพราะจะทำให้ CI เปลี่ยนพฤติกรรมโดยไม่ได้ประกาศ
+**สำคัญ:** ต้อง pin ด้วย tag เวอร์ชัน (`@v1.5.2`) เท่านั้น (commit SHA ใช้ไม่ได้แล้ว เพราะตัวกลางถูกดึงตาม `STANDARDS_ENTRY_REF` ของ tag นั้น) **ห้ามใช้ `@main`** เพราะจะทำให้ CI เปลี่ยนพฤติกรรมโดยไม่ได้ประกาศ
 
-ตั้งแต่ 1.5.1 tag ใน `ci.yml` ปักหมุดแค่**ตัวกลาง** (workflow, `GH-03`, `GH-04`) ส่วนชุดตรวจอื่นมาจากเวอร์ชันใน `.standards-version`
+ตั้งแต่ 1.5.2 tag ใน `ci.yml` ปักหมุดแค่**ตัวกลาง** (workflow, `GH-03`, `GH-04`) ส่วนชุดตรวจอื่นมาจากเวอร์ชันใน `.standards-version`
 ทีมจึงเลื่อนเวอร์ชันเองได้โดยไม่ต้องแก้ไฟล์นี้ ([`docs/standards-versioning.md`](docs/standards-versioning.md))
 
 ### 6.3 ข้อกำหนดของข้อความ error

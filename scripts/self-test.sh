@@ -412,6 +412,18 @@ assert_exit "ทุก job ใน workflow มีเช็คใน jobs.tsv แ
 "$SCRIPT_DIR/run-job.sh" no-such-job . "$SCRIPT_DIR/.." >/dev/null 2>&1
 assert_exit "run-job ตกเมื่อไม่พบเช็คของ job (ไม่ผ่านแบบเงียบ ๆ)" 1 "$?"
 
+# The entry point must be checked out at this file's own tag. github.job_workflow_sha
+# is empty in a called workflow, and a checkout without ref silently takes main.
+EXPECTED_REF="v$(tr -d '[:space:]' < "$SCRIPT_DIR/../VERSION")"
+for wf in subsystem-compliance core-hub-compliance; do
+  f="$SCRIPT_DIR/../.github/workflows/$wf.yml"
+  ref="$(sed -n 's/^  STANDARDS_ENTRY_REF: *//p' "$f")"
+  checkouts="$(grep -c 'repository: CSMJU2030/csmju2030-standards' "$f")"
+  pinned="$(grep -c 'ref: ${{ env.STANDARDS_ENTRY_REF }}' "$f")"
+  [[ "$ref" == "$EXPECTED_REF" && "$checkouts" -eq "$pinned" ]] && ! grep -q '{{ *github\.job_workflow_sha' "$f"
+  assert_exit "$wf.yml ดึงตัวตรวจที่ STANDARDS_ENTRY_REF = VERSION ทุก job (พบ ${ref:-ไม่มี} · $pinned/$checkouts job)" 0 "$?"
+done
+
 # A version whose GH-03 always passes must not help: GH-03 comes from the entry copy.
 FAKE_TOOLS="$(mktemp -d)"
 mkdir -p "$FAKE_TOOLS/scripts/lib"

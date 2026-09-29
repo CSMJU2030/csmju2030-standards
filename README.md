@@ -167,7 +167,7 @@ __fixtures__/      ตัวอย่าง pass/fail สำหรับ self-te
 2. แก้สคริปต์ใน `scripts/` ให้ตรงกับเอกสาร
 3. เพิ่ม fixture `__fixtures__/<รหัสกฎ>/{pass,fail}` ที่พิสูจน์กฎใหม่
 4. `./scripts/self-test.sh` ต้องผ่าน
-5. bump `VERSION` + เขียน `CHANGELOG.md`
+5. bump `VERSION` + `STANDARDS_ENTRY_REF` ใน `subsystem-compliance.yml` / `core-hub-compliance.yml` (self-test ตรวจว่าตรงกัน) + เขียน `CHANGELOG.md`
 6. ติด tag ใหม่ แล้วแจ้งให้แต่ละ subsystem เลื่อน `.standards-version` และ submodule `standards`
    ตามจังหวะตัวเอง (ไม่ต้องแก้ `ci.yml` — [`docs/standards-versioning.md`](docs/standards-versioning.md))
 

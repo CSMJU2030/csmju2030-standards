@@ -6,12 +6,16 @@ on:
       - 'scripts/**'
       - '__fixtures__/**'
       - '.github/workflows/subsystem-compliance.yml'
+      - '.github/workflows/core-hub-compliance.yml'
+      - 'VERSION'
   push:
     branches: [main]
     paths:
       - 'scripts/**'
       - '__fixtures__/**'
       - '.github/workflows/subsystem-compliance.yml'
+      - '.github/workflows/core-hub-compliance.yml'
+      - 'VERSION'
 
 jobs:
   self-test:
