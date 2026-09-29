@@ -68,6 +68,8 @@ run_fixture_case "DD-01"     "check-field-aliases.sh"
 # student|staff|faculty|admin|guest, which rejected the real value
 # "alumni" and accepted "faculty" — a field name, not a role.
 run_fixture_case "DD-02"     "check-field-aliases.sh"
+# DD-02-ROLES: lecturer and guest are core roles; 'teacher' is not.
+run_fixture_case "DD-02-ROLES" "check-field-aliases.sh"
 # DD-04/DD-05 fixtures are regression cases: both shapes below used to
 # slip through (a SCREAMING_CASE faculty const, and a money field with a
 # type annotation or a prisma Float column).

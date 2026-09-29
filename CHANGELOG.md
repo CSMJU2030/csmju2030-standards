@@ -5,6 +5,25 @@
 
 ---
 
+## 1.0.6 — 2026-09-29
+
+รุ่นในสาย **1.0.x** (ต่อจาก tag `v1.0.5`) สำหรับระบบย่อยที่ใช้สัญญา SSO 1.0 — เพิ่ม role ชุดเดียวกับ 1.6.0 บน `main`
+
+- **core role ใหม่ 2 ค่า** (PM ตัดสิน 29 ก.ย.): `lecturer` (อาจารย์) · `guest` (ผู้เยี่ยมชม) —
+  enum เป็น `student` · `alumni` · `staff` · `lecturer` · `guest` · `admin`
+  - `staff` หมายถึงบุคลากรที่ไม่ใช่อาจารย์ · Core Hub ให้ `lecturer` กับบุคลากรที่ `staff_type` = `LECTURER` ตอนเข้า MJU SSO ·
+    `guest` สร้างโดย admin ของ Core Hub เท่านั้น
+  - admin ของระบบย่อยไม่ใช่ core role — เจ้าของในทะเบียน + role mapping หรือสิทธิ์พิเศษรายบุคคล (`authorization.md` ข้อ 2)
+  - แก้: `contracts/jwt-contract.json` · `contracts/openapi.yaml` · `auth-contract.md` · `authorization.md` ข้อ 2 ·
+    `data-dictionary.md` · `ci-compliance-spec.md` (`DD-02`)
+- `scripts/check-field-aliases.sh` (`DD-02`) รับ `lecturer` / `guest` · fixture `DD-02-ROLES` + `scripts/self-test.sh`
+
+**ใครต้องทำอะไร:** ไม่มีกฎที่เข้มขึ้น · ระบบย่อยที่ยังไม่ map role ใหม่ ผู้ใช้ role นั้นได้ `403` ตามเดิม ·
+ระบบที่จะรองรับอาจารย์/ผู้เยี่ยมชม: เลื่อน `.standards-version` (1.0.6) แล้วเพิ่ม role ใน mapping ทั้งในโค้ดและในทะเบียน ·
+Core Hub ต้องขึ้นเวอร์ชันที่รองรับ role ใหม่ก่อนจึงจะมีผู้ใช้ role นี้
+
+---
+
 ## 1.0.5 — 2026-09-28
 
 รุ่นในสาย **1.0.x** (ต่อจาก tag `v1.0.4`) — กฎเดียวกับ 1.5.0 บน `main`

@@ -14,7 +14,7 @@
   "claims": {
     "sub": "Core Hub user id - the only identity a subsystem may trust",
     "email": "Core Hub email",
-    "role": "Core Hub core role (student | alumni | staff | admin)",
+    "role": "Core Hub core role (student | alumni | staff | lecturer | guest | admin)",
     "sid": "Core Hub session id",
     "iss": "core-hub",
     "aud": "csmju2030",
