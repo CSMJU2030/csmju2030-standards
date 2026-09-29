@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# migrate-ci-entry.sh — one-time move of every subsystem repo to the
-# self-serve bump of 1.5.1 (docs/standards-versioning.md ข้อ 4)
+# migrate-ci-entry.sh — moves every subsystem repo's ci.yml to a new entry
+# point: once to the self-serve bump (1.5.2), and again only when the entry
+# point itself changes (docs/standards-versioning.md ข้อ 4 และ 5.4)
 #
-#   ./migrate-ci-entry.sh v1.5.1                      # dry run: แสดงว่าจะแก้อะไร ไม่แตะ repo
-#   ./migrate-ci-entry.sh v1.5.1 --apply              # เปิด PR ทุก repo ที่ยังไม่ย้าย
-#   ./migrate-ci-entry.sh v1.5.1 --apply --merge      # เปิด PR แล้ว merge แบบ admin ทันที
-#   ./migrate-ci-entry.sh v1.5.1 --apply csmju-quiz   # ทำเฉพาะ repo ที่ระบุ
+#   ./migrate-ci-entry.sh v1.5.2                      # dry run: แสดงว่าจะแก้อะไร ไม่แตะ repo
+#   ./migrate-ci-entry.sh v1.5.2 --apply              # เปิด PR ทุก repo ที่ยังไม่ย้าย
+#   ./migrate-ci-entry.sh v1.5.2 --apply --merge      # เปิด PR แล้ว merge แบบ admin ทันที
+#   ./migrate-ci-entry.sh v1.5.2 --apply csmju-quiz   # ทำเฉพาะ repo ที่ระบุ
+#
+# Safe to run again: repos already on the tag are skipped, and an open
+# migration PR is reused (merged with --merge) instead of opened twice.
 #
 # Per repo, on its default branch, a single PR that
 #   1. moves the `uses: ...subsystem-compliance.yml@vX` pin in ci.yml to the tag
@@ -23,7 +27,7 @@
 set -euo pipefail
 
 ORG="CSMJU2030"
-TAG="${1:?ระบุ tag เช่น v1.5.1}"
+TAG="${1:?ระบุ tag เช่น v1.5.2}"
 shift
 [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "❌ tag ต้องเป็นรูปแบบ vX.Y.Z" >&2; exit 1; }
 
@@ -40,6 +44,14 @@ done
 
 if ! gh api "repos/$ORG/csmju2030-standards/git/ref/tags/$TAG" >/dev/null 2>&1; then
   echo "❌ ยังไม่มี tag $TAG ใน $ORG/csmju2030-standards — ติด tag ก่อนย้าย" >&2
+  exit 1
+fi
+# tags before 1.5.2 check out the entry point with github.job_workflow_sha,
+# which is empty in a called workflow, so their checks silently come from main
+ENTRY_WF="$(gh api "repos/$ORG/csmju2030-standards/contents/.github/workflows/subsystem-compliance.yml?ref=$TAG" \
+  -H 'Accept: application/vnd.github.raw' 2>/dev/null || true)"
+if ! grep -q "^  STANDARDS_ENTRY_REF: $TAG\$" <<< "$ENTRY_WF"; then
+  echo "❌ tag $TAG ไม่ได้ปักตัวกลางไว้ที่ตัวเอง (ไม่มี STANDARDS_ENTRY_REF: $TAG) — ใช้ v1.5.2 ขึ้นไป" >&2
   exit 1
 fi
 
@@ -75,6 +87,17 @@ for repo in "${REPOS[@]}"; do
     continue
   fi
 
+  url="$(gh pr list -R "$ORG/$repo" --head "$branch" --state open --json url -q '.[0].url' 2>/dev/null || true)"
+  if [[ -n "$url" ]]; then
+    echo "🔁 $repo — มี PR ย้ายเปิดอยู่แล้ว: $url"
+    if [[ "$MERGE" -eq 1 ]]; then
+      gh pr merge -R "$ORG/$repo" "$url" --squash --admin --delete-branch >/dev/null
+      echo "   merged"
+    fi
+    DONE=$((DONE + 1))
+    continue
+  fi
+
   dir="$WORK/$repo"
   git clone -q --depth 1 "https://github.com/$ORG/$repo.git" "$dir"
   git -C "$dir" switch -q -c "$branch"
@@ -84,7 +107,7 @@ for repo in "${REPOS[@]}"; do
   fi
   git -C "$dir" add -A
   git -C "$dir" commit -q -m "$title" -m "Only the entry point is pinned now; the checks come from .standards-version, which the team moves together with the standards submodule (csmju2030-standards docs/standards-versioning.md)."
-  git -C "$dir" push -q -u origin "$branch"
+  git -C "$dir" push -q -f -u origin "$branch"   # a branch left from an earlier run is replaced
 
   url="$(gh pr create -R "$ORG/$repo" --head "$branch" --title "$title" --body "$(cat <<EOF
 ย้าย CI ไปใช้ระบบเลือกเวอร์ชันเองของ standards $TAG ([docs/standards-versioning.md](https://github.com/$ORG/csmju2030-standards/blob/main/docs/standards-versioning.md))

@@ -18,6 +18,11 @@ on:
 
 env:
   CSMJU_PROFILE: core-hub
+  # The tag of this file — every job checks out the scripts from it, so the
+  # pin in ci.yml really pins them. github.job_workflow_sha is empty in a
+  # called workflow and a checkout with no ref takes main. Moves with VERSION
+  # on every release (self-test fails when they differ).
+  STANDARDS_ENTRY_REF: v1.5.2
 
 jobs:
   convention-check:
@@ -30,7 +35,7 @@ jobs:
         id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           path: .compliance-tools
       - name: Branch naming
         if: always() && steps.tools.outcome == 'success'
@@ -50,7 +55,7 @@ jobs:
         id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           path: .compliance-tools
       - name: Secret scan
         if: always() && steps.tools.outcome == 'success'
@@ -75,7 +80,7 @@ jobs:
         id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           path: .compliance-tools
       - name: API conventions
         if: always() && steps.tools.outcome == 'success'
@@ -90,7 +95,7 @@ jobs:
         id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           path: .compliance-tools
       # DD-01 ถูกข้ามภายในสคริปต์เองเมื่อ CSMJU_PROFILE=core-hub
       - name: Forbidden field aliases
@@ -115,7 +120,7 @@ jobs:
         id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           path: .compliance-tools
       # ไม่ระบุ version — pnpm/action-setup อ่าน "packageManager" ใน package.json
       - uses: pnpm/action-setup@v4
@@ -142,7 +147,7 @@ jobs:
         id: tools
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           path: .compliance-tools
       - name: Validate .compliance-exceptions.yml
         if: always() && steps.tools.outcome == 'success'

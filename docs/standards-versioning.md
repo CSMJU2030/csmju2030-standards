@@ -1,6 +1,6 @@
 # Standards Versioning — เลือกและเลื่อนเวอร์ชัน standards ของระบบย่อย
 
-**ใช้ตั้งแต่ standards 1.5.1**
+**ใช้ตั้งแต่ standards 1.5.2** (1.5.1 ออกระบบนี้ครั้งแรก แต่ตัวกลางยังไม่ถูกปักหมุดจริง — ย้าย repo ไปที่ 1.5.2 ขึ้นไปเท่านั้น)
 
 > ทีมเลื่อนเวอร์ชัน standards ของ repo ตัวเองได้ด้วย PR ธรรมดา ให้ PL ของทีม approve แล้ว merge
 > โดยไม่ต้องรอ DevOps หรือ PM · แต่ละทีมอยู่คนละเวอร์ชันได้ ไม่มีใครถูกบังคับให้ขึ้นพร้อมกัน
@@ -13,8 +13,8 @@
 
 | ไฟล์ | ทำหน้าที่ | ใครแก้ |
 |---|---|---|
-| `.github/workflows/ci.yml` | ปักหมุด**ตัวกลาง**ของ CI (`subsystem-compliance.yml@v1.5.1`) · ตัวกลางเป็นตัวที่อ่าน `.standards-version` และตรวจกฎ `GH-03` `GH-04` | DevOps เท่านั้น (ไม่ต้องแก้ตอน bump) |
-| `.standards-version` | บอกว่า CI ต้องตรวจด้วยชุดตรวจของเวอร์ชันไหน เช่น `1.5.1` | ทีม (PL approve) |
+| `.github/workflows/ci.yml` | ปักหมุด**ตัวกลาง**ของ CI (`subsystem-compliance.yml@v1.5.2`) · ตัวกลางเป็นตัวที่อ่าน `.standards-version` และตรวจกฎ `GH-03` `GH-04` | DevOps เท่านั้น (ไม่ต้องแก้ตอน bump) |
+| `.standards-version` | บอกว่า CI ต้องตรวจด้วยชุดตรวจของเวอร์ชันไหน เช่น `1.5.2` | ทีม (PL approve) |
 | `standards/` (submodule) | สำเนาเอกสารมาตรฐานให้ AIE อ่านในเครื่อง ต้องชี้ tag เดียวกับ `.standards-version` | ทีม (PL approve) |
 
 สิ่งที่เกิดขึ้นในทุก job ของ CI
@@ -39,24 +39,24 @@
 
 ### 2.2 คำสั่ง
 
-ตัวอย่างเลื่อนไป `1.5.1` (แทน `<slug>` ด้วยชื่อระบบ เช่น `quiz` · repo ที่มี `develop` ให้แตกจาก `develop`)
+ตัวอย่างเลื่อนไป `1.5.2` (แทน `<slug>` ด้วยชื่อระบบ เช่น `quiz` · repo ที่มี `develop` ให้แตกจาก `develop`)
 
 ```bash
 git switch main && git pull
-git switch -c feature/<slug>/bump-standards-v1-5-1
+git switch -c feature/<slug>/bump-standards-v1-5-2
 
 git submodule update --init standards      # ครั้งแรกในเครื่องนี้
 git -C standards fetch --tags
-git -C standards checkout v1.5.1
-echo 1.5.1 > .standards-version
+git -C standards checkout v1.5.2
+echo 1.5.2 > .standards-version
 
 git add .standards-version standards
-git commit -m "chore(<slug>): bump standards to v1.5.1"
-git push -u origin feature/<slug>/bump-standards-v1-5-1
+git commit -m "chore(<slug>): bump standards to v1.5.2"
+git push -u origin feature/<slug>/bump-standards-v1-5-2
 ```
 
-- ชื่อ branch ใช้ตัวพิมพ์เล็กกับขีดกลางเท่านั้น (`GH-01`) จึงเขียน `v1-5-1` ไม่ใช่ `v1.5.1`
-- ใน `.standards-version` เขียนแค่ตัวเลข `1.5.1` **ไม่มี `v` นำหน้า**
+- ชื่อ branch ใช้ตัวพิมพ์เล็กกับขีดกลางเท่านั้น (`GH-01`) จึงเขียน `v1-5-2` ไม่ใช่ `v1.5.2`
+- ใน `.standards-version` เขียนแค่ตัวเลข `1.5.2` **ไม่มี `v` นำหน้า**
 - ใช้ PowerShell ได้เหมือนกัน (ไฟล์ที่ PowerShell เขียนเป็น UTF-16 หรือ CRLF CI ก็อ่านได้)
 - **PR นี้แก้แค่ 2 อย่าง คือ `.standards-version` กับ `standards`** ห้ามแก้ `ci.yml` และไม่ต้องแก้ `subsystem.yaml`
 
@@ -74,6 +74,22 @@ git push -u origin feature/<slug>/bump-standards-v1-5-1
 - เลือกเวอร์ชันที่ต่ำกว่าแต่ยังสูงกว่าเดิม
 - ถ้าเป็นข้อที่ทีมทำตามไม่ได้จริง ให้ขอข้อยกเว้นผ่าน `.compliance-exceptions.yml` ตามปกติ (DevOps approve)
 
+### 2.5 เลือกเวอร์ชันไหนดี
+
+มี 2 สาย · **สาย 1.0.x** ใช้สัญญา SSO 1.0 · **สาย 1.1 ขึ้นไป** ใช้ Central SSO (ข้ามจาก 1.0.x มาสายนี้ต้องทำ login ตามสัญญา 1.1 ด้วย)
+เลขมากกว่าไม่ได้แปลว่าอนุญาตมากกว่าเสมอ เช่น 1.1.0–1.2.0 ไม่มี `lucide-react` ที่ 1.0.2 มีแล้ว
+
+| ต้องการ | สาย 1.0.x | สาย 1.1 ขึ้นไป |
+|---|---|---|
+| `@nestjs/schedule` (งานตั้งเวลา) | 1.0.1 ขึ้นไป | 1.1.0 ขึ้นไป |
+| `lucide-react` · `leaflet` · `qrcode.react` · `@tailwindcss/postcss` (Tailwind v4) | 1.0.2 ขึ้นไป | 1.2.1 ขึ้นไป |
+| devDependency กลุ่ม eslint/prettier (`eslint-config-next` ฯลฯ) | ไม่ตรวจ devDependency | 1.3.0 ขึ้นไป (เริ่มตรวจ devDependency ด้วย) |
+| ข้อยกเว้นเฉพาะทีมใน `.compliance-exceptions.yml` (`UI-01` · `ARC-02`) | 1.0.3 ขึ้นไป | 1.4.0 ขึ้นไป |
+| ⚠️ เข้มขึ้น: ต้องมี backend NestJS (`ARC-04`) | 1.0.5 | 1.5.0 ขึ้นไป |
+
+ไม่มีในเวอร์ชันไหนเลย: ถ้าหลายทีมน่าจะใช้ เปิด issue ใน standards ขอเพิ่ม whitelist (ออกเป็น tag ใหม่แล้วทีมเลื่อนเอง) ·
+ถ้าใช้ทีมเดียว ขอข้อยกเว้นใน `.compliance-exceptions.yml` ของ repo (DevOps/PM approve · ต้องมี `issue` และ `expires`)
+
 ---
 
 ## 3. `GH-04` ตรวจอะไร
@@ -82,7 +98,7 @@ git push -u origin feature/<slug>/bump-standards-v1-5-1
 
 | ตรวจว่า | ข้อความที่เห็น | วิธีแก้ |
 |---|---|---|
-| มีไฟล์ `.standards-version` | `ไม่พบไฟล์ .standards-version` | `echo 1.5.1 > .standards-version` แล้ว commit |
+| มีไฟล์ `.standards-version` | `ไม่พบไฟล์ .standards-version` | `echo 1.5.2 > .standards-version` แล้ว commit |
 | เป็นตัวเลข `X.Y.Z` ล้วน | `.standards-version ต้องเป็นเลขเวอร์ชันล้วน` | เอา `v` หรือข้อความอื่นออก |
 | มี tag `v<เวอร์ชัน>` จริงใน standards | `ไม่มี tag vX.Y.Z` | ใช้เลขที่มีในหน้า Tags ของ standards |
 | ไม่ต่ำกว่า `MIN_VERSION` | `ต่ำกว่าเวอร์ชันขั้นต่ำที่ DevOps กำหนด` | เลื่อนขึ้นตามข้อ 2 |
@@ -98,20 +114,22 @@ repo ที่ไม่มี submodule `standards` ตรวจแค่เล�
 
 ## 4. ย้าย repo เดิมมาใช้ระบบนี้ (DevOps ทำครั้งเดียว)
 
-repo ที่สร้างก่อน 1.5.1 ยังปัก `ci.yml` ไว้ที่ `@v1.0.0` ซึ่ง `GH-03` ห้ามแก้ submodule และ CODEOWNERS ให้ DevOps เป็นเจ้าของ `/standards`
+repo ที่สร้างก่อน 1.5.2 ยังปัก `ci.yml` ไว้ที่ `@v1.0.0` ซึ่ง `GH-03` ห้ามแก้ submodule และ CODEOWNERS ให้ DevOps เป็นเจ้าของ `/standards`
 จึงต้องย้ายทีละ repo หนึ่งครั้ง ด้วย [`org-settings/migrate-ci-entry.sh`](../org-settings/migrate-ci-entry.sh)
-(ต้องติด tag `v1.5.1` ก่อน และ login `gh` เป็น org admin หรือสมาชิก team `devops`)
+(ต้องติด tag `v1.5.2` ก่อน และ login `gh` เป็น org admin หรือสมาชิก team `devops`)
 
 ```bash
-./org-settings/migrate-ci-entry.sh v1.5.1                    # dry run: แสดงว่าจะแก้ repo ไหน ไม่แตะอะไร
-./org-settings/migrate-ci-entry.sh v1.5.1 --apply csmju-quiz # ลองก่อน 1 repo
-./org-settings/migrate-ci-entry.sh v1.5.1 --apply            # เปิด PR ทุก repo ที่ยังไม่ย้าย
-./org-settings/migrate-ci-entry.sh v1.5.1 --apply --merge    # เปิด PR แล้ว merge แบบ admin ทันที
+./org-settings/migrate-ci-entry.sh v1.5.2                    # dry run: แสดงว่าจะแก้ repo ไหน ไม่แตะอะไร
+./org-settings/migrate-ci-entry.sh v1.5.2 --apply csmju-quiz # ลองก่อน 1 repo
+./org-settings/migrate-ci-entry.sh v1.5.2 --apply            # เปิด PR ทุก repo ที่ยังไม่ย้าย
+./org-settings/migrate-ci-entry.sh v1.5.2 --apply --merge    # เปิด PR แล้ว merge แบบ admin ทันที
 ```
+
+สคริปต์ไม่ยอมย้ายไป tag ที่ตัวกลางยังไม่ถูกปักหมุด (1.5.1 ลงไป) และรันซ้ำได้: repo ที่ย้ายแล้วจะข้าม PR ที่เปิดค้างจะถูกใช้ต่อ
 
 PR ที่สคริปต์เปิดแก้แค่ 2 อย่าง
 
-- `ci.yml` — เปลี่ยนจาก `@v1.0.0` เป็น `@v1.5.1`
+- `ci.yml` — เปลี่ยนจาก `@v1.0.0` เป็น `@v1.5.2`
 - `.github/CODEOWNERS` — ลบบรรทัด `/standards @csmju2030/devops`
 
 `.standards-version` กับ submodule **ไม่เปลี่ยน** ทุกทีมจึงถูกตรวจด้วยชุดเดิม (1.0.0) จนกว่าจะเลื่อนเอง
@@ -127,6 +145,10 @@ PR ที่เปิดค้างและแก้ `ci.yml` อยู่แ�
 ### 5.1 ออกเวอร์ชันใหม่
 
 ทำตาม [README หัวข้อ "จะแก้กฎหรือเอกสาร ทำอย่างไร"](../README.md#จะแก้กฎหรือเอกสาร-ทำอย่างไร) (self-test ผ่าน → bump `VERSION` → เขียน `CHANGELOG.md` → ติด tag ใหม่)
+
+- **แก้ `STANDARDS_ENTRY_REF` ทั้งใน `subsystem-compliance.yml` และ `core-hub-compliance.yml` เป็น tag ใหม่พร้อม `VERSION`**
+  (self-test ตกถ้าไม่ตรงกัน) · ค่านี้บอกว่าแต่ละ job ดึงตัวกลางจาก tag ไหน ต้องเขียนไว้ในไฟล์เพราะ
+  `github.job_workflow_sha` ว่างเสมอใน workflow ที่ถูกเรียก และ checkout ที่ไม่ระบุ ref จะได้ `main` มาแทนโดยไม่เตือน
 
 - **ติด tag ใหม่ทุกครั้ง ห้ามย้ายหรือลบ tag ที่ปล่อยไปแล้ว** เพราะ repo ที่เลือกเวอร์ชันนั้นอยู่จะถูกเปลี่ยนชุดตรวจโดยไม่รู้ตัว
   และเครื่องที่ fetch tag ไปแล้วจะไม่ตรงกับบน GitHub

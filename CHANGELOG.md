@@ -11,6 +11,32 @@
 
 ---
 
+## 1.5.2 — 2026-09-29
+
+- **ตัวกลางถูกปักหมุดจริงแล้ว** — `subsystem-compliance.yml` และ `core-hub-compliance.yml` ดึง `csmju2030-standards`
+  ด้วย `ref: ${{ github.job_workflow_sha }}` มาตั้งแต่ 1.0.0 แต่ค่านี้**ว่างเสมอ**ใน workflow ที่ถูกเรียก
+  checkout ที่ไม่มี ref จึงได้ `main` มาแทนโดยไม่เตือน (ยืนยันจาก log ของ csmju-attendance-checker PR #2 29 ก.ย.) ผลคือ
+  - ทุก repo ถูกตรวจด้วยสคริปต์บน `main` ไม่ใช่ tag ที่ `ci.yml` ปักไว้ · กฎใหม่มีผลกับทุกทีมทันทีที่ merge
+  - `GH-04` เทียบ `.standards-version` (1.0.0) กับ `VERSION` ของ `main` จึงตก**ทุก PR ของทุกระบบย่อย**
+    ตั้งแต่ `main` เลื่อนจาก 1.0.0 (attendance-checker #2 · demo-student-subsystem #5)
+  - ใน 1.5.1 การเลือกชุดตรวจตาม `.standards-version` ทำงานถูก แต่ตัวกลาง (`GH-03` · `GH-04` · `run-job.sh`) ยังมาจาก `main`
+- แก้: workflow ทั้งสองตัวมี `STANDARDS_ENTRY_REF: v1.5.2` (tag ของไฟล์เอง) แล้วทุก job ดึงจากค่านี้ ·
+  `scripts/self-test.sh` ตกถ้าค่านี้ไม่ตรงกับ `VERSION` · ถ้า checkout ตัวไหนไม่ใช้ค่านี้ · หรือยังใช้ `github.job_workflow_sha` ·
+  `self-test.yml` รันเมื่อแก้ `VERSION` หรือ `core-hub-compliance.yml` ด้วย
+- `org-settings/migrate-ci-entry.sh` — ไม่ยอมย้ายไป tag ที่ยังไม่ปักตัวกลาง (1.5.1 ลงไป) · รันซ้ำได้ (ข้าม repo ที่ย้ายแล้ว ·
+  ใช้ PR ย้ายที่เปิดค้างต่อ)
+- `docs/standards-versioning.md` ข้อ 2.5 (ใหม่) — ตารางเลือกเวอร์ชันตาม library ที่ต้องใช้ · ข้อ 5.1 เพิ่มขั้นแก้ `STANDARDS_ENTRY_REF` ·
+  `ci.yml` pin ด้วย tag เท่านั้น (commit SHA ใช้ไม่ได้แล้ว)
+
+**ใครต้องทำอะไร:** **DevOps** ย้าย repo ด้วย `migrate-ci-entry.sh v1.5.2` (ข้าม 1.5.1) — ทุกระบบย่อยจะหายตก `GH-04`
+และถูกตรวจด้วยเวอร์ชันใน `.standards-version` จริง · **ทีม** ที่ใช้ library ใหม่กว่า 1.0.0 (ซึ่งผ่านอยู่เพราะถูกตรวจด้วย `main`)
+จะเริ่มตก `ARC-02` หลังย้าย ให้เลื่อนเวอร์ชันตาม `standards-versioning.md` ข้อ 2.5 · **Core Hub** ยังถูกตรวจด้วย `main`
+จนกว่าจะเลื่อน pin ใน `ci.yml` เป็น `@v1.5.2`
+
+เป็น patch เพราะแก้บั๊ก ไม่มีกฎของโค้ดที่เข้มขึ้น
+
+---
+
 ## 1.5.1 — 2026-09-29
 
 - **ทีมเลื่อนเวอร์ชัน standards เองได้** ([`docs/standards-versioning.md`](docs/standards-versioning.md)) — ก่อนหน้านี้ PR เลื่อนเวอร์ชันต้องแก้ `ci.yml`

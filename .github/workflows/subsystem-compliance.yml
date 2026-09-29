@@ -6,8 +6,9 @@ name: CSMJU2030 Subsystem Compliance (Reusable)
 # so a team bumps by changing that file and the `standards` submodule, never
 # ci.yml (docs/standards-versioning.md).
 #
-# Each job checks out the calling repo (into ".") and this standards repo with
-# every tag (into ".compliance-tools"), keeps a copy of the pinned entry point
+# Each job checks out the calling repo (into ".") and this standards repo at
+# STANDARDS_ENTRY_REF with every tag (into ".compliance-tools"), keeps a copy
+# of the pinned entry point
 # outside the workspace, then select-standards-version.sh switches
 # .compliance-tools to the chosen tag and run-job.sh runs that version's checks
 # (scripts/lib/jobs.tsv). The scripts that enforce the rules still come from
@@ -29,6 +30,12 @@ on:
 
 env:
   PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+  # The tag of this file. Every job checks out the entry point from it, so
+  # the pin in ci.yml really pins GH-03, GH-04 and run-job.sh. It has to be
+  # written here: github.job_workflow_sha is empty in a called workflow, and
+  # a checkout with no ref silently takes main. Moves with VERSION on every
+  # release (self-test fails when they differ).
+  STANDARDS_ENTRY_REF: v1.5.2
 
 jobs:
   convention-check:
@@ -40,7 +47,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           fetch-depth: 0
           path: .compliance-tools
       - name: Select standards version (.standards-version)
@@ -58,7 +65,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           fetch-depth: 0
           path: .compliance-tools
       - name: Select standards version (.standards-version)
@@ -77,7 +84,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           fetch-depth: 0
           path: .compliance-tools
       - name: Select standards version (.standards-version)
@@ -95,7 +102,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           fetch-depth: 0
           path: .compliance-tools
       - name: Select standards version (.standards-version)
@@ -129,7 +136,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           fetch-depth: 0
           path: .compliance-tools
       - name: Select standards version (.standards-version)
@@ -147,7 +154,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           fetch-depth: 0
           path: .compliance-tools
       - name: Select standards version (.standards-version)
@@ -165,7 +172,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           fetch-depth: 0
           path: .compliance-tools
       - name: Select standards version (.standards-version)
@@ -196,7 +203,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: CSMJU2030/csmju2030-standards
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ env.STANDARDS_ENTRY_REF }}
           fetch-depth: 0
           path: .compliance-tools
       - name: Select standards version (.standards-version)

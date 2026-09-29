@@ -15,7 +15,7 @@ on:
 
 jobs:
   compliance:
-    uses: CSMJU2030/csmju2030-standards/.github/workflows/subsystem-compliance.yml@v1.5.1
+    uses: CSMJU2030/csmju2030-standards/.github/workflows/subsystem-compliance.yml@v1.5.2
     with:
       subsystem_name: csmju-<subsystem-name>
     secrets: inherit
