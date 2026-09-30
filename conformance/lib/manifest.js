@@ -11,6 +11,9 @@
  *   - scalar เป็น string / number / boolean / null
  *   - comment ขึ้นต้นด้วย `#`
  * ไม่รองรับ: flow mapping (`{a: 1}`), multi-line string, anchor
+ *
+ * บัญชีทดสอบไม่อยู่ใน manifest (ตั้งแต่ standards 1.7.0) — manifest ที่ยังมี
+ * `test_accounts` ถูกปฏิเสธทันที ดู lib/accounts.js
  */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -123,6 +126,16 @@ function loadManifest(explicitPath) {
   const raw = fs.readFileSync(manifestPath, 'utf8');
   const parsed = path.extname(manifestPath) === '.json' ? JSON.parse(raw) : parseYaml(raw);
   const manifest = camelizeDeep(parsed);
+
+  // รหัสผ่านใน repo = รั่วไปกับทุก clone และ fork · ไม่แสดงค่าที่พบ
+  if (Object.prototype.hasOwnProperty.call(manifest, 'testAccounts')) {
+    throw new Error(
+      `${path.basename(manifestPath)} มี test_accounts — runner ไม่อ่านบัญชีจาก manifest แล้ว (standards 1.7.0) ` +
+        'และรหัสผ่านต้องไม่อยู่ใน repo\n' +
+        `  ลบ test_accounts ออกจาก ${manifestPath} (ถ้าเคย commit รหัสจริงไป ให้แจ้งผู้ดูแลเปลี่ยนรหัส)\n` +
+        '  แล้วใส่บัญชีในไฟล์นอก repo ที่ CONFORMANCE_ACCOUNTS_FILE ชี้ — ดู docs/conformance.md ข้อ 2.1',
+    );
+  }
 
   if (!manifest.subsystemId && manifest.name) manifest.subsystemId = manifest.name;
   if (!manifest.level && manifest.conformanceLevel) manifest.level = manifest.conformanceLevel;
