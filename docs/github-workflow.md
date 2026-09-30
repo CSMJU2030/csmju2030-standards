@@ -173,10 +173,10 @@ merge commit ทำให้ `main` มี commit ชุดเดียวกั
    (ไม่ต่ำกว่า `MIN_VERSION` และไม่ถอยจาก branch ปลายทาง — [`standards-versioning.md`](standards-versioning.md))
 7. **Build:** `next build` และ `nest build` ต้องผ่านทั้งคู่ก่อน merge ได้
 
-> **PR แรกของ repo (bootstrap) เป็นข้อยกเว้นของกฎ `GH-03`**
-> PR ที่ติดตั้งมาตรฐานครั้งแรกจำเป็นต้องเพิ่ม `.github/workflows/ci.yml`, `CODEOWNERS` และ submodule
-> `standards/` ซึ่งเป็นไฟล์ที่ `GH-03` ห้ามแตะ — PR นี้จึงต้องให้ DevOps เป็นผู้ merge โดย override
-> ผลของ `GH-03` หลังจากนั้นกฎบังคับเต็มตามปกติ ไม่มีข้อยกเว้นอีก
+> **repo ที่ DevOps สร้างด้วย `new-subsystem.sh` มีไฟล์ CI ครบตั้งแต่ commit แรก** — ทีมไม่ต้องเพิ่มไฟล์ CI เอง
+> ข้อยกเว้นของ `GH-03` เหลือแค่ repo เดิมที่ติดตั้งมาตรฐานผ่าน PR: PR นั้นต้องเพิ่ม `.github/workflows/ci.yml`
+> และ `CODEOWNERS` ซึ่ง `GH-03` ห้ามแตะ จึงให้ DevOps merge โดย override ผลของ `GH-03` ครั้งเดียว
+> (submodule `standards/` ไม่อยู่ในรายการห้ามแล้ว — ทีมเลื่อนเองตาม `GH-04`) หลังจากนั้นกฎบังคับเต็มตามปกติ
 
 ---
 

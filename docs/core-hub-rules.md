@@ -58,7 +58,7 @@
 | `SEC-05` | ห้ามมีหน้า login / ฟอร์ม username-password | **ยกเว้น** | Core Hub คือหน้า login กลาง |
 | `ARC-01` | frontend ห้ามต่อ DB ตรง | **บังคับ** | — |
 | `ARC-02` | dependency ต้องอยู่ใน whitelist ของ stack | **ผ่อน** | เพิ่มได้เฉพาะรายการใน §4 |
-| `ARC-03` | ห้าม UI library ต้องห้าม (MUI/Antd/Bootstrap) | **บังคับ** | ยังตรวจ แม้ repo นี้ยังไม่มี frontend |
+| `ARC-03` | ห้าม UI library ต้องห้าม (MUI/Antd/Bootstrap) | **บังคับ** | ตรวจ `frontend/` ของ Core Hub (พอร์ทัล · หลังบ้าน · `/sso/*`) |
 | `API-01` | `openapi.json` sync กับโค้ด | **ยกเว้น (ชั่วคราว)** | Core Hub ยังไม่มีสคริปต์ `generate:openapi` — กลับมาบังคับเมื่อมี |
 | `API-02` | path kebab-case ใต้ `/api/v1` | **บังคับ** | — |
 | `API-03` | response envelope `{ success, data/error, meta }` | **บังคับ** | ยกเว้น JWKS (§5) และไฟล์รูป (§6) |
@@ -67,11 +67,11 @@
 | `API-06` | ประกาศ `public_endpoints` ใน `subsystem.yaml` | **ยกเว้น** | Core Hub ไม่มี `subsystem.yaml` |
 | `API-07` | ห้าม `per_page` — ใช้ `page`/`limit` | **บังคับ** | — |
 | `DD-01` | ห้าม alias ของ Global Identity (`user_id`, `userId`, …) | **ยกเว้น** | Core Hub เป็นเจ้าของตาราง `users` — `user_id` คือ PK/FK ปกติ |
-| `DD-02` | core role ต้องอยู่ใน enum 4 ค่า | **บังคับ** | Core Hub เป็นผู้นิยาม enum นี้ |
+| `DD-02` | core role ต้องอยู่ใน enum 6 ค่า (`student` `alumni` `staff` `lecturer` `guest` `admin`) | **บังคับ** | Core Hub เป็นผู้นิยาม enum นี้ |
 | `DD-03` | ตาราง/คอลัมน์เป็น snake_case (`@@map`/`@map`) | **บังคับ** | — |
 | `DD-04` | ห้าม hardcode รายชื่อคณะ | **บังคับ** | — |
 | `DD-05` | ฟิลด์เงินห้ามเป็น float | **บังคับ** | — |
-| `UI-01..04` | design tokens · ห้าม emoji | **ยกเว้น (ชั่วคราว)** | ยังไม่มี frontend ของ Core Hub ใน repo — กลับมาบังคับเมื่อมี |
+| `UI-01..04` | design tokens · ห้าม emoji | **ยกเว้น (ชั่วคราว)** | frontend ของ Core Hub มีแล้ว แต่ยังไม่ได้ตรวจกับกฎชุดนี้ — PL กำหนดวันกลับมาบังคับ |
 | `QA-01..04` | lint · typecheck · test · build | **บังคับ** | — |
 | `QA-05` | pnpm เท่านั้น | **บังคับ** | — |
 | `QA-06` | ชื่อ package ไม่ซ้ำ · `--filter` ชี้ถูก | **บังคับ** | — |
@@ -108,7 +108,11 @@
    อายุ access token 15 นาที · payload `{ sub, email, role, sid, iss, aud, iat, exp }`
    การเปลี่ยนค่าเหล่านี้คือ breaking change ของทั้งแพลตฟอร์ม ต้องขึ้นเวอร์ชัน major ของ standards
 3. **`callback_url` ต้องผ่านการตรวจก่อนบันทึกทะเบียน** — ต้องเป็น `https://` ยกเว้น `http://localhost`
-   และ `http://127.0.0.1` เท่านั้น (กัน open redirect) ดู [`subsystem-registry.md`](subsystem-registry.md)
+   และ `http://127.0.0.1` เท่านั้น (กัน open redirect) และยกเว้นได้เฉพาะเมื่อ `NODE_ENV` ไม่ใช่ production
+   หรือเปิดโหมดก่อนเปิดใช้ `ALLOW_LOCALHOST_CALLBACKS=true` (ค่าตรงตัว `true` เท่านั้น) — ตอน SSO ต้องตรวจซ้ำกับ callback ที่เก็บไว้
+   ปิดโหมดแล้ว callback `http` ทุกตัวต้องได้ 409 ก่อนออก token · ดู [`subsystem-registry.md`](subsystem-registry.md) ข้อ 4
+4. **token ที่ส่งให้ระบบย่อยต้องจำกัดขอบเขต** (กำลังทำ) — ใส่ `azp` · รับเฉพาะ endpoint ข้อมูลที่อนุญาตใน
+   [`reference-data.md`](reference-data.md) · refresh token ใช้ `aud` ของตัวเอง ([`auth-contract.md`](auth-contract.md) ข้อ 11)
 
 ---
 
@@ -150,7 +154,7 @@ on:
 
 jobs:
   compliance:
-    uses: CSMJU2030/csmju2030-standards/.github/workflows/core-hub-compliance.yml@v1.0.0
+    uses: CSMJU2030/csmju2030-standards/.github/workflows/core-hub-compliance.yml@v1.7.0
 ```
 
 Workflow นี้ตั้ง `CSMJU_PROFILE=core-hub` ให้เอง — repo ปลายทางไม่ต้องตั้งเอง และตั้งเองไม่ได้ผลด้วย

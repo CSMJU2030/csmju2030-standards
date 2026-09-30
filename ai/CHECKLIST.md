@@ -6,7 +6,7 @@
 
 - [ ] อ่าน `standards/docs/overview.md` และเอกสารที่มันชี้ครบ
 - [ ] อ่าน `standards/ai/AGENTS.md` (ถ้าใช้ AI ช่วยเขียน)
-- [ ] Core Hub รันอยู่และ seed แล้ว (`curl {CORE_HUB}/api/v1/health` → 200)
+- [ ] ต่อ Core Hub จริงได้ (`curl https://csmju2030.jowave.com/api/v1/health` → 200) · อ่าน `standards/docs/connect-core-hub.md` แล้ว
 - [ ] ตกลงระดับเป้าหมายกับ PL (L1 / L2 / L3)
 
 ## Tech stack (tech-stack.md ข้อ 1)
@@ -20,20 +20,24 @@
 
 ## ทะเบียนกับ Core Hub
 
-- [ ] `POST /api/v1/subsystems` สำเร็จ → approve → activate
-- [ ] `default_role_mapping` ใส่ครบทุก core role ที่ต้องการให้เข้าได้
-- [ ] `callback_url` ตรงกับ URL จริง และเป็น https (ยกเว้น localhost ตอน dev)
-- [ ] `standards_version` ที่ลงทะเบียนตรงกับ `.standards-version` ของ repo
+- [ ] ลงทะเบียนในหลังบ้านด้วยบัญชี `<repo>.admin` แล้ว admin ระบบกลางอนุมัติและเปิดใช้งาน (สถานะ APPROVED + ACTIVE)
+- [ ] `default_role_mapping` ใส่ครบทุก core role ที่ต้องการให้เข้าได้ (key ตัวพิมพ์เล็ก อย่างน้อย 1 ตัว)
+- [ ] `callback_url` ใช้พอร์ต **frontend** ตรงกับ URL จริง และเป็น https (ยกเว้น `http://localhost` ช่วงก่อนเปิดใช้)
+- [ ] ชื่อระบบในทะเบียน = `name` ใน `subsystem.yaml` = `SUBSYSTEM_ID` ของ backend และ frontend
 
 ## โค้ด
 
-- [ ] คัดลอกชั้น auth จาก reference implementation โดยไม่แก้ตรรกะ
+- [ ] คัดลอกชั้น auth จาก reference implementation โดยไม่แก้ตรรกะ (`all-exceptions.filter.ts` รุ่นหลัง 1 ต.ค. 2569)
+- [ ] ตรวจ token ครบ 10 ขั้น รวมอายุ token และ `azp` (auth-contract ข้อ 4) · มี `GET /auth/login` · `POST /auth/logout`
 - [ ] `role-mapping` ในโค้ด **ตรงกับ** `default_role_mapping` ในทะเบียน
 - [ ] permission ใช้รูปแบบ `<resource>:<action>[:own|:any]`
 - [ ] การตรวจ `:own` ทำกับข้อมูลจริงในชั้น service
 - [ ] ไม่มี endpoint login/register/refresh ของตัวเอง
 - [ ] ไม่มีไฟล์ `.pem` / `.key` / `.env` ใน git
-- [ ] structured log ครบตาม `contracts/log-events.json` และไม่มี token หลุดใน log
+- [ ] structured log ครบตาม `contracts/log-events.json` · logger และ error filter log แค่ path (ไม่มี query) · ไม่มี token หลุดใน log
+- [ ] ไม่มีตารางหรือ seed ของคณะ ห้อง ภาคการศึกษา รายวิชา หลักสูตร — เก็บแค่ `code` แล้วเรียก Core Hub จาก backend
+- [ ] ข้อมูลคนเก็บแค่ `core_user_id` (text ไม่ใช่ UUID) กับ `person_code` · ไม่เก็บชื่อ/อีเมล · ไม่ cache ข้อมูลบุคคล
+- [ ] ไม่มี URL ของ Core Hub เขียนตายในโค้ด (อ่านจาก env) · ไม่มีรหัสผ่านใน `subsystem.yaml`
 
 ## Naming (conformance ตรวจให้ไม่ได้ ต้องรีวิวด้วยตา)
 
@@ -56,11 +60,12 @@
 ## เกณฑ์ตัดสิน
 
 - [ ] `./standards/scripts/run-all-checks.sh .` → เขียวทุกข้อ
-- [ ] `node standards/conformance/run.js` → **0 failed, 0 skipped**
+- [ ] `node standards/conformance/run.js` (ไฟล์บัญชีนอก repo ผ่าน `CONFORMANCE_ACCOUNTS_FILE`) → **0 failed, 0 skipped**
+- [ ] login ผ่าน SSO กับ server จริงได้ทั้งจากปุ่ม login ของระบบ และจากเมนูในพอร์ทัล
 
 ```text
 RESULT: ___ passed · 0 failed · 0 skipped
-✅ CONFORMANT — <subsystem> meets standard v1.0 <level>
+✅ CONFORMANT — <subsystem> meets standard v1.2 <level>
 ```
 
 ## เอกสารและการส่งมอบ
@@ -78,7 +83,8 @@ RESULT: ___ passed · 0 failed · 0 skipped
 |---|---|---|
 | conformance ผ่านจริง | รันเอง ไม่เชื่อผลที่ทีมแนบมา | ☐ |
 | ไม่มีการแก้ standards/ | `git -C standards status --short` ต้องว่าง | ☐ |
-| ไม่มี login ของตัวเอง | `grep -rn "login\|password" backend/src` | ☐ |
+| ไม่มี login ของตัวเอง | `grep -rn "password" backend/src` ต้องว่าง · `login` เจอได้แค่ controller ของ `GET /auth/login` ที่ redirect ไป Core Hub | ☐ |
+| ไม่มี token หลุดใน log | login ผ่าน SSO หนึ่งรอบแล้ว `grep -iE "eyJ\|access_token=\|authorization:\|cookie:"` ใน log ต้องว่าง | ☐ |
 | ไม่มีความลับใน repo | `git log -p \| grep -i "BEGIN.*PRIVATE KEY"` | ☐ |
 | mapping ตรงกับทะเบียน | เทียบโค้ดกับ `GET /api/v1/subsystems/:id/role-mapping` | ☐ |
 | DB แยกจริง | ดู `DATABASE_URL` + `pg_stat_activity` | ☐ |

@@ -21,20 +21,23 @@
   2. <…>
   3. <…>
 
-การแมป role (ต้องประกาศค่าเดียวกันนี้ใน Subsystem Registry):
-- admin   → <ADMIN>
-- staff   → <STAFF>
-- student → <USER>
-- alumni  → <ไม่ให้เข้า / ระบุ role>
+การแมป role (ต้องประกาศค่าเดียวกันนี้ใน Subsystem Registry · role ที่ไม่ใส่ = เข้าไม่ได้):
+- student  → <USER>
+- alumni   → <ไม่ให้เข้า / ระบุ role>
+- staff    → <STAFF>          (เจ้าหน้าที่ที่ไม่ใช่อาจารย์)
+- lecturer → <TEACHER>
+- guest    → <ไม่ให้เข้า / ระบุ role>
+- admin    → <ADMIN>
 
 สภาพแวดล้อม:
-- Core Hub: http://localhost:3000  (ต้องรันอยู่)
-- ระบบย่อยนี้: http://localhost:<port>
+- Core Hub: https://csmju2030.jowave.com  (อ่านจาก env CORE_HUB_URL / CORE_HUB_WEB_URL — ห้ามเขียนตายในโค้ด)
+- ระบบย่อยนี้: frontend http://localhost:<32xx> · backend http://127.0.0.1:<42xx>
 - ฐานข้อมูลของตัวเอง: <subsystem>_db   (ห้ามต่อ core_hub)
+- ข้อมูลกลาง: เรียกจาก Core Hub ตาม standards/docs/reference-data.md — เก็บแค่ code / core_user_id / person_code
 
 เกณฑ์รับงาน:
 1. ./standards/scripts/run-all-checks.sh .   →  เขียวทุกข้อ
-2. node standards/conformance/run.js         →  0 failed, 0 skipped ที่ระดับ L3
+2. node standards/conformance/run.js         →  0 failed, 0 skipped ที่ระดับ L3 (บัญชีจากไฟล์นอก repo)
 3. ส่ง REPORT.md ตามรูปแบบใน standards/ai/AGENTS.md ข้อ 6
 
 ข้อห้าม (ดู auth-contract.md ข้อ 9):

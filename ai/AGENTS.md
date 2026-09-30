@@ -21,13 +21,13 @@
 ## 1. ลำดับการทำงาน (ห้ามข้ามขั้น)
 
 ```text
-ขั้น 1  อ่าน standards/docs/{overview,tech-stack,auth-contract,authorization,api-conventions,data-dictionary}.md
-ขั้น 2  ตรวจว่า Core Hub รันอยู่:  curl {CORE_HUB_URL}/api/v1/health
+ขั้น 1  อ่าน standards/docs/{overview,connect-core-hub,reference-data,tech-stack,auth-contract,authorization,api-conventions,data-dictionary}.md
+ขั้น 2  ตรวจว่าต่อ Core Hub ได้:  curl {CORE_HUB_URL}/api/v1/health   (CORE_HUB_URL = https://csmju2030.jowave.com)
 ขั้น 3  คัดลอกชั้น auth จาก reference implementation (ดูข้อ 2) — ห้ามแก้ตรรกะข้างใน
 ขั้น 4  สร้าง subsystem.yaml จาก standards/templates/subsystem.yaml
-ขั้น 5  ลงทะเบียนระบบย่อยกับ Core Hub (POST /api/v1/subsystems → approve → activate)
-ขั้น 6  ให้ conformance ระดับ L1 ผ่านก่อน:
-            node standards/conformance/run.js --level L1
+ขั้น 5  ให้คนลงทะเบียนระบบในหลังบ้านของ Core Hub (บัญชี <repo>.admin → admin ระบบกลางอนุมัติ) — agent ทำขั้นนี้แทนไม่ได้
+ขั้น 6  ให้ conformance ระดับ L1 ผ่านก่อน (บัญชีอ่านจากไฟล์นอก repo — docs/conformance.md):
+            CONFORMANCE_ACCOUNTS_FILE=~/.csmju/conformance-accounts.json node standards/conformance/run.js --level L1
 ขั้น 7  เขียน business domain ของตัวเอง (model · API · กฎธุรกิจ · permission)
 ขั้น 8  รัน L2 → แก้จนผ่าน
 ขั้น 9  รัน L3 → แก้จนผ่าน
@@ -41,14 +41,15 @@
 
 ## 2. สิ่งที่ต้อง "คัดลอก" ไม่ใช่ "เขียนใหม่"
 
-reference implementation: `demo-student-subsystem/backend/`
+reference implementation: `demo-student-subsystem/backend/` (ตั้งแต่ standards 1.7.0 — SSO 1.1 · ตรวจ token 10 ขั้น)
 
 | คัดลอกทั้งไฟล์/โฟลเดอร์ | แก้ได้ไหม |
 |---|---|
 | `src/auth/jwks.service.ts` · `core-hub-token.verifier.ts` · `auth.errors.ts` · `core-hub-identity.ts` | ❌ ห้ามแก้ตรรกะ |
 | `src/auth/guards/` · `src/auth/decorators/` | ❌ ห้ามแก้ |
-| `src/auth/sso-callback.controller.ts` · `sso-session.ts` · `me.controller.ts` | ❌ ห้ามแก้ |
-| `src/common/` (envelope + exception filter) | ❌ ห้ามแก้ |
+| controller ของ `/auth/login` · `/auth/callback` · `/auth/logout` · `sso-session.ts` · `me.controller.ts` | ❌ ห้ามแก้ |
+| `src/common/` (envelope + exception filter) | ❌ ห้ามแก้ — **ใครคัดลอก `all-exceptions.filter.ts` ไปก่อน 1 ต.ค. 2569 ต้องคัดลอกใหม่** (ตัวเก่า log URL ของ callback ที่มี token) |
+| `src/core-hub/` (ตัวเรียกข้อมูลกลาง: cache · timeout · ใช้ของเก่าเมื่อ Core Hub ล่ม) | ❌ ห้ามแก้ตรรกะ · เพิ่มชุดข้อมูลที่ `reference-datasets.ts` ได้ |
 | `src/auth/role-mapping.ts` | ✏️ แก้ได้เฉพาะ "ค่า" ในตาราง ให้ตรงกับทะเบียน |
 | `src/auth/permissions.ts` | ✏️ เขียน permission ของโดเมนตัวเอง (คงรูปแบบ `resource:action[:scope]`) |
 | `prisma/` และโมดูลธุรกิจ | ✍️ เขียนเองทั้งหมด |
@@ -67,7 +68,18 @@ reference implementation: `demo-student-subsystem/backend/`
 | "API ตอบ 302 ไป login ตอน token หมดอายุ" | API (`/api/*`) ตอบ **401 JSON** เสมอ — `fetch` ตาม redirect ข้าม origin ไม่ได้ การพาไป login เป็นหน้าที่ของ frontend |
 | "ส่งเบราว์เซอร์ไป `/api/v1/auth/sso/authorize` ของ Core Hub ตรง ๆ" | endpoint นั้นต้องมี Bearer ที่เบราว์เซอร์แนบไม่ได้ → 401 · ให้ส่งไป **เว็บ** ของ Core Hub `{CORE_HUB_WEB_URL}/sso/authorize` ผ่าน `/auth/login` ของตัวเอง |
 | "ต่ออายุ token ด้วย `fetch` ไป `/auth/login`" | ต้องเป็น top-level navigation (`window.location.assign`) — `fetch` ไม่ได้คุกกี้และติด CORS |
-| "ทำตาราง users ของตัวเองไว้ก่อน" | เก็บได้แค่ `core_user_id` เป็น external reference |
+| "ทำตาราง users ของตัวเองไว้ก่อน" | เก็บได้แค่ `core_user_id` (ค่า `sub`) และ `person_code` เป็น external reference |
+| "`core_user_id` เป็น UUID ใส่ `@db.Uuid` / `@IsUUID()`" | `sub` เป็น string ทึบ **ไม่ใช่ UUID เสมอไป** (นักศึกษาที่นำเข้าจาก CSV เป็น `user-<รหัส>`) — เก็บเป็น text ยาวไม่เกิน 64 |
+| "เก็บชื่อ/อีเมลผู้ใช้ไว้ในตารางจะได้แสดงผลเร็ว" · "cache ข้อมูลบุคคล" | ห้ามเก็บและห้าม cache ข้อมูลบุคคล — เก็บ `person_code` แล้วดึงชื่อตอนแสดงผล ([`reference-data.md`](../docs/reference-data.md)) |
+| "สร้างตาราง/seed คณะ ห้อง ภาคการศึกษา รายวิชาเอง" · "อ้างด้วย `id`" | ข้อมูลกลางอยู่ที่ Core Hub — เก็บแค่ `code` แล้วเรียก `/api/v1/<ชุดข้อมูล>` · Core Hub ไม่ส่ง `id` ออกมา |
+| "เรียก API ของ Core Hub จากหน้าเว็บ (browser)" | Core Hub ไม่เปิด CORS — เรียกจาก **backend** ด้วย token ของผู้ใช้ เฉพาะ endpoint ที่อนุญาต |
+| "ส่ง token ของผู้ใช้ไปให้ service อื่น / เก็บลง DB / ส่งให้ JavaScript" | token คือบัตรผ่านของผู้ใช้ — อยู่ได้ที่คุกกี้ HttpOnly อย่างเดียว ([auth-contract](../docs/auth-contract.md) ข้อ 6.1) |
+| "log `request.url` / `originalUrl` ใน error filter หรือ logger" | log แค่ `request.path` — URL ของ `/auth/callback` มี token · ห้าม log header `Authorization`/`Cookie` |
+| "ตรวจ token แค่ 8 ขั้นเหมือนเดิม" | ต้องครบ 10 ขั้น: เพิ่มอายุ token (`exp − iat` ≤ 900 + 60 วินาที) และ `azp` เมื่อมี (auth-contract ข้อ 4) |
+| "ฮาร์ดโค้ด `http://localhost:3000` · `3100` ไว้ในโค้ด" | อ่าน `CORE_HUB_URL` · `CORE_HUB_WEB_URL` จาก env (server จริงคือ `https://csmju2030.jowave.com`) |
+| "ลงทะเบียน callback เป็นพอร์ต backend" · "เปิดแอปด้วย `127.0.0.1`" | callback ใช้พอร์ต **frontend** (32xx) และเปิดด้วย host เดียวกับที่ลงทะเบียน (`localhost`) |
+| "แมป `staff` ทั้งหมดเป็น ADMIN ของระบบ" | ผู้ดูแลที่เป็นแค่บางคนให้ใช้สิทธิ์พิเศษรายบุคคลผ่านทะเบียน — ห้ามเขียนรายชื่อตายตัวในโค้ด |
+| "ใส่ `test_accounts` พร้อมรหัสผ่านใน `subsystem.yaml`" | ห้ามมีรหัสผ่านใน repo — conformance อ่านจากไฟล์นอก repo (`CONFORMANCE_ACCOUNTS_FILE`) |
 | "ตอบ 401 ตอนสิทธิ์ไม่พอ" | สิทธิ์ไม่พอ = **403** เสมอ · 401 ใช้ตอนไม่รู้ว่าเป็นใคร |
 | "ตอบ 404 แทน 403 เพื่อความปลอดภัย" | มาตรฐานบังคับ 403 (conformance จับ) |
 | "ตั้งชื่อ error code ให้สื่อกว่า" | ใช้ enum ปิดใน `standards/contracts/error-codes.json` |
@@ -97,7 +109,7 @@ rm -rf frontend/.next && pnpm -r typecheck
 
 # ตัวตัดสิน
 ./standards/scripts/run-all-checks.sh .        # static — เหมือน CI
-node standards/conformance/run.js              # runtime — ยิงระบบจริง
+CONFORMANCE_ACCOUNTS_FILE=~/.csmju/conformance-accounts.json node standards/conformance/run.js   # runtime — ยิงระบบจริง
 ```
 
 ---
@@ -106,11 +118,12 @@ node standards/conformance/run.js              # runtime — ยิงระบ�
 
 ```text
 RESULT: <n> passed · 0 failed · 0 skipped
-✅ CONFORMANT — <subsystem> meets standard v1.0 <level>
+✅ CONFORMANT — <subsystem> meets standard v1.2 <level>
 ```
 
 - **0 failed** เท่านั้นจึงผ่าน
-- **SKIP ไม่นับว่าผ่าน** — แปลว่า `probes` ใน `subsystem.yaml` ยังประกาศไม่ครบ
+- **SKIP ไม่นับว่าผ่าน** — แปลว่า `probes` ใน `subsystem.yaml` ยังประกาศไม่ครบ หรือไฟล์บัญชีไม่มี role ที่ต้องใช้
+  (runner ตอบ NOT CONFORMANT ถ้ามี SKIP)
 - ถ้าเชื่อว่าเคสใดผิดที่ตัวมาตรฐานเอง **ห้ามแก้** ให้บันทึกใน `REPORT.md` แล้วแจ้ง PL
 
 ---
