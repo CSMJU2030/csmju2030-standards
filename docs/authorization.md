@@ -1,6 +1,6 @@
 # Authorization
 
-**เวอร์ชัน 1.0** · คู่กับ [`auth-contract.md`](auth-contract.md)
+**เวอร์ชัน 1.1** (standards 1.7.0) · คู่กับ [`auth-contract.md`](auth-contract.md)
 
 > Authentication ตอบว่า *"นี่คือใคร"* — Authorization ตอบว่า *"คนนี้ทำอะไรได้"*
 > สองเรื่องนี้ต้องแยกชั้นกันในโค้ด
@@ -38,9 +38,11 @@ student · alumni · staff · lecturer · guest · admin
 | `guest` | ผู้เยี่ยมชม | admin ของ Core Hub สร้างบัญชีให้ (ไม่ผ่าน MJU SSO) |
 | `admin` | ผู้ดูแลระบบกลาง | admin ของ Core Hub กำหนด |
 
-มาจาก claim `role` ใน access token เท่านั้น
+มาจาก claim `role` ใน token เท่านั้น — เป็น role ของผู้ใช้**สำหรับระบบนี้**: core role ของบัญชี
+หรือ role ของสิทธิ์พิเศษที่อนุมัติแล้ว (ข้อ 7) · อ่านจาก token ทุก request ห้ามเก็บไว้ตัดสินสิทธิ์ครั้งต่อไป
 
-- **admin ของระบบย่อยไม่ใช่ core role** — คือบัญชีที่เป็นเจ้าของระบบในทะเบียน (ยื่นและแก้ทะเบียนของตัวเองได้)
+- **admin ของระบบย่อยไม่ใช่ core role** — บัญชีเจ้าของระบบในทะเบียน (role `staff` หรือ `lecturer` เช่น
+  บัญชีเจ้าของระบบที่ทีมได้รับ) มีสิทธิ์แค่ยื่นและแก้ทะเบียนของตัวเอง ([`subsystem-registry.md`](subsystem-registry.md) ข้อ 1)
   ส่วนสิทธิ์ภายในระบบย่อยให้ผ่าน role mapping (ข้อ 3) หรือสิทธิ์พิเศษรายบุคคล (ข้อ 7)
 - ระบบย่อยที่ยังไม่ได้ใส่ `lecturer` / `guest` ใน mapping ไม่ต้องแก้อะไร ผู้ใช้ role นั้นได้ `403` ตามข้อ 3
 
@@ -52,20 +54,24 @@ student · alumni · staff · lecturer · guest · admin
 และ **ต้อง**ประกาศตารางเดียวกันนี้ใน Subsystem Registry (`default_role_mapping`)
 
 ```ts
-// ตัวอย่างจาก reference implementation
+// ตัวอย่างจาก reference implementation (ระบบจองห้อง)
 export const CORE_ROLE_TO_SUBSYSTEM_ROLE = {
-  student: 'STUDENT',
-  alumni:  'ALUMNI',
-  staff:   'STAFF',
-  admin:   'ADMIN',
+  student:  'STUDENT',
+  alumni:   'ALUMNI',
+  staff:    'STAFF',
+  lecturer: 'STAFF',    // อาจารย์ใช้สิทธิ์ชุดเดียวกับเจ้าหน้าที่ในระบบนี้
+  guest:    'ALUMNI',   // ผู้เยี่ยมชมดูได้อย่างเดียว
+  admin:    'ADMIN',
 } as const;
 ```
 
 - ชื่อ subsystem role ตั้งเองได้ (เช่น ระบบครุภัณฑ์แมป `student → USER`)
 - core role ที่ **ไม่มี**ในตาราง = เข้าระบบนี้ไม่ได้ → ตอบ **`403`** (ไม่ใช่ 401)
-- **key ของ `default_role_mapping` มีผลบังคับ**: Core Hub ใช้ตรวจตั้งแต่ก่อน redirect
-  ถ้าลืมใส่ role ใด ผู้ใช้ role นั้นจะโดน `403` ที่ Core Hub ทันที
-- ตารางในโค้ด **ต้องตรงกับ**ทะเบียนเสมอ (ผู้รีวิวตรวจข้อนี้ด้วยตา)
+- **key ของ `default_role_mapping` มีผลบังคับ**: Core Hub ใช้เป็นรายชื่อ role ที่เข้าได้ ตรวจตั้งแต่ก่อน redirect
+  ถ้าลืมใส่ role ใด ผู้ใช้ role นั้นจะโดน `403` ที่ Core Hub ทันที · ต้องมีอย่างน้อย 1 key เป็นตัวพิมพ์เล็กตรงตัว
+- **value ในทะเบียนเป็นเอกสาร** — Core Hub ไม่ส่งไปใน token ระบบย่อยต้องแมปเองด้วยตารางในโค้ด
+  และตารางในโค้ด **ต้องตรงกับ**ทะเบียนเสมอ (ผู้รีวิวตรวจข้อนี้ด้วยตา)
+- **อย่าแมป `staff` ทั้งหมดเป็นผู้ดูแลระบบย่อย** — ถ้าผู้ดูแลเป็นแค่บางคน ให้ใช้สิทธิ์พิเศษรายบุคคล (ข้อ 7)
 
 ---
 
@@ -127,4 +133,9 @@ findOne(@CurrentUser() user, @Param('id') id) {
 ## 7. Subsystem Exception
 
 กรณีต้องให้สิทธิ์พิเศษรายบุคคล (เช่น นักศึกษาคนหนึ่งเป็นผู้ช่วยแล็บ) ให้ขอผ่าน Registry
-ไม่ใช่ฮาร์ดโค้ดใน subsystem — ดู [`subsystem-registry.md`](subsystem-registry.md) ข้อ 5
+ไม่ใช่ฮาร์ดโค้ดใน subsystem — ดู [`subsystem-registry.md`](subsystem-registry.md) ข้อ 7
+
+- เมื่ออนุมัติแล้ว Core Hub ใส่ role ของสิทธิ์พิเศษเป็น `role` ใน token ที่ออกให้ระบบนี้
+  ระบบย่อยแมปด้วยตารางข้อ 3 ตามปกติ ไม่ต้องมีโค้ดพิเศษ
+- **ตอนนี้ยังไม่มีผล** — Core Hub บันทึกและอนุมัติได้แล้ว แต่จะเริ่มใส่ role ลง token เมื่อขึ้นงานแยก token ของระบบย่อย
+  (CHANGELOG ของ standards จะแจ้ง) · ระหว่างนี้ห้ามเขียนรายชื่อผู้ใช้ตายตัวในโค้ดแทน
