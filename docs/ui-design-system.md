@@ -1096,7 +1096,7 @@ csmju-<subsystem-name>/
 2. ใช้ **global `HttpExceptionFilter`** แปลง exception เป็น `{ success:false, error:{ code, message, details } }` โดย `code` ต้องอยู่ในรายการมาตรฐาน 6 ค่า
 3. `ValidationPipe` + `class-validator` ต้องตั้งค่าให้ error ออกมาเป็น `VALIDATION_ERROR` พร้อม `details.field` เป็นชื่อฟิลด์เดียว — เพราะ **หน้าจอใช้ค่านี้ในการ focus ไปยังช่องที่ผิดโดยตรง** (ข้อ 9.3) ถ้าไม่ส่ง `details.field` มา frontend จะแสดง error ใต้ฟิลด์ไม่ได้
 4. ข้อความใน `error.message` ต้องเป็น **ภาษาไทยที่ผู้ใช้อ่านรู้เรื่อง** เพราะ frontend แสดงตรงๆ ❌ ห้ามส่งข้อความ default ของ class-validator (`quantity must be a positive number`)
-5. ชื่อคอลัมน์ใน PostgreSQL และ field ใน DTO ต้องเป็น `snake_case` ตรงกับ `data-dictionary.md` — ❌ ห้ามให้ ORM แปลงเป็น `camelCase` ตอนส่งออก (ไม่งั้น frontend ต้องเขียน mapper เอง และชื่อจะเพี้ยนไปคนละแบบใน 37 ระบบ)
+5. ชื่อคอลัมน์ใน PostgreSQL เป็น `snake_case` (ผ่าน `@map`/`@@map`) ส่วน field ใน DTO และ JSON เป็น `camelCase` ตาม `api-conventions.md` และ `data-dictionary.md` — frontend ใช้ชื่อตามที่ API ส่งมาตรง ๆ ไม่ต้องเขียน mapper
 6. ผู้ใช้ต้องอ่านจาก header `X-User-Id` / `X-Layer1-Role` ที่ gateway แนบมา (`auth-contract.md` §5) ❌ ห้ามรับ `username` จาก body หรือ query ที่ frontend ส่งมา (ปลอมได้)
 7. ต้องมี `/health` และประกาศ `public_endpoints` ใน `subsystem.yaml`
 
@@ -1107,7 +1107,7 @@ csmju-<subsystem-name>/
 3. ❌ สร้างหน้า login / ฟอร์ม username-password ในระบบย่อย
 4. ❌ เก็บ `access_token` ใน `localStorage` (ตามที่ Core กำหนด — ใช้กลไกของ AppShell เท่านั้น)
 5. ❌ hardcode `client_secret` หรือ URL ของ API ในโค้ด (ใช้ env var)
-6. ❌ hardcode รายการคณะ (ต้องเรียก `/v1/faculties` ตาม `data-dictionary.md` §3)
+6. ❌ hardcode รายการคณะ (backend ต้องเรียก `GET /api/v1/faculties` ของ Core Hub ตาม `reference-data.md` — หน้าเว็บเรียกผ่าน API ของระบบย่อยเอง)
 7. ❌ เขียน 401/refresh logic เอง
 8. ❌ ใช้ `!important` (ยกเว้นใน media query ของ reduced-motion)
 9. ❌ ใช้ inline `style={{...}}` สำหรับสี/ฟอนต์ (ใช้ได้เฉพาะค่าที่คำนวณตอน runtime เช่น ความสูงกราฟ)
@@ -1364,7 +1364,7 @@ Next.js ฝั่งหน้าเว็บห้ามต่อ PostgreSQL โ
 7. ห้ามคิดข้อความ error เอง ให้ map จาก error.code ตามตารางที่กำหนดด้านล่าง
 8. ห้ามใช้ emoji ในหน้าจอระบบ
 9. ห้ามใช้ localStorage เก็บ token
-10. ห้าม hardcode รายชื่อคณะ ให้เรียก API /v1/faculties
+10. ห้าม hardcode รายชื่อคณะ ให้ backend เรียก GET /api/v1/faculties ของ Core Hub (reference-data.md)
 11. ห้ามใช้ Pages Router, Vite, Nuxt หรือ CRA ใช้ Next.js App Router เท่านั้น
 12. โหลดฟอนต์ผ่าน next/font เท่านั้น ห้าม <link> ไป Google Fonts CDN
 13. ห้ามใส่ความลับใดๆ ในตัวแปรที่ขึ้นต้นด้วย NEXT_PUBLIC_
@@ -1382,7 +1382,7 @@ Next.js ฝั่งหน้าเว็บห้ามต่อ PostgreSQL โ
 กฎฝั่ง NestJS ที่ต้องรู้เมื่อเขียนหน้าจอ:
 - response ทุกตัวห่อด้วย { success, data, meta } หรือ { success:false, error:{ code, message, details } }
 - VALIDATION_ERROR จะส่ง details.field มาด้วย ให้ใช้ค่านี้ focus ไปยังฟิลด์ที่ผิด
-- ชื่อฟิลด์เป็น snake_case ตรงกับ data-dictionary.md ห้ามแปลงเป็น camelCase ในหน้าเว็บ
+- ชื่อฟิลด์ใน JSON เป็น camelCase ตามที่ API ส่งมา (คอลัมน์ในฐานข้อมูลเท่านั้นที่เป็น snake_case)
 - ตัวตนผู้ใช้มาจาก header X-User-Id / X-Layer1-Role ที่ gateway แนบให้ ห้ามส่ง username จากหน้าเว็บไปให้ backend เชื่อ
 
 ภาษาและการแสดงผล:

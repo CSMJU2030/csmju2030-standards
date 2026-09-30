@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # scripts/check-no-hardcoded-faculty.sh — DD-04
 # Heuristic: flags array/object literals that look like a hardcoded list of
-# faculty names instead of fetching them from GET /v1/faculties.
+# faculty names instead of fetching them from Core Hub's GET /api/v1/faculties
+# (docs/reference-data.md).
 # The name match is case-insensitive on purpose: a SCREAMING_CASE constant
 # (const FACULTIES = [...]) is the most common way to write one and used to
 # slip through a [Ff]acult-only pattern.
@@ -30,8 +31,8 @@ if [[ -n "$RESULT" ]]; then
   done
   if [[ "${VIOLATION:-0}" -eq 1 ]]; then
     cat <<EOF
-   อ้างอิง: data-dictionary.md ข้อ 3
-   วิธีแก้: ลบ array คงที่ทิ้ง แล้วเรียก GET /v1/faculties แทน
+   อ้างอิง: docs/reference-data.md (ข้อมูลอ้างอิงจาก Core Hub)
+   วิธีแก้: ลบ array คงที่ทิ้ง แล้วเรียก GET /api/v1/faculties ของ Core Hub จาก backend (cache ได้ 10 นาที)
 EOF
     exit 1
   fi

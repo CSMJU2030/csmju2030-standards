@@ -1,89 +1,89 @@
 # CSMJU2030 — Data Dictionary & Schemas
 
-**Version:** 1.0.1  
-**Scope:** Phase 1 — ใช้งานภายในสาขาเดียว
+**เวอร์ชัน 1.1** (มาตรฐาน 1.7.0) · ขอบเขต: ชื่อและชนิดข้อมูล**ฝั่งระบบย่อย** ·
+ข้อมูลที่ Core Hub ส่งให้ (endpoint · field · สิทธิ์ · cache) อยู่ใน [`reference-data.md`](reference-data.md) ที่เดียว ·
+ประวัติการเปลี่ยนแปลงอยู่ใน [`../CHANGELOG.md`](../CHANGELOG.md)
 
-> ### Errata 1.0.0 → 1.0.1 (2026-09-04)
->
-> ฉบับ 1.0.0 กำหนดชื่อฟิลด์ identity กลางเป็น `user_id` ซึ่งขัดกับ
-> `auth-contract.md` ข้อ 11 ที่กำหนดเป็น `username` และผูกไว้กับ JWT claim
-> (`sub` ต้องมีค่าเท่ากับ `username`) เอกสารทั้งสองฉบับอ้างอิงกันไปกลับ
-> โดยที่ค่าไม่ตรงกัน ทำให้ระบบย่อยที่ทำตามฉบับใดฉบับหนึ่งถูก CI ตีตก
->
-> **มติ: ยึด `username`** เพราะเป็น contract ที่ข้ามขอบเขตไปหา Core แล้ว
-> (gateway ออก token ด้วยชื่อนี้) และเพราะ `user_id` เป็นชื่อสามัญที่จะชนกับ
-> foreign key ของตาราง local ทำให้กลไก forbidden-alias ตรวจแยกไม่ออก
->
-> รายการที่แก้ในฉบับนี้
-> **ฉบับ 1.0** — ปรับให้ตรงกับข้อมูลที่ Core Hub ส่งให้จริง (`sub` · `email` · `role` · `sid`)
-> ประวัติการเปลี่ยนแปลงอยู่ใน [`../CHANGELOG.md`](../CHANGELOG.md)
+## 1. ข้อมูลที่มาจาก Core Hub
 
-## 1. Shared Data Contract
+### 1.1 ใน access token (ใช้ได้ทันที)
 
-ตารางนี้คือข้อมูลที่ **Core Hub เป็นเจ้าของ** และสิ่งที่ระบบย่อยได้รับจริงในเวอร์ชัน 1.0
+| claim | ชื่อในระบบย่อย (DB / TS) | ความหมาย |
+|---|---|---|
+| `sub` | `core_user_id` / `coreUserId` | **Global Identity** — id ผู้ใช้ของ Core Hub · string ทึบยาวไม่เกิน 64 **ไม่ใช่ UUID เสมอไป** (นักศึกษาที่นำเข้าจาก CSV เป็น `user-<รหัสนักศึกษา>`) |
+| `email` | — | แสดงผลเท่านั้น **ห้ามใช้เป็นกุญแจ** (อาจเป็น `<รหัส>@sso.mju.local` และเปลี่ยนได้) |
+| `role` | `coreRole` (ตัวแปรในโค้ด) | core role 6 ค่า (ข้อ 4) — role ของผู้ใช้สำหรับระบบนี้ อ่านจาก token ทุก request **ไม่เก็บ** |
+| `sid` | — | session id ของ Core Hub — **ห้ามเก็บ** |
 
-### 1.1 สิ่งที่มาใน access token (ใช้ได้ทันที)
+claim ทั้งหมดและการตรวจ token อยู่ใน [`auth-contract.md`](auth-contract.md) ข้อ 3–4 และ [`../contracts/jwt-contract.json`](../contracts/jwt-contract.json)
 
-| ชื่อใน token | ชื่อในระบบย่อย (DB / TS) | Type | ความหมาย |
-|---|---|---|---|
-| `sub` | `core_user_id` / `coreUserId` | string | **Global Identity** — id ผู้ใช้ของ Core Hub เช่น `user-002` |
-| `email` | `email` | string | อีเมลของผู้ใช้ |
-| `role` | `core_role` / `coreRole` | enum | `student` · `alumni` · `staff` · `lecturer` · `guest` · `admin` |
-| `sid` | — | string | session id ของ Core Hub (ไม่ต้องเก็บ) |
-
-### 1.2 สิ่งที่ Core Hub มีแต่ **ไม่ได้ส่งมาใน token**
-
-| field | สถานะใน v1.0 |
-|---|---|
-| `username` | มีในฐานข้อมูล Core Hub แต่ไม่อยู่ใน token · ดึงได้เฉพาะผ่าน `GET /api/v1/users/:id` ซึ่งต้องมี permission |
-
-### 1.3 สิ่งที่ **ยังไม่มี** ใน Core Hub v1.0
+### 1.2 สิ่งที่ไม่อยู่ใน token
 
 ```text
-faculty · department · full_name · is_active · visibility
+ชื่อ · รหัสนักศึกษา · username · faculty · department · สถานะนักศึกษา
 ```
 
-ห้ามออกแบบระบบโดยสมมติว่าได้ field เหล่านี้จาก Core Hub หรือจาก token
-ถ้าระบบย่อยจำเป็นต้องใช้ ให้เก็บเป็น **local data ของตัวเอง** และระบุไว้ใน `REPORT.md`
-จนกว่าจะมี Change Process เพิ่มเข้าสัญญากลาง (ดูข้อ 11)
+ข้อมูลเหล่านี้ Core Hub มีและเปิดผ่าน API (`/people/me` · `/people/:personCode` · ข้อมูลอ้างอิง 7 ชุด) —
+**ห้ามคาดหวังจาก token และห้ามเก็บสำเนาไว้เอง** ดูว่าเรียกอะไรได้และเก็บอะไรได้ใน [`reference-data.md`](reference-data.md) ข้อ 2 และ 8
 
 ## 2. Core Rules
 
 - ใช้ชื่อ field ตามมาตรฐานนี้
-- Shared Data ต้องมี Source of Truth เดียว
+- Shared Data มี Source of Truth เดียวคือ Core Hub — ระบบย่อยอ่านผ่าน API เท่านั้น ห้ามต่อฐานของ Core Hub (`ARC-01`)
 - Subsystem ห้ามแก้ข้อมูลที่ Core เป็นเจ้าของ
 - Local Data อยู่ใน Schema ของ Subsystem
-- ห้ามสร้าง field ซ้ำความหมายกับ Shared Data
+- ห้ามสร้าง field ซ้ำความหมายกับ Shared Data — อ้างถึงด้วย `core_user_id` · `person_code` · `code` เท่านั้น
 - Shared Contract เปลี่ยนได้ผ่าน Change Process เท่านั้น
 - Breaking Change → Major Version
 
-## 3. Identity ที่ระบบย่อยเก็บได้
+## 3. Identity และ code ที่ระบบย่อยเก็บได้
 
-ระบบย่อย **ห้าม**สร้างตาราง user ของตัวเองที่ซ้ำกับ Core Hub และ **ห้าม**เก็บรหัสผ่าน
-ให้เก็บเพียง external reference:
+ระบบย่อย **ห้าม**สร้างตาราง user หรือตารางบุคคลของตัวเองที่ซ้ำกับ Core Hub และ **ห้าม**เก็บรหัสผ่าน
+ให้เก็บเพียงค่าอ้างอิงในตารางธุรกิจของตัวเอง (ตาราง เก็บ / ห้ามเก็บ ฉบับเต็มอยู่ใน [`reference-data.md`](reference-data.md) ข้อ 8):
+
+```yaml
+CoreIdentityReference:        # คอลัมน์ในตารางธุรกิจของระบบย่อย
+  core_user_id:
+    type: text                # ยาวไม่เกิน 64 · ไม่ใช่ UUID — ห้าม parse หรือ validate เป็น UUID
+    unique: false             # ทำ index · ผู้ใช้หนึ่งคนมีได้หลายแถว
+    source: Core (JWT claim `sub`)
+    writable: false           # ระบบย่อยห้ามแก้ค่านี้เอง
+    personal_data: true
+  person_code:
+    type: text
+    required: false           # /people/me ได้ null เมื่อบัญชีไม่ผูกกับบุคคล
+    source: Core (GET /api/v1/people/me → personCode ตอนเกิดรายการ)
+    writable: false
+
+ReferenceCode:                # <ชุด>_code เช่น room_code · faculty_code · term_code · course_code
+  type: text
+  source: Core (code ของข้อมูลอ้างอิง)
+  writable: false
+  rule: เก็บ code อย่างเดียว — ไม่เก็บชื่อ ไม่เก็บ id · รายวิชาใช้ code เต็มรวมรุ่น ไม่ใช่ baseCode
+
+CoreImageReference:
+  image_id:
+    type: text                # id ของรูปจาก POST /api/v1/images
+    source: Core
+```
 
 ```prisma
-model Student {
-  id         String  @id @default(uuid())
-  coreUserId String? @unique @map("core_user_id")   // ← ค่า sub จาก token เท่านั้น
+model BorrowRecord {
+  id         String   @id @default(uuid())
+  coreUserId String   @map("core_user_id")   // ค่า sub จาก token — ไม่ unique
+  personCode String?  @map("person_code")    // จาก /people/me ตอนยืม
+  roomCode   String   @map("room_code")      // code ของ Core Hub
   // ...ข้อมูลธุรกิจของระบบย่อยเอง
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt      @map("updated_at")
+
+  @@index([coreUserId])
+  @@map("borrow_records")
 }
 ```
 
-```yaml
-CoreIdentityReference:
-  core_user_id:
-    type: string
-    required: false        # อาจยังไม่ผูกกับผู้ใช้ Core Hub ในตอนสร้างข้อมูล
-    unique: true
-    source: Core (JWT claim `sub`)
-    writable: false        # ระบบย่อยห้ามแก้ค่านี้เอง
-  core_role:
-    type: enum
-    values: [student, alumni, staff, lecturer, guest, admin]
-    source: Core (JWT claim `role`)
-    writable: false
-```
+**ห้าม hardcode รายการข้อมูลอ้างอิง** (รายชื่อคณะ ห้อง ภาคการศึกษา ฯลฯ) ในโค้ด — เรียก `GET /api/v1/faculties`
+และชุดอื่นตาม [`reference-data.md`](reference-data.md) (กฎ `DD-04`)
 
 ## 4. Role Schema
 
@@ -96,40 +96,24 @@ CoreRole:                    # claim `role` ใน access token (Layer 1)
 SubsystemRole:               # role ภายในระบบย่อย (Layer 2) — แต่ละระบบตั้งเอง
   type: string
   scope: subsystem
-  example: [STUDENT, ALUMNI, STAFF, ADMIN, USER]
+  example: [STUDENT, ALUMNI, STAFF, LECTURER, ADMIN, USER]
 
 RoleMapping:                 # ประกาศทั้งใน Registry (default_role_mapping) และในโค้ดระบบย่อย
   core_role: CoreRole
   subsystem_role: SubsystemRole
 
-RoleException:               # ขอผ่าน Subsystem Registry เท่านั้น ห้าม hardcode
-  username: string           # username ของผู้ใช้ใน Core Hub
+RoleException:               # ขอผ่าน backoffice ของ Core Hub เท่านั้น ห้าม hardcode รายชื่อผู้ใช้
+  username: string           # field ของคำขอใน Core Hub (ไม่ใช่คอลัมน์ของระบบย่อย)
   subsystem_role: SubsystemRole
   approval_required: true
 ```
 
 > key ของ `default_role_mapping` ในทะเบียน = รายชื่อ core role ที่เข้าระบบนั้นได้
-> Core Hub ใช้ตรวจตั้งแต่ก่อน redirect (ดู [`authorization.md`](authorization.md) ข้อ 3)
+> Core Hub ใช้ตรวจตั้งแต่ก่อน redirect (ดู [`authorization.md`](authorization.md) ข้อ 3) ·
+> สิทธิ์พิเศษที่อนุมัติแล้วจะมาทาง claim `role` ของ token เมื่องานฝั่ง Core Hub ขึ้นระบบ
+> ([`subsystem-registry.md`](subsystem-registry.md) ข้อ 5) — ระบบย่อยแปลง `role` ด้วยโค้ดเดิม ไม่ต้องแก้
 
-## 5. Department Schema
-
-```yaml
-Department:
-  code:
-    type: string
-    required: true
-    unique: true
-  name:
-    type: string
-    required: true
-  active:
-    type: boolean
-    required: true
-```
-
-Phase 1 ใช้เฉพาะ Department ของสาขาที่กำหนดให้ระบบ
-
-## 6. Common Schema
+## 5. รูปแบบข้อมูลกลาง (Common Schema)
 
 ```yaml
 Date:
@@ -137,7 +121,10 @@ Date:
 
 DateTime:
   format: ISO 8601
-  timezone: required
+  timezone: required         # ส่งออกเป็น UTC ลงท้าย Z
+
+Year:
+  calendar: พุทธศักราช        # เช่น academicYear · entryYear · code ภาค 2569-1
 
 Money:
   type: integer
@@ -155,47 +142,33 @@ Visibility:
   values: [public, internal, private]
 ```
 
+## 6. ข้อมูลของ Core Hub (คณะ · สาขา · อาคาร · ห้อง · ภาค · รายวิชา · หลักสูตร · บุคคล · รูป)
+
+ระบบย่อย**ไม่มีตาราง**ของข้อมูลเหล่านี้ — endpoint · field (camelCase) · enum · สิทธิ์ · cache อยู่ใน
+[`reference-data.md`](reference-data.md) ที่เดียว · ทุกแถวของข้อมูลอ้างอิงมี `code` · `isActive` · `updatedAt` และไม่มี `id`
+(ตัวอย่างเป็น JSON Schema: [`../schemas/department.schema.json`](../schemas/department.schema.json))
+
 ## 7. Subsystem Schema
 
-ตรงกับตาราง `subsystems` ของ Core Hub และ `subsystem.yaml` ในระบบย่อย
-(ดู [`subsystem-registry.md`](subsystem-registry.md))
+ทะเบียนระบบย่อย (field · การอนุมัติ · สถานะ · role mapping) อยู่ใน [`subsystem-registry.md`](subsystem-registry.md)
+และ `subsystem.yaml` ตรวจด้วย [`../schemas/subsystem.schema.json`](../schemas/subsystem.schema.json) — เอกสารนี้ไม่ทำซ้ำ
 
 ```yaml
-Subsystem:
-  name:
-    type: string
-    format: kebab-case         # ต้องตรงกับ subsystem.yaml และ data.service ของ /api/health
-  display_name:
-    type: string
-  owner:
-    type: string
-    reference: username        # username ของผู้ใช้ใน Core Hub
-  repo:
-    type: string
-  standards_version:
-    type: semver               # เวอร์ชันมาตรฐานที่ผ่าน conformance จริง
-  default_role_mapping:
-    type: object               # core role → subsystem role
-  callback_url:
-    type: url                  # https เท่านั้น ยกเว้น localhost ตอน dev
-  approval_status:
-    type: enum
-    values: [PENDING, APPROVED, REJECTED]
-  status:
-    type: enum
-    values: [ACTIVE, INACTIVE, SUSPENDED]
+approval_status: [PENDING, APPROVED, REJECTED]
+status: [INACTIVE, ACTIVE, SUSPENDED]      # SSO ได้เมื่อ APPROVED + ACTIVE
+name: ^[a-z0-9]+(-[a-z0-9]+)*$            # 1–64 ตัว · ตรงกับ subsystem.yaml และ SUBSYSTEM_ID
 ```
 
 ## 8. Table / Schema Boundary
 
 ```text
-Shared
-├── users
-├── departments
-└── common
+Core Hub  (อ่านผ่าน API เท่านั้น — reference-data.md)
+├── บัญชีผู้ใช้ · บุคคล         → ระบบย่อยเก็บแค่ core_user_id · person_code
+├── ข้อมูลอ้างอิง 7 ชุด         → เก็บแค่ code
+└── รูปภาพ                    → เก็บแค่ id
 
-Subsystem
-└── local tables / schemas
+Subsystem  (ฐานของตัวเอง <subsystem>_db)
+└── local tables / schemas ที่อ้างถึงค่าข้างบน
 ```
 
 ตัวอย่าง Local Data:
@@ -219,8 +192,9 @@ field ใน Prisma  : camelCase              (studentCode, createdAt)
 field ใน JSON    : camelCase              (studentCode, createdAt)
 enum ใน Prisma   : PascalCase  ค่า UPPER_SNAKE_CASE   (enum BorrowStatus { BORROWED })
 boolean          : ขึ้นต้น is_ หรือ has_  (is_active, has_returned)
-primary key      : id (UUID v4)
+primary key      : id (UUID v4) — ของตารางตัวเอง
 foreign key      : <entity>_id            (student_id, course_id)
+อ้างข้อมูลกลาง     : core_user_id · person_code · <ชุด>_code (room_code) · image_id
 timestamp        : created_at, updated_at (ทุกตาราง)
 ชื่อ database    : <subsystem>_db
 date             : YYYY-MM-DD
@@ -231,15 +205,17 @@ datetime         : ISO 8601 UTC ลงท้าย Z
 ไม่ใช่การตั้งชื่อสองแบบมั่ว ๆ แต่เป็นการแยกชั้น **DB ↔ application** อย่างตั้งใจ
 
 ```prisma
-model Student {
-  id          String   @id @default(uuid())
-  coreUserId  String?  @unique @map("core_user_id")
-  studentCode String   @unique @map("student_code")
-  firstName   String   @map("first_name")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
+model Enrollment {
+  id         String   @id @default(uuid())
+  coreUserId String   @map("core_user_id")   // ไม่ unique
+  personCode String?  @map("person_code")
+  courseCode String   @map("course_code")    // code เต็มรวมรุ่น เช่น 10301111-1
+  termCode   String   @map("term_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt      @map("updated_at")
 
-  @@map("students")
+  @@index([coreUserId])
+  @@map("enrollments")
 }
 ```
 
@@ -252,8 +228,8 @@ Global Identity คือค่า `sub` จาก token · ในระบบ�
 user_id · userId · user_code · userCode · std_id · stdId · username
 ```
 
-> หมายเหตุ: `student_code`, `studentId` ฯลฯ **ใช้ได้** ถ้าเป็นข้อมูลธุรกิจของระบบย่อยเอง
-> (เช่น รหัสนักศึกษาในทะเบียนของระบบ หรือ foreign key ไปยังตาราง `students` ของตัวเอง)
+> หมายเหตุ: รหัสนักศึกษา/บุคลากรที่อ่านจาก `/people/me` ให้ตั้งชื่อ **`person_code` / `personCode`** (ตรงกับ field ของ Core Hub)
+> ชื่ออย่าง `student_code` · `studentId` ไม่ผิดกฎ `DD-01` แต่ห้ามใช้แทน `core_user_id`
 > เพราะ Global Identity ในสถาปัตยกรรมนี้คือ `sub` ไม่ใช่รหัสนักศึกษา
 
 ### 9.3 Migration
@@ -265,7 +241,7 @@ user_id · userId · user_code · userCode · std_id · stdId · username
 - หลังแก้ schema ต้องตรวจว่าไม่มี drift:
 
 ```bash
-npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
 # ต้องได้: No difference detected.
 ```
 
@@ -274,19 +250,20 @@ npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prism
 ```text
 Core
  ↓
-API / Service Contract
+API / Service Contract   (reference-data.md)
  ↓
 Subsystem
 ```
 
-| Data | Source of Truth | Subsystem Write |
-|---|---|---|
-| User Identity | Core | No |
-| `full_name` | Core | No |
-| `email` | Core | No |
-| `department` | Core | No |
-| Layer 1 Role | Core | No |
-| Layer 2 Role | Subsystem | Yes |
+| Data | Source of Truth | Subsystem เก็บ | Subsystem Write |
+|---|---|---|---|
+| User Identity (`sub`) | Core | `core_user_id` | No |
+| รหัสบุคคล | Core (`/people/me`) | `person_code` | No |
+| ชื่อ · อีเมล · คณะ/สาขาของบุคคล | Core (`/people`) | ไม่เก็บ — ดูตอนแสดงผล | No |
+| ข้อมูลอ้างอิง (คณะ ห้อง ภาค ...) | Core | `code` เท่านั้น | No |
+| Layer 1 Role | Core | ไม่เก็บ — อ่านจาก token | No |
+| Layer 2 Role | Subsystem | ✓ | Yes |
+| ข้อมูลธุรกิจของระบบ | Subsystem | ✓ | Yes |
 
 ## 11. Change Process
 
@@ -318,24 +295,27 @@ MAJOR.MINOR.PATCH
 
 ```text
 schemas/
-├── user.schema.json
-├── role.schema.json
-├── department.schema.json
-├── subsystem.schema.json
-└── common.schema.json
+├── user.schema.json         ← GET /api/v1/auth/me (บัญชีของผู้เรียก)
+├── role.schema.json         ← core role 6 ค่า
+├── department.schema.json   ← สาขาจาก GET /api/v1/departments
+├── subsystem.schema.json    ← subsystem.yaml
+└── common.schema.json       ← envelope ของคำตอบ + error code 9 ค่า
 ```
 
-ไฟล์จริงใน `csmju2030-standards/schemas/` เป็น JSON Schema (`.json`)
-ฉบับ 1.0.0 เขียนว่า `.yaml` ซึ่งไม่ตรงกับของจริง
+ไฟล์เป็น JSON Schema (`.json`) แบบ camelCase ตรงกับ API จริง · ไม่มีสคริปต์ CI หรือ conformance อ่านไฟล์ใดนอกจาก
+`subsystem.schema.json` (ที่ `templates/subsystem.yaml` อ้าง) — ถ้าขัดกับระบบที่รันจริงให้ยึดระบบจริงแล้วแจ้ง PL
 
 ## 14. Integration Boundary
 
 ```text
-authcontract.md
+auth-contract.md
 → Authentication / Authorization
 
+reference-data.md
+→ ข้อมูลจาก Core Hub · สิ่งที่ระบบย่อยเก็บได้
+
 data-dictionary.md
-→ Shared Data Contract
+→ ชื่อและชนิดข้อมูลฝั่งระบบย่อย
 
 schemas/
 → Data Structure / Validation
@@ -357,7 +337,7 @@ ui-design-system.md
 [ ] Read / Write กำหนดแล้ว
 [ ] User Schema กำหนดแล้ว
 [ ] Role Schema กำหนดแล้ว
-[ ] Department Schema กำหนดแล้ว
+[ ] อ้างข้อมูลกลางด้วย code (reference-data.md) กำหนดแล้ว
 [ ] Common Schema กำหนดแล้ว
 [ ] Subsystem Schema กำหนดแล้ว
 [ ] Change / Versioning กำหนดแล้ว
