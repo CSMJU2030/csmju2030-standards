@@ -1,6 +1,6 @@
 {
   "$comment": "ชื่อ event ปิดสำหรับ structured log ด้านการยืนยันตัวตน/สิทธิ์",
-  "standardsVersion": "1.0",
+  "standardsVersion": "1.1",
   "required": [
     {
       "event": "subsystem.started",
@@ -83,7 +83,9 @@
     "invalid_claims",
     "sso_restart_without_state",
     "sso_state_missing",
-    "sso_state_mismatch"
+    "sso_state_mismatch",
+    "token_lifetime_exceeded",
+    "invalid_azp"
   ],
   "mustNeverLog": [
     "access token",
@@ -92,6 +94,8 @@
     "password",
     "private key",
     "the full /auth/callback URL (its query carries the access token) - log the path only",
-    "the whole Cookie header (on localhost it also carries Core Hub's refresh token)"
+    "the whole Cookie header (on localhost it also carries Core Hub's refresh token)",
+    "any request URL with its query string - loggers and error filters log the path only (queries can carry tokens or search terms with names)",
+    "names, emails or other personal data - identify a user by sub only"
   ]
 }
