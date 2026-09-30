@@ -5,6 +5,10 @@
 > ทีมเลื่อนเวอร์ชัน standards ของ repo ตัวเองได้ด้วย PR ธรรมดา ให้ PL ของทีม approve แล้ว merge
 > โดยไม่ต้องรอ DevOps หรือ PM · แต่ละทีมอยู่คนละเวอร์ชันได้ ไม่มีใครถูกบังคับให้ขึ้นพร้อมกัน
 
+> **สายที่ใช้ตอนนี้: 1.7.x (สายนิ่ง)** — ตรงกับ Core Hub ที่ขึ้น `https://csmju2030.jowave.com`
+> · **สาย 1.0.x ปิดแล้ว** (`1.0.6` เป็นตัวสุดท้าย ไม่ออกเพิ่ม) ทีมที่ยังอยู่สาย 1.0.x ย้ายตามข้อ 2.6
+> · PL จะประกาศวันยกเลิกสาย 1.0.x แล้วยก `MIN_VERSION` เป็น `1.7.0` (ข้อ 5.3)
+
 ---
 
 ## 1. ภาพรวม
@@ -39,26 +43,26 @@
 
 ### 2.2 คำสั่ง
 
-ตัวอย่างเลื่อนไป `1.5.2` (แทน `<slug>` ด้วยชื่อระบบ เช่น `quiz` · repo ที่มี `develop` ให้แตกจาก `develop`)
+ตัวอย่างเลื่อนไป `1.7.0` (แทน `<slug>` ด้วยชื่อระบบ เช่น `quiz` · repo ที่มี `develop` ให้แตกจาก `develop`)
 
 ```bash
 git switch main && git pull
-git switch -c feature/<slug>/bump-standards-v1-5-2
+git switch -c feature/<slug>/bump-standards-v1-7-0
 
 git submodule update --init standards      # ครั้งแรกในเครื่องนี้
 git -C standards fetch --tags
-git -C standards checkout v1.5.2
-echo 1.5.2 > .standards-version
+git -C standards checkout v1.7.0
+echo 1.7.0 > .standards-version
 
 git add .standards-version standards
-git commit -m "chore(<slug>): bump standards to v1.5.2"
-git push -u origin feature/<slug>/bump-standards-v1-5-2
+git commit -m "chore(<slug>): bump standards to v1.7.0"
+git push -u origin feature/<slug>/bump-standards-v1-7-0
 ```
 
-- ชื่อ branch ใช้ตัวพิมพ์เล็กกับขีดกลางเท่านั้น (`GH-01`) จึงเขียน `v1-5-2` ไม่ใช่ `v1.5.2`
-- ใน `.standards-version` เขียนแค่ตัวเลข `1.5.2` **ไม่มี `v` นำหน้า**
+- ชื่อ branch ใช้ตัวพิมพ์เล็กกับขีดกลางเท่านั้น (`GH-01`) จึงเขียน `v1-7-0` ไม่ใช่ `v1.7.0`
+- ใน `.standards-version` เขียนแค่ตัวเลข `1.7.0` **ไม่มี `v` นำหน้า**
 - ใช้ PowerShell ได้เหมือนกัน (ไฟล์ที่ PowerShell เขียนเป็น UTF-16 หรือ CRLF CI ก็อ่านได้)
-- **PR นี้แก้แค่ 2 อย่าง คือ `.standards-version` กับ `standards`** ห้ามแก้ `ci.yml` และไม่ต้องแก้ `subsystem.yaml`
+- **PR นี้แก้แค่ 2 อย่าง คือ `.standards-version` กับ `standards`** ห้ามแก้ `ci.yml` และไม่ต้องแก้ `subsystem.yaml` — ยกเว้นการย้ายจากสาย 1.0.x (ข้อ 2.6)
 
 ### 2.3 เปิด PR และ merge
 
@@ -76,10 +80,16 @@ git push -u origin feature/<slug>/bump-standards-v1-5-2
 
 ### 2.5 เลือกเวอร์ชันไหนดี
 
-มี 2 สาย · **สาย 1.0.x** ใช้สัญญา SSO 1.0 · **สาย 1.1 ขึ้นไป** ใช้ Central SSO (ข้ามจาก 1.0.x มาสายนี้ต้องทำ login ตามสัญญา 1.1 ด้วย)
+**ใช้ 1.7.x** — สายนิ่งที่ตรงกับ Core Hub บน server จริง และมีเอกสารเชื่อมต่อ ([`connect-core-hub.md`](connect-core-hub.md))
+ข้อมูลกลาง ([`reference-data.md`](reference-data.md)) และ demo ตัวอย่างครบ
+
+**สาย 1.0.x ปิดแล้ว** — มีไว้ตอนที่ทีมทดสอบกับ Core Hub `main` ซึ่งยังเป็น SSO 1.0 · ตอนนี้ server รัน Core Hub ที่เป็น SSO 1.1
+แล้ว ระบบสาย 1.0.x ยังเข้าได้ผ่านทางเก่า แต่ไม่มี `state` กัน login CSRF · ไม่มี `reference-data.md` · และไม่ได้รับการแก้ไขใด ๆ อีก
+
+ตารางด้านล่างเป็นประวัติว่าแต่ละความสามารถเริ่มมีที่เวอร์ชันไหน (1.7.0 มีครบทุกข้อ) ·
 เลขมากกว่าไม่ได้แปลว่าอนุญาตมากกว่าเสมอ เช่น 1.1.0–1.2.0 ไม่มี `lucide-react` ที่ 1.0.2 มีแล้ว
 
-| ต้องการ | สาย 1.0.x | สาย 1.1 ขึ้นไป |
+| ต้องการ | สาย 1.0.x (ปิดแล้ว) | สาย 1.1 ขึ้นไป |
 |---|---|---|
 | `@nestjs/schedule` (งานตั้งเวลา) | 1.0.1 ขึ้นไป | 1.1.0 ขึ้นไป |
 | `lucide-react` · `leaflet` · `qrcode.react` · `@tailwindcss/postcss` (Tailwind v4) | 1.0.2 ขึ้นไป | 1.2.1 ขึ้นไป |
@@ -87,9 +97,30 @@ git push -u origin feature/<slug>/bump-standards-v1-5-2
 | ข้อยกเว้นเฉพาะทีมใน `.compliance-exceptions.yml` (`UI-01` · `ARC-02`) | 1.0.3 ขึ้นไป | 1.4.0 ขึ้นไป |
 | ⚠️ เข้มขึ้น: ต้องมี backend NestJS (`ARC-04`) | 1.0.5 | 1.5.0 ขึ้นไป |
 | core role `lecturer` (อาจารย์) · `guest` (ผู้เยี่ยมชม) | 1.0.6 | 1.6.0 ขึ้นไป |
+| สายนิ่ง: เชื่อม server จริง · ตรวจ token 10 ขั้น · กฎเก็บข้อมูลกลาง | — | 1.7.0 ขึ้นไป |
 
 ไม่มีในเวอร์ชันไหนเลย: ถ้าหลายทีมน่าจะใช้ เปิด issue ใน standards ขอเพิ่ม whitelist (ออกเป็น tag ใหม่แล้วทีมเลื่อนเอง) ·
 ถ้าใช้ทีมเดียว ขอข้อยกเว้นใน `.compliance-exceptions.yml` ของ repo (DevOps/PM approve · ต้องมี `issue` และ `expires`)
+
+### 2.6 ย้ายจากสาย 1.0.x มา 1.7.x
+
+การย้ายสายไม่ใช่แค่เลื่อนเลข — CI ไม่ได้ตรวจ flow ของ SSO จึงเลื่อนเลขผ่านได้ทั้งที่โค้ดยังเป็น 1.0 ให้ทำครบทุกข้อใน PR เดียว
+
+| เรื่อง | ต้องทำ | อ้างอิง |
+|---|---|---|
+| login | เพิ่ม `GET /auth/login` — สร้าง `state` ≥ 32 ไบต์ · คุกกี้ `<ชื่อ>_sso_state` (`Path=/auth/callback` อายุ ≤ 600 วินาที) · 302 ไป `{CORE_HUB_WEB_URL}/sso/authorize` | auth-contract ข้อ 5.2 |
+| callback | ไม่มี state → ทิ้ง token แล้ว 302 `/auth/login` · state ไม่ตรง → 401 (หน้า "เข้าสู่ระบบอีกครั้ง") · ผ่าน → คุกกี้ `<ชื่อ>_access_token` แทน `core_hub_access_token` · `no-store` · ห้าม log URL | auth-contract ข้อ 5.1 |
+| ตรวจ token | เพิ่มขั้น 9 (อายุ token) และขั้น 10 (`azp`) | auth-contract ข้อ 4 |
+| logout | `POST /auth/logout` → ลบคุกกี้ของตัวเอง → 303 ไป `{CORE_HUB_WEB_URL}/logout` | auth-contract ข้อ 5 |
+| frontend | 401 → พาทั้งหน้าไป `/auth/login?next=` พร้อมกันวน · proxy `/auth/login` `/auth/callback` `/auth/logout` ไป backend | auth-contract ข้อ 7 · connect-core-hub ข้อ 1 |
+| config | `CORE_HUB_WEB_URL` ใน `.env` · `core_hub_web_url` และ `public_endpoints` ของ `/auth/*` ใน `subsystem.yaml` | subsystem-registry ข้อ 8 |
+| role | แมป `lecturer` และ `guest` ทั้งในโค้ดและใน role mapping ของทะเบียน | authorization.md |
+| ข้อมูลกลาง | ใช้ Core Hub ผ่าน backend · เก็บแค่ `code` / `core_user_id` / `person_code` · ลบตารางข้อมูลอ้างอิงที่ทำเอง | reference-data.md |
+| error | ใช้ error code ครบ 9 ค่า · 429/503 มี `Retry-After` | api-conventions.md |
+
+- PR นี้แก้ `subsystem.yaml` ด้วย ซึ่ง CODEOWNERS กำหนดให้ **DevOps หรือ PM approve** — PL ของทีม approve อย่างเดียวไม่พอ
+- วิธีที่เร็วที่สุด: คัดลอก `backend/src/auth/` · `backend/src/common/` และ proxy ใน `frontend/next.config.ts` จาก demo แล้วปรับชื่อระบบ
+- ทดสอบตาม connect-core-hub ข้อ 6 ให้ครบก่อนขอ approve
 
 ---
 
@@ -169,6 +200,8 @@ PR ที่เปิดค้างและแก้ `ci.yml` อยู่แ�
 
 > ⚠️ มีผลทันทีที่ merge: repo ที่ต่ำกว่าจะตก**ทุก job ในทุก PR** จนกว่าจะเลื่อน
 > ประกาศให้ทีมเลื่อนก่อน แล้วค่อยยกเลข
+
+แผนถัดไป: ยกเป็น `1.7.0` ในวันยกเลิกสาย 1.0.x ที่ PL ประกาศ (ข้อ 2.5)
 
 ### 5.4 เปลี่ยนตัวกลาง
 

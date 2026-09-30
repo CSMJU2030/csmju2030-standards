@@ -9,20 +9,24 @@ repo นี้เป็นแหล่งความจริงเพียง
 
 **เวอร์ชันปัจจุบัน:** ดู [`VERSION`](VERSION) · การเปลี่ยนแปลง: [`CHANGELOG.md`](CHANGELOG.md)
 
-มาตรฐาน v1.0 เขียนจาก **ระบบที่ทำงานได้จริง** ไม่ใช่จากการออกแบบล่วงหน้า:
-`csmju-core-hub` (Core Hub จริง) และ `demo-student-subsystem`
-(reference implementation ที่ผ่าน conformance L3 · 62/62)
+> **ทุกทีมใช้สาย 1.7.x** (สายนิ่ง) — ตรงกับ Core Hub ตัวจริงที่ `https://csmju2030.jowave.com`
+> สาย 1.0.x ปิดแล้ว (1.0.6 เป็นตัวสุดท้าย) · วิธีเลื่อนและย้ายสาย: [`docs/standards-versioning.md`](docs/standards-versioning.md)
+
+มาตรฐานเขียนจาก **ระบบที่ทำงานได้จริง** ไม่ใช่จากการออกแบบล่วงหน้า:
+`csmju-core-hub` (Core Hub จริง) และ `demo-student-subsystem` (reference implementation — ระบบจองห้อง)
 
 ---
 
 ## ถ้าคุณเป็น AIE (คนเขียนโค้ดระบบย่อย)
 
-อ่าน 3 ไฟล์นี้ก่อนเริ่ม แล้วค่อยกลับมาดูตัวอื่นเมื่อต้องใช้
+อ่าน 4 ไฟล์แรกก่อนเริ่ม แล้วค่อยกลับมาดูตัวอื่นเมื่อต้องใช้
 
 | อ่านเพื่อ | ไฟล์ |
 |---|---|
 | **เริ่มที่นี่ (AIE)** — ลำดับขั้นตอนตั้งแต่ศูนย์จนส่งมอบ | [`docs/aie-workflow.md`](docs/aie-workflow.md) |
 | **เริ่มที่นี่** — ภาพรวมและสถานะจริงของสถาปัตยกรรม | [`docs/overview.md`](docs/overview.md) |
+| **เชื่อมระบบย่อยกับ Core Hub จริง** — บัญชี · ลงทะเบียน · env · ทดสอบ · ปัญหาที่พบบ่อย | [`docs/connect-core-hub.md`](docs/connect-core-hub.md) |
+| **ข้อมูลกลางที่ Core Hub มีให้** — เรียกยังไง และระบบย่อยเก็บอะไรได้ | [`docs/reference-data.md`](docs/reference-data.md) |
 | JWT · JWKS · SSO · callback | [`docs/auth-contract.md`](docs/auth-contract.md) |
 | role mapping · permission · 401/403 | [`docs/authorization.md`](docs/authorization.md) |
 | stack ที่บังคับ + เวอร์ชัน และกฎ Database Isolation | [`docs/tech-stack.md`](docs/tech-stack.md) |
@@ -53,8 +57,8 @@ repo ที่มีหลายคนทำพร้อมกันหรือ
 ### ตรวจเองก่อนเปิด PR (ไม่ต้องรอ CI)
 
 ```bash
-./standards/scripts/run-all-checks.sh .        # static — ได้ผลเหมือน CI ทุกข้อ
-node standards/conformance/run.js              # runtime — ยิงระบบที่รันอยู่จริง
+./standards/scripts/run-all-checks.sh .        # static — เช็คเดียวกับ CI (ยกเว้น GH-04 ที่ตรวจ tag · MIN_VERSION · การถอยเวอร์ชันบน CI)
+node standards/conformance/run.js              # runtime — ยิงระบบที่รันอยู่จริง (บัญชีอ่านจากไฟล์นอก repo — docs/conformance.md)
 ```
 
 > ทีม Core Hub ใช้ `./scripts/run-core-hub-checks.sh /path/to/csmju-core-hub` แทน — มันตั้ง
@@ -143,7 +147,8 @@ fixtures/          บัญชี dev ของ Core Hub + manifest ตัว�
 templates/         ไฟล์ที่ทุก subsystem repo ต้องมีเหมือนกัน (subsystem.yaml, ci.yml, …)
 org-settings/      ruleset + checklist ที่ต้องตั้งในหน้า Settings ของ GitHub
 __fixtures__/      ตัวอย่าง pass/fail สำหรับ self-test
-.github/workflows/ subsystem-compliance.yml · core-hub-compliance.yml (reusable) · conformance-nightly.yml · self-test.yml · ruleset-sweep.yml
+.github/workflows/ subsystem-compliance.yml · core-hub-compliance.yml (reusable) · self-test.yml · ruleset-sweep.yml
+                   (conformance-nightly.yml เป็น template ใน templates/ สำหรับ repo ระบบย่อย)
 ```
 
 > `docs/` คนอ่าน · `contracts/` เครื่องอ่าน · ถ้าสองอย่างขัดกันให้ยึด `contracts/` แล้วแจ้ง PL
