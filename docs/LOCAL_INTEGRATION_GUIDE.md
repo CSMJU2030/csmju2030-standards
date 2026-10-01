@@ -2,6 +2,15 @@
 
 **Core Hub · demo-student-subsystem · ระบบย่อยของทีมตัวเอง** — รองรับทั้ง macOS และ Windows
 
+> ⚠️ **เอกสารนี้สำหรับทีม Core Hub เท่านั้น** (คนที่ต้องรัน Core Hub ในเครื่อง)
+> **ทีมระบบย่อย (AIE) ห้ามทำตามเอกสารนี้** — ให้เชื่อมกับ Core Hub จริงที่ `https://csmju2030.jowave.com`
+> ตาม [`connect-core-hub.md`](connect-core-hub.md) · ห้ามโคลนหรือ seed `csmju-core-hub` เพราะมีข้อมูลนักศึกษาจริง
+>
+> เขียนไว้ตอน standards v1.0.0 (25 ก.ย. 2569) สิ่งที่เปลี่ยนไปตั้งแต่นั้น:
+> demo ปัจจุบันชื่อ `csmju-demo-subsystem` (frontend 3201 · backend 4201 · SSO 1.1) ส่วน seed ของ Core Hub ในเครื่องยังลงทะเบียน
+> `student-service` ที่พอร์ต 3001 ตามตัวอย่างด้านล่าง · ลงทะเบียนผ่านหลังบ้านด้วยบัญชี staff/lecturer และ admin อนุมัติ
+> ([`subsystem-registry.md`](subsystem-registry.md)) · conformance อ่านบัญชีจากไฟล์นอก repo ([`conformance.md`](conformance.md))
+>
 > ร่างตัวอย่าง — อ้างอิง `csmju2030-standards` v1.0.0 และ `main` ของทุก repo ณ 25 ก.ย. 2569
 > ตัวอย่างทั้งเอกสารใช้ระบบย่อยชื่อ **`equipment`** (repo `csmju-equipment`) ให้เปลี่ยนเป็นชื่อของทีมตัวเอง
 
@@ -421,7 +430,7 @@ csmju2030 >> curl -s -X POST http://localhost:3000/api/v1/subsystems/<ID>/activa
 
 | พลาดบ่อย | ผล |
 |---|---|
-| ไม่ส่ง `requestedExceptions` | 400 — ฟิลด์นี้บังคับ ไม่มีคำขอก็ต้องส่ง `[]` |
+| ไม่ส่ง `requestedExceptions` | ได้ — ฟิลด์นี้ไม่บังคับแล้ว (Core Hub develop) |
 | `callbackUrl` ไม่ใช่ URL เต็ม | 400 — ต้องมี `http://` |
 | ลืม approve หรือ activate | เข้า SSO ไม่ได้ และไม่ขึ้นในเมนูของ Core Hub |
 | ปิด terminal แล้วเปิดใหม่ | `$TOKEN` หาย ได้ 401 — ขอ token ใหม่ (อายุ 15 นาทีด้วย) |
@@ -501,7 +510,7 @@ csmju-equipment >> node standards/conformance/run.js
 ผลสุดท้ายที่ต้องได้:
 
 ```text
-RESULT: 62 passed · 0 failed · 0 skipped
+RESULT: <n> passed · 0 failed · 0 skipped      (จำนวนข้อขึ้นกับเวอร์ชันของ standards)
 ✅ CONFORMANT — csmju-equipment meets standard v1.0 L3
 ```
 
@@ -538,7 +547,7 @@ RESULT: 62 passed · 0 failed · 0 skipped
 | `./...sh: command not found` หรือเปิดเป็นไฟล์ | รันสคริปต์ `.sh` ใน PowerShell | เปลี่ยนไปใช้ Git Bash |
 | `curl` ใน PowerShell ตอบเป็นตารางแปลก ๆ | PowerShell แปลง `curl` เป็นคำสั่งของตัวเอง | ข้อ 6.4 และ 7 ใช้ Git Bash |
 | ระบบย่อยตอบ 401 ทุกคำขอ | JWKS ถูกห่อ envelope หรือสร้างกุญแจใหม่ทับ | ตรวจ T1 · login ใหม่ · รีสตาร์ตระบบย่อยเพื่อล้าง cache กุญแจ |
-| `callbackUrl must use HTTPS` | Core Hub ตั้ง `NODE_ENV=production` | เปลี่ยนเป็น `development` |
+| `callbackUrl must use HTTPS` | Core Hub ตั้ง `NODE_ENV=production` โดยไม่เปิดโหมดก่อนเปิดใช้ | ในเครื่องใช้ `development` · บน server ใช้ `ALLOW_LOCALHOST_CALLBACKS=true` |
 | SSO ได้ 403 ทั้งที่ลงทะเบียนแล้ว | role ไม่อยู่ใน `defaultRoleMapping` หรือยังไม่ approve/activate | ตรวจทะเบียนด้วย `GET /api/v1/subsystems/all` |
 | ระบบย่อยไม่ขึ้นในเมนู Core Hub | เหมือนข้อบน — เมนูกรองด้วยกฎเดียวกับ SSO | เหมือนข้อบน |
 | `standards/` ว่าง | clone โดยไม่ใส่ `--recurse-submodules` | ข้อ 2 · `git submodule update --init --recursive` |

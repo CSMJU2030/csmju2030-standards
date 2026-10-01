@@ -179,6 +179,18 @@ function cookiePair(setCookie) {
   return setCookie ? setCookie.split(';')[0] : '';
 }
 
+/**
+ * A Set-Cookie header safe to print: the value is replaced, the attributes
+ * stay. A session cookie holds a Core Hub token, which never goes to a log.
+ */
+function shownCookie(setCookie) {
+  if (!setCookie) return setCookie;
+  const [pair, ...attributes] = setCookie.split(';');
+  const name = pair.split('=')[0];
+  const value = pair.split('=').slice(1).join('=');
+  return [`${name}=${value === '' ? '' : '<value>'}`, ...attributes].join(';');
+}
+
 /** True when a Set-Cookie header deletes its cookie rather than setting one. */
 function deletesCookie(setCookie) {
   if (!setCookie) return false;
@@ -225,11 +237,13 @@ module.exports = {
   call,
   cookieByName,
   cookiePair,
+  shownCookie,
   deletesCookie,
   isSuccessEnvelope,
   isErrorEnvelope,
   isKnownErrorCode,
   leaksInternals,
   observations,
+  redact,
   ERROR_CODES,
 };

@@ -4,12 +4,16 @@
 #
 # Runtime conformance — ยิงระบบที่รันอยู่จริงผ่าน HTTP
 # ต่างจาก subsystem-compliance.yml ที่ตรวจซอร์สโค้ดแบบ static:
-# workflow นี้ต้องมี Core Hub + ระบบย่อย + PostgreSQL รันอยู่จริง จึงไม่รันทุก PR
+# workflow นี้ต้องมีระบบย่อยที่ runner ของ GitHub เข้าถึงได้และ Core Hub ที่รันอยู่จริง จึงไม่รันทุก PR
 # ใช้แบบ nightly และก่อน release ตาม docs/conformance.md ข้อ 5 (ตอนนี้สั่งรันเองเท่านั้น ดูหมายเหตุที่ on:)
 #
 # ไม่ต้องระบุ subsystem_url เอง — runner อ่าน base_url จาก subsystem.yaml ที่ราก
 # repo นี้เป็นค่าเริ่มต้นอยู่แล้ว (ดู conformance/lib/manifest.js) ใส่ input ตอน
 # workflow_dispatch เฉพาะตอนต้องการ override ชั่วคราวเท่านั้น
+#
+# บัญชีทดสอบ: secret CONFORMANCE_ACCOUNTS_JSON (เนื้อหาไฟล์บัญชีตาม docs/conformance.md
+# ข้อ 2.1) ถูกเขียนลง $RUNNER_TEMP ซึ่งอยู่นอก repo แล้วส่งให้ runner ทาง
+# CONFORMANCE_ACCOUNTS_FILE · ไม่ตั้ง secret = ใช้ได้เฉพาะ Core Hub บน localhost
 name: Runtime Conformance (nightly)
 
 on:
@@ -52,7 +56,13 @@ jobs:
           CONFORMANCE_URL: ${{ inputs.subsystem_url }}
           CONFORMANCE_CORE_HUB: ${{ inputs.core_hub_url }}
           CONFORMANCE_LEVEL: ${{ inputs.level }}
+          CONFORMANCE_ACCOUNTS_JSON: ${{ secrets.CONFORMANCE_ACCOUNTS_JSON }}
         run: |
+          if [[ -n "$CONFORMANCE_ACCOUNTS_JSON" ]]; then
+            export CONFORMANCE_ACCOUNTS_FILE="$RUNNER_TEMP/conformance-accounts.json"
+            (umask 077 && printf '%s' "$CONFORMANCE_ACCOUNTS_JSON" > "$CONFORMANCE_ACCOUNTS_FILE")
+          fi
+          unset CONFORMANCE_ACCOUNTS_JSON
           ARGS=""
           [[ -n "$CONFORMANCE_URL" ]] && ARGS="$ARGS --url $CONFORMANCE_URL"
           [[ -n "$CONFORMANCE_CORE_HUB" ]] && ARGS="$ARGS --core-hub $CONFORMANCE_CORE_HUB"

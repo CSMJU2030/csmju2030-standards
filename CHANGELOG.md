@@ -11,6 +11,56 @@
 
 ---
 
+## 1.7.0 — 2026-10-01 · สายนิ่ง
+
+สายที่ทุกทีมใช้ ตรงกับ Core Hub `develop` ที่ขึ้น `https://csmju2030.jowave.com` (PM ตัดสิน 1 ต.ค.) ·
+**สาย 1.0.x ปิดแล้ว** — `1.0.6` เป็นตัวสุดท้าย ไม่ backport อีก
+
+- **สายเดียวสำหรับทุกทีม** — README · `standards-versioning.md` ข้อ 2.5 (เลือก 1.7.x · สาย 1.0.x ปิด) · ข้อ 2.6 ใหม่
+  (ย้ายจาก 1.0.x ทีละข้อ · PR ต้องให้ DevOps/PM approve เพราะแก้ `subsystem.yaml`) · ข้อ 5.3 (`MIN_VERSION` จะขึ้นเป็น `1.7.0` ในวันที่ PL ประกาศ)
+- **เอกสารใหม่ [`docs/connect-core-hub.md`](docs/connect-core-hub.md)** — เชื่อม server จริงทีละขั้น: บัญชี · ลงทะเบียนในหลังบ้าน ·
+  `.env` · proxy ของ frontend (พอร์ต 32xx/42xx) · ทดสอบ 7 ข้อ · ตารางปัญหาที่พบบ่อย · สิ่งที่เปลี่ยนตอนเปิดใช้จริง
+- **สัญญา auth 1.2** (`auth-contract.md` · `contracts/jwt-contract.json`)
+  - ตรวจ token **10 ขั้น**: ขั้น 9 อายุ token (`exp − iat` ≤ 900 + 60 วินาที — กัน refresh token ถูกใช้แทน) · ขั้น 10 `azp` ต้องเป็นชื่อระบบตัวเองเมื่อมี
+  - ข้อ 6.1 **token คือบัตรผ่านของผู้ใช้** — ห้ามส่งต่อ เก็บลงฐาน หรือ log · เรียก Core Hub ได้เฉพาะ endpoint ใน `reference-data.md` ข้อ 2
+  - `sub` เป็น string ทึบยาวไม่เกิน 64 **ไม่ใช่ UUID เสมอไป** · `email` ไม่ใช่กุญแจ · `role` คือ role สำหรับระบบนี้ · ห้ามปฏิเสธ token เพราะมี claim เพิ่ม
+  - ข้อ 5.3 ผู้ใช้เห็นอะไรที่ `/sso/error` · เส้นทาง MJU SSO · callback ที่ state ไม่ตรงให้หน้า "เข้าสู่ระบบอีกครั้ง"
+  - แผนถัดไป: Core Hub ใส่ `azp` · refresh token ใช้ `aud=core-hub-refresh` · ปฏิเสธ endpoint นอกรายการที่อนุญาต · สิทธิ์พิเศษมีผลจริง —
+    ใช้ `azp` แทนแผนเดิมที่จะเปลี่ยน `aud`
+- **ทะเบียนระบบย่อย 1.1** (`subsystem-registry.md` · `authorization.md` 1.1) — ใครทำอะไร (นักศึกษาลงทะเบียนไม่ได้ · ไม่ต้องส่ง `owner`) ·
+  ฟอร์มหลังบ้าน · กฎชื่อ `^[a-z0-9]+(-[a-z0-9]+)*$` ยาว 1–64 · role mapping (key = role ที่เข้าได้ · value เป็นเอกสาร) · callback ใช้พอร์ต frontend ·
+  โหมดก่อนเปิดใช้ · วงจรชีวิตครบ (reject · resubmit · suspend) · หน้า Monitor · สิทธิ์พิเศษรายบุคคล (มีผลเมื่อ Core Hub ขึ้นงาน)
+- **ข้อมูลกลาง** (`reference-data.md` 1.3 · `data-dictionary.md` 1.1 · `api-conventions.md` 1.2)
+  - endpoint ที่เรียกได้ (allowlist) · field ของทุกชุด · กติกา list/detail · rate limit · cache · ทำอะไรเมื่อ Core Hub ตอบไม่ปกติ
+  - **สิ่งที่ระบบย่อยเก็บได้**: `core_user_id` (text) + `person_code` จาก `/people/me` · `code` ของข้อมูลอ้างอิง · `id` ของรูป — **ไม่เก็บชื่อหรืออีเมล**
+  - code ไม่เปลี่ยนตั้งแต่ 1.7.0 (`science`→`SCI` และ `computer-science`→`CS` เกิดก่อนหน้านี้แล้ว)
+  - `data-dictionary.md` เลิกให้เก็บชื่อ/คณะเองและเลิกชี้ `GET /users/:id` · `api-conventions.md` เลิกอ้าง SDK ที่ไม่มีอยู่ ใช้ชั้น auth ของ demo แทน
+- **contracts และ schemas** — `vocabulary.json` 1.1 (6 role · คุกกี้ `<ชื่อ>_access_token` · pnpm · enum ของ Core Hub) ·
+  `log-events.json` 1.1 (`token_lifetime_exceeded` · `invalid_azp` · ห้าม log URL ที่มี query และข้อมูลบุคคล) ·
+  schema `common` · `department` · `role` · `user` ตรงกับ API จริง ·
+  `subsystem.schema.json` (กฎชื่อ · `base_url` บังคับ · `core_hub_web_url` บังคับเมื่อ L3 · ห้าม `test_accounts` · role 6 ค่า)
+- **conformance** (`conformance/` · `docs/conformance.md` 1.2)
+  - บัญชีอ่านจาก `CONFORMANCE_ACCOUNTS_FILE` (ไฟล์ JSON นอก repo) · บัญชี seed ใช้ได้เฉพาะ Core Hub ในเครื่อง · ไม่มีไฟล์แล้วชี้ server อื่น = หยุดก่อนยิงคำขอใด ๆ
+  - login ครั้งเดียวต่อบัญชี ไม่ retry (Core Hub ล็อกบัญชีเมื่อผิด 10 ครั้งใน 15 นาที) · `test_accounts` ใน `subsystem.yaml` = หยุดทันที
+  - L3 อ่านทะเบียนด้วยบัญชีเจ้าของผ่าน `GET /api/v1/subsystems?q=` เมื่อไม่มี admin · ทดสอบ `lecturer` และ `guest`
+  - **มี SKIP = NOT CONFORMANT** (exit 1) · template `conformance-nightly.yml` รับ secret `CONFORMANCE_ACCOUNTS_JSON`
+- **logging 1.1** — ตรงกับ `log-events.json` · logger และ error filter log แค่ path
+- **onboarding** — `overview` · `aie-workflow` (ลงทะเบียนผ่านหลังบ้าน · DoD) · `LOCAL_INTEGRATION_GUIDE` เป็นของทีม Core Hub เท่านั้น ·
+  `ai/AGENTS.md` เพิ่มข้อที่ agent มักทำผิด 12 แถว · `ai/CHECKLIST.md` · `ai/TASK_TEMPLATE.md` · `repo-structure` (branch `feature/…` แบบเดียว · พอร์ต) ·
+  `tech-stack` · `core-hub-rules` · `github-workflow` · `ui-design-system` (JSON เป็น camelCase) · PR template และ `ci-compliance-spec` (error code 9 ค่า · `core_user_id`)
+- **`new-subsystem.sh`** — เช็กว่ามี tag ของ `VERSION` ก่อนสร้างอะไรบน GitHub · ไม่แก้เลข pin ของ `ci.yml` แล้ว (sed เดิมทำงานต่างกันบน macOS กับ GNU) ·
+  `.env.example` ชี้ server จริงและใส่ชื่อระบบให้ · บอกให้ทีมแทนพอร์ต 32xx/42xx
+- `scripts/check-no-hardcoded-faculty.sh` (`DD-04`) — ข้อความชี้ `GET /api/v1/faculties` และ `reference-data.md` (ตรรกะไม่เปลี่ยน)
+- `STANDARDS_ENTRY_REF` เป็น `v1.7.0` ตามขั้นออกเวอร์ชัน (ตัวกลางไม่เปลี่ยน — repo ที่ปัก `@v1.5.2` ไม่ต้องย้าย)
+
+**ใครต้องทำอะไร**
+- **ทุกทีม:** เลื่อน `.standards-version` และ submodule เป็น `1.7.0` (`standards-versioning.md` ข้อ 2.2) — ทีมสาย 1.0.x ทำตามข้อ 2.6
+- **ทีมที่คัดลอก `src/common/filters/all-exceptions.filter.ts` ของ demo ก่อน 1 ต.ค. 2569:** คัดลอกใหม่ — ตัวเก่า log URL ของ callback ที่มี token
+- **ตัวตรวจ token:** เพิ่มขั้น 9–10 · `core_user_id` ที่เคยตั้งเป็น UUID ต้องเขียน migration เป็น text · เลิกเก็บชื่อ/อีเมล (เก็บ `person_code`)
+- **conformance:** ย้ายบัญชีออกจาก `subsystem.yaml` ไปไฟล์นอก repo · ใช้ `denied_role` ที่มีบัญชีรหัสผ่าน (เช่น `guest`) · DevOps ตั้ง secret ถ้าใช้ nightly
+
+---
+
 ## 1.6.1 — 2026-09-30
 
 - **`docs/reference-data.md` ตรงกับ Core Hub ที่รันจริง** (เวอร์ชันเอกสาร 1.2 · PM สั่ง 29 ก.ย.)

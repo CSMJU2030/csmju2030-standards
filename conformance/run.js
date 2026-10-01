@@ -20,20 +20,38 @@
  * calls the API's sso/authorize with a Bearer token and the subsystem's state,
  * which is what the web app does with its session cookie.
  *
- * A 429 with Retry-After of at most 5 s is waited out and retried once; the
- * summary counts retries, and error codes outside contracts/error-codes.json
- * are listed as WARN (they will FAIL in the next version).
+ * Accounts come from the JSON file named by CONFORMANCE_ACCOUNTS_FILE, kept
+ * outside the repo; without it only a Core Hub on localhost falls back to its
+ * seed accounts (lib/accounts.js). Each account logs in once per run.
  *
- * Zero dependencies: Node.js 20+ only. Never reads the Core Hub private key.
+ * A 429 with Retry-After of at most 5 s is waited out and retried once (never
+ * for a login); the summary counts retries, and error codes outside
+ * contracts/error-codes.json are listed as WARN (they will FAIL in the next
+ * version). Any FAIL or SKIP makes the run NOT CONFORMANT.
+ *
+ * Exit codes: 0 conformant · 1 not conformant · 2 the run could not start.
+ *
+ * Zero dependencies: Node.js 20+ only. Never reads the Core Hub private key,
+ * never prints a password or a token.
  */
 const fs = require('node:fs');
+const path = require('node:path');
 
 const { loadManifest } = require('./lib/manifest');
+const {
+  ACCOUNTS_ENV,
+  OWNER,
+  ROLES,
+  loginAll,
+  repoRootsFor,
+  resolveAccounts,
+} = require('./lib/accounts');
 const {
   Report,
   call,
   cookieByName,
   cookiePair,
+  shownCookie,
   deletesCookie,
   isSuccessEnvelope,
   isErrorEnvelope,
@@ -68,12 +86,9 @@ function parseArgs(argv) {
   return args;
 }
 
-const DEFAULT_ACCOUNTS = {
-  admin: { email: 'admin@core.local', password: 'password1' },
-  student: { email: 'student@core.local', password: 'password2' },
-  staff: { email: 'staff@core.local', password: 'password3' },
-  alumni: { email: 'alumni@core.local', password: 'password4' },
-};
+/** subsystem-registry.md ข้อ 2 — ชื่อเดียวกับ SUBSYSTEM_ID และทะเบียน · คุกกี้ SSO ตั้งชื่อตามนี้ */
+const NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const NAME_MAX_LENGTH = 64;
 
 function loadConfig(args) {
   // แหล่งเดียวคือ subsystem.yaml ที่รากของ repo (ไฟล์เดียวกับที่ CI ใช้)
@@ -91,35 +106,32 @@ function loadConfig(args) {
     level: (args.level ?? manifest.level ?? 'L3').toUpperCase(),
     callbackPath: manifest.callbackPath ?? '/auth/callback',
     probes: manifest.probes ?? {},
-    accounts: { ...DEFAULT_ACCOUNTS, ...(manifest.testAccounts ?? {}) },
+    manifestPath,
+    loginFailures: {},
     json: Boolean(args.json),
   };
 
   if (!config.baseUrl) throw new Error('ต้องระบุ --url หรือ base_url ใน subsystem.yaml');
   if (!config.subsystemId) throw new Error('ต้องระบุ --subsystem หรือ name ใน subsystem.yaml');
 
+  const id = String(config.subsystemId);
+  if (!NAME_PATTERN.test(id) || id.length > NAME_MAX_LENGTH) {
+    throw new Error(
+      `ชื่อระบบ "${id}" ผิดรูปแบบ — ใช้ a-z 0-9 คั่นด้วย - ยาว 1–${NAME_MAX_LENGTH} ตัว เช่น csmju-equipment ` +
+        '(subsystem-registry.md ข้อ 2)',
+    );
+  }
+  config.subsystemId = id;
+
   return config;
-}
-
-// ------------------------------------------------------------ core hub ----
-
-async function login(coreHubUrl, account) {
-  const response = await call(`${coreHubUrl}/api/v1/auth/login`, {
-    method: 'POST',
-    json: { email: account.email, password: account.password },
-    redirect: 'follow',
-  });
-
-  const body = response.body ?? {};
-
-  return body.data?.access_token ?? body.access_token ?? null;
 }
 
 // ------------------------------------------------------------- level 1 ----
 
 async function runLevel1(config, report, tokens) {
   const { baseUrl } = config;
-  const anyToken = tokens.staff ?? tokens.admin ?? tokens.student ?? tokens.alumni;
+  const anyToken =
+    tokens.staff ?? tokens.admin ?? tokens.student ?? tokens.alumni ?? tokens.lecturer ?? tokens.guest;
 
   report.group('L1 · Identity — health & public surface');
 
@@ -250,6 +262,16 @@ async function runLevel1(config, report, tokens) {
     }
   }
 
+  // A role whose account is in the accounts file but gave no token went untested.
+  for (const [role, problem] of Object.entries(config.loginFailures)) {
+    if (role === OWNER || tokens[role]) continue;
+    report.skip(
+      `L1-28.${role}`,
+      `core role "${role}" is mapped (200) or explicitly refused (403)`,
+      `the account in ${ACCOUNTS_ENV} gave no token - ${problem}`,
+    );
+  }
+
   const leak = await call(`${baseUrl}/api/v1/me`, { token: negatives.malformed });
   report.expectTrue(
     'L1-30',
@@ -266,6 +288,15 @@ async function runLevel2(config, report, tokens) {
   const staffToken = tokens.staff ?? tokens.admin;
 
   report.group('L2 · Contract — collection shape & pagination');
+
+  if (!staffToken) {
+    report.skip(
+      'L2-01',
+      'contract probes (L2-01 – L2-15)',
+      `no staff or admin token - add a "staff" account to ${ACCOUNTS_ENV}`,
+    );
+    return;
+  }
 
   if (!probes.collection) {
     report.skip('L2-01', 'collection endpoint', 'manifest.probes.collection is not declared');
@@ -363,7 +394,16 @@ async function runLevel2(config, report, tokens) {
       );
       report.expect('L2-13', 'denied write uses FORBIDDEN', denied.body?.error?.code, 'FORBIDDEN');
     } else {
-      report.skip('L2-12', 'denied write → 403', 'no token for the denied role');
+      const deniedRole = create.deniedRole ?? 'student';
+      const loginProblem = config.loginFailures[deniedRole];
+      report.skip(
+        'L2-12',
+        'denied write → 403',
+        loginProblem
+          ? `the account for the denied role "${deniedRole}" gave no token - ${loginProblem}`
+          : `no token for the denied role "${deniedRole}" - add that account to ${ACCOUNTS_ENV}, ` +
+              'or set probes.create.denied_role to a role that has one (guest or alumni on the real Core Hub)',
+      );
     }
   } else {
     report.skip('L2-10', 'write probes', 'manifest.probes.create is not declared');
@@ -417,31 +457,61 @@ function shown(location) {
   return (location ?? '').replace(/access_token=[^&]+/, 'access_token=<token>');
 }
 
-async function runLevel3(config, report, tokens) {
+/**
+ * The registry, read with the admin token when there is one (GET /subsystems/all,
+ * every registration), otherwise with the owner account through the paginated
+ * list GET /subsystems?q=<name>, which Core Hub narrows to the caller's own
+ * registrations and filters by name or display name (contains, any case).
+ */
+async function readRegistry(config, tokens, ownerToken) {
+  const { coreHubUrl, subsystemId } = config;
+
+  if (tokens.admin) {
+    const route = '/api/v1/subsystems/all';
+    const response = await call(`${coreHubUrl}${route}`, { token: tokens.admin, redirect: 'follow' });
+    return { reader: 'admin', route, response, entries: response.body?.data ?? response.body ?? [] };
+  }
+
+  if (ownerToken) {
+    const route = `/api/v1/subsystems?${new URLSearchParams({ q: subsystemId, limit: '100' })}`;
+    const response = await call(`${coreHubUrl}${route}`, { token: ownerToken, redirect: 'follow' });
+    return { reader: 'owner', route, response, entries: response.body?.data ?? [] };
+  }
+
+  return null;
+}
+
+async function runLevel3(config, report, tokens, ownerToken) {
   const { baseUrl, coreHubUrl, coreHubWebUrl, subsystemId, callbackPath } = config;
   const sso = JWT_CONTRACT.sso;
   const names = ssoCookieNames(subsystemId);
 
   report.group('L3 · SSO — registration');
 
-  const adminToken = tokens.admin;
+  const registry = await readRegistry(config, tokens, ownerToken);
 
-  if (!adminToken) {
-    report.skip('L3-01', 'subsystem registration', 'no Core Hub admin token available');
+  if (!registry) {
+    report.skip(
+      'L3-01',
+      'subsystem registration',
+      config.loginFailures[OWNER]
+        ? `no Core Hub admin token, and the owner account gave no token - ${config.loginFailures[OWNER]}`
+        : `no Core Hub admin or owner token - add the account that registered the subsystem as "owner" in ${ACCOUNTS_ENV}`,
+    );
     return;
   }
 
-  const registry = await call(`${coreHubUrl}/api/v1/subsystems/all`, {
-    token: adminToken,
-    redirect: 'follow',
-  });
-  const entries = registry.body?.data ?? registry.body ?? [];
-  const entry = Array.isArray(entries)
-    ? entries.find((item) => item.name === subsystemId)
+  const entry = Array.isArray(registry.entries)
+    ? registry.entries.find((item) => item?.name === subsystemId)
     : undefined;
 
   if (!entry) {
-    report.fail('L3-01', 'subsystem is registered in the Subsystem Registry', `"${subsystemId}" not found`);
+    report.fail(
+      'L3-01',
+      'subsystem is registered in the Subsystem Registry',
+      `"${subsystemId}" not found - read as ${registry.reader}: GET ${registry.route} → ${registry.response.status}` +
+        (registry.reader === 'owner' ? ' (the owner account sees only the subsystems it registered)' : ''),
+    );
     return;
   }
 
@@ -463,8 +533,12 @@ async function runLevel3(config, report, tokens) {
     'defaultRoleMapping is empty - Core Hub cannot filter who may enter',
   );
 
-  const ssoRole = mappedRoles.find((role) => tokens[role]) ?? 'staff';
-  const ssoToken = tokens[ssoRole];
+  // The mapping keys are Core Hub's access list; an empty mapping lets every role in.
+  const ssoRole =
+    mappedRoles.length > 0
+      ? mappedRoles.find((role) => tokens[role])
+      : ['staff', ...ROLES].find((role) => tokens[role]);
+  const ssoToken = ssoRole ? tokens[ssoRole] : undefined;
 
   /** Step 1, as a browser: the subsystem mints a state and points at Core Hub web. */
   const beginLogin = async (next) => {
@@ -514,7 +588,7 @@ async function runLevel3(config, report, tokens) {
         login.target.searchParams.get('subsystem') === subsystemId &&
         Boolean(login.state) &&
         !login.target.searchParams.has('callback_url'),
-      `status=${login.response.status} location=${login.response.location ?? '(none)'}`,
+      `status=${login.response.status} location=${shown(login.response.location) || '(none)'}`,
     );
   }
 
@@ -529,6 +603,15 @@ async function runLevel3(config, report, tokens) {
       stateMaxAge <= sso.stateTtlMaxSec,
     `set-cookie=${login.stateCookie ?? '(none)'}`,
   );
+
+  if (!ssoToken) {
+    report.skip(
+      'L3-06',
+      'SSO handoff, callbacks and sign-out (L3-06 – L3-15, L3-18 – L3-22)',
+      `no token for a role in defaultRoleMapping (${mappedRoles.join(', ')}) - add one of these accounts to ${ACCOUNTS_ENV}`,
+    );
+    return;
+  }
 
   report.group('L3 · SSO — handoff with the subsystem state');
 
@@ -596,7 +679,7 @@ async function runLevel3(config, report, tokens) {
     'L3-13',
     'no session cookie is issued for a rejected token',
     !setsSession(tampered),
-    `set-cookie=${tampered.setCookies.join(' | ') || '(none)'}`,
+    `set-cookie=${tampered.setCookies.map(shownCookie).join(' | ') || '(none)'}`,
   );
 
   const noToken = await call(`${baseUrl}${callbackPath}`);
@@ -624,7 +707,7 @@ async function runLevel3(config, report, tokens) {
     restarted.status === 302 &&
       restartTarget?.pathname === sso.subsystemLoginPath &&
       !setsSession(restarted),
-    `status=${restarted.status} location=${restarted.location ?? '(none)'}`,
+    `status=${restarted.status} location=${shown(restarted.location) || '(none)'}`,
   );
 
   // A state that arrives without its cookie: this browser never started it.
@@ -659,7 +742,7 @@ async function runLevel3(config, report, tokens) {
     'L3-21',
     'next=//evil.example.com still lands on a path of the subsystem itself',
     evilCallback.status === 302 && landing !== null && landing.origin === new URL(baseUrl).origin,
-    `status=${evilCallback.status} location=${evilCallback.location ?? '(none)'}`,
+    `status=${evilCallback.status} location=${shown(evilCallback.location) || '(none)'}`,
   );
 
   report.group('L3 · SSO — sign-out');
@@ -677,7 +760,8 @@ async function runLevel3(config, report, tokens) {
       logout.location === `${coreHubWebUrl}${sso.coreHubWebLogoutPath}` &&
       Boolean(logoutSession) &&
       /max-age=0(\s*;|\s*$)/i.test(logoutSession),
-    `status=${logout.status} location=${logout.location ?? '(none)'} set-cookie=${logoutSession ?? '(none)'}`,
+    `status=${logout.status} location=${shown(logout.location) || '(none)'} ` +
+      `set-cookie=${shownCookie(logoutSession) ?? '(none)'}`,
   );
 }
 
@@ -694,24 +778,48 @@ async function main() {
   console.log(`core hub      : ${config.coreHubUrl}`);
   console.log(`level         : ${config.level}`);
 
+  // Before any request: without a usable account source the run stops here.
+  const source = resolveAccounts({
+    coreHubUrl: config.coreHubUrl,
+    repoRoots: repoRootsFor({
+      manifestPath: config.manifestPath,
+      runnerDir: path.resolve(__dirname, '..'),
+    }),
+  });
+
+  console.log(
+    `accounts      : ${
+      source.source === 'file'
+        ? `${source.file} (${ACCOUNTS_ENV})`
+        : 'บัญชี seed ของ Core Hub ในเครื่อง (admin|student|staff|alumni@core.local)'
+    }`,
+  );
+  for (const warning of source.warnings) console.log(`              ⚠ ${warning}`);
+
   const report = new Report();
 
-  const tokens = {};
-  for (const [role, account] of Object.entries(config.accounts)) {
-    tokens[role] = await login(config.coreHubUrl, account);
-  }
+  const { tokens, ownerToken, failures } = await loginAll(config.coreHubUrl, source.accounts);
+  const obtained = Object.keys(tokens);
+  config.loginFailures = Object.fromEntries(failures.map(({ key, problem }) => [key, problem]));
 
-  const obtained = Object.entries(tokens).filter(([, token]) => token);
+  console.log(`tokens        : ${obtained.join(', ') || '(none)'}${ownerToken ? ' · owner' : ''}`);
+  for (const { key, problem } of failures) console.log(`login failed  : ${key} — ${problem}`);
+  if (failures.some(({ problem }) => /^(401|429)/.test(problem))) {
+    console.log(
+      '              → ไม่ลองซ้ำ: Core Hub ล็อกอีเมลหลัง login ผิด 10 ครั้งใน 15 นาที ' +
+        '(บัญชีทดสอบใช้ร่วมกันทุกทีม) — แก้ไฟล์บัญชีก่อนรันใหม่',
+    );
+  }
 
   if (obtained.length === 0) {
     console.error(
-      `\nERROR: could not obtain any Core Hub token from ${config.coreHubUrl}. ` +
-        'Is the Core Hub running and seeded?',
+      `\nERROR: could not obtain any Core Hub token for a role from ${config.coreHubUrl}. ` +
+        (source.source === 'file'
+          ? `ตรวจบัญชีใน ${ACCOUNTS_ENV} (ดู login failed ด้านบน)`
+          : 'Is the Core Hub running and seeded?'),
     );
     process.exit(2);
   }
-
-  console.log(`tokens        : ${obtained.map(([role]) => role).join(', ')}`);
 
   await runLevel1(config, report, tokens);
 
@@ -720,7 +828,7 @@ async function main() {
   }
 
   if (config.level === 'L3') {
-    await runLevel3(config, report, tokens);
+    await runLevel3(config, report, tokens, ownerToken);
   }
 
   // Worth knowing, never a failure: retries after a 429 and codes outside the enum.
@@ -744,16 +852,28 @@ async function main() {
 
   const { PASS, FAIL, SKIP, WARN } = report.counts;
   const retries = observations.retries.length;
+  // A skipped check was not tested, so it cannot count as met.
+  const conformant = FAIL === 0 && SKIP === 0;
 
   console.log(`\n${'─'.repeat(60)}`);
   console.log(
     `RESULT: ${PASS} passed · ${FAIL} failed · ${SKIP} skipped · ${WARN} warnings · retries: ${retries}`,
   );
-  console.log(
-    FAIL === 0
-      ? `✅ CONFORMANT — ${config.subsystemId} meets standard v${JWT_CONTRACT.standardsVersion} ${config.level}`
-      : `❌ NOT CONFORMANT — ${FAIL} required check(s) failed`,
-  );
+
+  if (conformant) {
+    console.log(
+      `✅ CONFORMANT — ${config.subsystemId} meets standard v${JWT_CONTRACT.standardsVersion} ${config.level}`,
+    );
+  } else {
+    const reasons = [];
+    if (FAIL > 0) reasons.push(`${FAIL} required check(s) failed`);
+    if (SKIP > 0) reasons.push(`${SKIP} check(s) skipped (SKIP ไม่นับว่าผ่าน)`);
+    console.log(`❌ NOT CONFORMANT — ${reasons.join(' · ')}`);
+
+    for (const result of report.results.filter((item) => item.status === 'SKIP')) {
+      console.log(`   SKIP ${result.id.padEnd(10)} ${result.title}\n              → ${result.detail}`);
+    }
+  }
 
   if (config.json) {
     fs.writeFileSync(
@@ -764,7 +884,7 @@ async function main() {
           standardsVersion: JWT_CONTRACT.standardsVersion,
           level: config.level,
           summary: { ...report.counts, retries },
-          conformant: FAIL === 0,
+          conformant,
           results: report.results,
           generatedAt: new Date().toISOString(),
         },
@@ -775,7 +895,7 @@ async function main() {
     console.log('report        : conformance-report.json');
   }
 
-  process.exit(FAIL === 0 ? 0 : 1);
+  process.exit(conformant ? 0 : 1);
 }
 
 main().catch((error) => {

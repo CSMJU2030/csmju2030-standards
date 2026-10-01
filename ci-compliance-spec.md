@@ -308,9 +308,9 @@ jobs:
 ❌ [DD-01] ใช้ชื่อ field ที่ห้ามใช้แทน core_user_id
    ไฟล์: backend/src/borrow/borrow.entity.ts:14
    พบ: student_id
-   ต้องเป็น: username
+   ต้องเป็น: core_user_id / coreUserId
    อ้างอิง: data-dictionary.md ข้อ 1
-   วิธีแก้: เปลี่ยนชื่อ field เป็น username ทั้งใน entity, DTO และ response
+   วิธีแก้: ใช้ core_user_id / coreUserId แทน alias ต้องห้าม ทั้งใน entity, DTO และ response
 ```
 
 ---
@@ -494,7 +494,7 @@ echo "✅ [ARC-01] Database isolation ผ่าน"
 # scripts/check-field-aliases.sh
 set -euo pipefail
 
-# alias ที่ห้ามใช้แทน username (data-dictionary.md ข้อ 1)
+# alias ที่ห้ามใช้แทน core_user_id (data-dictionary.md ข้อ 1)
 FORBIDDEN_ALIASES=(
   'student_id' 'student_code' 'user_id' 'user_code'
   'std_id' 'stdId' 'studentId' 'userId' 'userCode'
@@ -516,7 +516,7 @@ done
 if [[ "$VIOLATION" -eq 1 ]]; then
   cat <<EOF
    อ้างอิง: data-dictionary.md ข้อ 1 (Forbidden aliases)
-   วิธีแก้: เปลี่ยนทุกที่ให้ใช้ username แทน
+   วิธีแก้: เปลี่ยนทุกที่ให้ใช้ core_user_id / coreUserId แทน
             รวมทั้ง Prisma schema, DTO, API response และ frontend type
 EOF
   exit 1
@@ -724,9 +724,10 @@ csmju-<subsystem-name>/
 ### API & Data
 - [ ] ถ้าแก้ endpoint → อัปเดต `openapi.json` ใน PR นี้ด้วย
 - [ ] Response ทุก endpoint ห่อด้วย `{ success, data/error, meta }`
-- [ ] `error.code` อยู่ในรายการมาตรฐาน 6 ค่า
-- [ ] Field ทุกตัวเป็น `snake_case` และตรงกับ `data-dictionary.md`
-- [ ] ใช้ `username` ไม่ใช้ `student_id` / `user_id` / `stdId`
+- [ ] `error.code` อยู่ในรายการมาตรฐาน 9 ค่า (`contracts/error-codes.json`) · 429/503 มี `Retry-After`
+- [ ] ตาราง/คอลัมน์ใน DB เป็น `snake_case` ผ่าน `@map` · field ใน TS/JSON เป็น camelCase · ตรงกับ `data-dictionary.md`
+- [ ] อ้างถึงผู้ใช้ด้วย `core_user_id` (ค่า `sub` ชนิด text) ไม่ใช้ `student_id` / `user_id` / `stdId`
+- [ ] ข้อมูลกลางเก็บแค่ `code` · ไม่เก็บชื่อ/อีเมลของคน · ไม่ log token หรือ URL ของ callback
 
 ### UI (ถ้ามีการแก้หน้าจอ)
 - [ ] ทุกหน้าอยู่ใน `<CsmjuAppShell>`

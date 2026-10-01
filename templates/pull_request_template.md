@@ -30,9 +30,10 @@
 ### API & Data
 - [ ] ถ้าแก้ endpoint → อัปเดต `openapi.json` ใน PR นี้ด้วย
 - [ ] Response ทุก endpoint ห่อด้วย `{ success, data/error, meta }`
-- [ ] `error.code` อยู่ในรายการมาตรฐาน 6 ค่า
-- [ ] Field ทุกตัวเป็น `snake_case` และตรงกับ `data-dictionary.md`
-- [ ] ใช้ `username` ไม่ใช้ `student_id` / `user_id` / `stdId`
+- [ ] `error.code` อยู่ในรายการมาตรฐาน 9 ค่า (`contracts/error-codes.json`) · 429/503 มี `Retry-After`
+- [ ] ตาราง/คอลัมน์ใน DB เป็น `snake_case` ผ่าน `@map` · field ใน TS/JSON เป็น camelCase · ตรงกับ `data-dictionary.md`
+- [ ] อ้างถึงผู้ใช้ด้วย `core_user_id` (ค่า `sub` ชนิด text) ไม่ใช้ `student_id` / `user_id` / `stdId`
+- [ ] ข้อมูลกลางเก็บแค่ `code` · ไม่เก็บชื่อ/อีเมลของคน · ไม่ log token หรือ URL ของ callback
 
 ### UI (ถ้ามีการแก้หน้าจอ)
 - [ ] ทุกหน้าอยู่ใน `<CsmjuAppShell>`

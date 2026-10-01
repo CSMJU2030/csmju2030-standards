@@ -61,21 +61,32 @@ if [ -e "$WORKDIR" ]; then
   exit 1
 fi
 
+# --- GH-04 ต้องมี tag ของเวอร์ชันนี้จริง: เช็กก่อนสร้างอะไรทั้งในเครื่องและบน GitHub ---
+# ไม่งั้นสคริปต์จะไปตกตอน checkout submodule หลัง gh repo create --push แล้ว
+# เหลือ repo ครึ่งทางที่ไม่มี submodule และ ruleset
+if ! git ls-remote --exit-code --tags "https://github.com/${ORG}/csmju2030-standards.git" \
+     "refs/tags/v${STANDARDS_VERSION}" >/dev/null 2>&1; then
+  echo "❌ ยังไม่มี tag v${STANDARDS_VERSION} ใน csmju2030-standards (VERSION ของ checkout นี้)" >&2
+  echo "   ติด tag ก่อน หรือรันสคริปต์จาก checkout ของ tag ที่ออกแล้ว" >&2
+  exit 1
+fi
+
 echo "=== สร้าง $REPO_NAME (standards v$STANDARDS_VERSION) ==="
 
 mkdir -p "$WORKDIR"/{frontend/src,backend/src,.github/workflows}
 cd "$WORKDIR"
 
 # --- CI: คัดลอกจาก template แล้วแทนที่ชื่อ ไม่เขียนซ้ำด้วยมือ ---
-sed -e "s#@v[0-9]\+\.[0-9]\+\.[0-9]\+#@v${STANDARDS_VERSION}#" \
-    -e "s#csmju-<subsystem-name>#${REPO_NAME}#" \
+# เลขตัวกลาง (@vX.Y.Z) คงตาม template — DevOps เป็นเจ้าของ ไม่ผูกกับ VERSION
+# (เวอร์ชันชุดตรวจอยู่ใน .standards-version) · เคยใช้ sed แบบ \+ ซึ่ง GNU กับ macOS ทำงานไม่เหมือนกัน
+sed -e "s#csmju-<subsystem-name>#${REPO_NAME}#" \
     "$SCRIPT_DIR/templates/ci.yml" > .github/workflows/ci.yml
 
 sed "s#<subsystem-name>#${SUBSYSTEM}#g" \
     "$SCRIPT_DIR/templates/CODEOWNERS" > .github/CODEOWNERS
 
 cp "$SCRIPT_DIR/templates/pull_request_template.md" .github/pull_request_template.md
-cp "$SCRIPT_DIR/templates/.env.example" .env.example
+sed "s#csmju-change-me#${REPO_NAME}#" "$SCRIPT_DIR/templates/.env.example" > .env.example
 cp "$SCRIPT_DIR/templates/conformance-nightly.yml" .github/workflows/conformance-nightly.yml
 
 # --- GH-04: ไฟล์นี้คือสิ่งที่สคริปต์เดิมลืมสร้าง ทำให้ทุก repo ใหม่ fail ทันที ---
@@ -213,4 +224,8 @@ cat <<EOF
 ขั้นตอนที่เหลือ (ต้องมีสิทธิ์ org admin)
   - สร้าง Team: pl-${SUBSYSTEM}, aie-${SUBSYSTEM} แล้วผูกเข้า repo
   - แก้ subsystem.yaml ใส่ owner จริง${RULESET_STEP}
+
+ส่งให้ทีม
+  - พอร์ตของทีม: frontend 32xx · backend 42xx — ทีมแทน 32xx ใน subsystem.yaml (base_url) และ PORT ใน .env.example
+  - บัญชีเจ้าของระบบใน Core Hub ส่งทางข้อความส่วนตัว (standards/docs/connect-core-hub.md ข้อ 2)
 EOF

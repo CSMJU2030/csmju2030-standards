@@ -13,15 +13,17 @@
 | `demo-student-subsystem` | **reference implementation** ที่ผ่าน conformance L3 | ใช้เป็นต้นแบบคัดลอกชั้น auth |
 | `csmju-<subsystem>` | ระบบย่อยของแต่ละทีม | 1 ระบบ = 1 repo = 1 ฐานข้อมูล = 1 AIE |
 
-การวางโฟลเดอร์ในเครื่อง (แนะนำให้เหมือนกันทุกคน เพื่อให้คำสั่งในเอกสารใช้ได้ตรง ๆ):
+การวางโฟลเดอร์ในเครื่องของทีมระบบย่อย (Core Hub ใช้ตัวจริงที่ `https://csmju2030.jowave.com` — ไม่ต้องโคลนมาไว้ในเครื่อง):
 
 ```text
 csmju2030/
-├── csmju-core-hub/           backend/ → รันที่ :3000
-├── demo-student-subsystem/   backend/ → รันที่ :3001
-├── csmju2030-standards/
-└── csmju-<your-subsystem>/   backend/ → รันที่ :3002, :3003, …
+├── csmju2030-standards/        (ถ้าต้องการอ่านนอก submodule)
+├── demo-student-subsystem/     ตัวอย่าง: frontend :3201 · backend :4201
+└── csmju-<your-subsystem>/     frontend :32xx · backend :42xx (พอร์ตที่ผู้ดูแล dev server กำหนดให้)
 ```
+
+frontend เป็นประตูเดียวของระบบ และ proxy `/api/*` กับ `/auth/*` ไป backend — callback ที่ลงทะเบียนจึงใช้พอร์ต frontend
+([`connect-core-hub.md`](connect-core-hub.md) ข้อ 1)
 
 ---
 
@@ -29,8 +31,8 @@ csmju2030/
 
 ```text
 csmju-<subsystem>/
-├── .github/workflows/compliance.yml   เรียก reusable workflow ของ standards
-├── .standards-version                 เวอร์ชันมาตรฐานที่ผูกอยู่ (เช่น 1.0.0)
+├── .github/workflows/ci.yml           เรียก reusable workflow ของ standards (ห้ามแก้ — DevOps ดูแล)
+├── .standards-version                 เวอร์ชันมาตรฐานที่ผูกอยู่ (เช่น 1.7.0)
 ├── standards/                         git submodule → csmju2030-standards
 ├── subsystem.yaml                     manifest เดียวที่ CI และ conformance อ่าน
 ├── pnpm-workspace.yaml                workspace ของ frontend + backend
@@ -97,6 +99,7 @@ package-lock.json  ·  yarn.lock        (ใช้ pnpm-lock.yaml เท่า�
 ## 5. Branch และ commit
 
 - branch หลักคือ `main` และต้องอยู่ในสถานะที่ conformance ผ่านเสมอ
-- แตก branch: `feature/<subsystem>/<เรื่อง>` · `fix/<subsystem>/<เรื่อง>` · `refactor/<subsystem>/<เรื่อง>`
+- แตก branch: `feature/<subsystem>/<เรื่อง>` **แบบเดียว** — ตัวพิมพ์เล็ก ตัวเลข และขีดกลาง (`GH-01` ไม่รับ `fix/…` หรือ `refactor/…`
+  งานแก้บั๊กก็ใช้ `feature/<subsystem>/fix-<เรื่อง>` แล้วใช้ commit type `fix`)
 - commit ใช้ Conventional Commits: `feat(<subsystem>): …` — ชนิดที่อนุญาต `feat|fix|chore|refactor|docs|test|ci`
 - รายละเอียดและกฎที่ CI ตรวจ ดู [`github-workflow.md`](github-workflow.md)

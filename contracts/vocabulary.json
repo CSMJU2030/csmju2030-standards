@@ -1,10 +1,12 @@
 {
   "$comment": "คำศัพท์ปิด - subsystem ห้ามคิดค่าใหม่นอกรายการนี้",
-  "standardsVersion": "1.0",
+  "standardsVersion": "1.1",
   "coreRoles": [
     "student",
     "alumni",
     "staff",
+    "lecturer",
+    "guest",
     "admin"
   ],
   "permissionFormat": "<resource>:<action>[:own|:any]",
@@ -27,9 +29,15 @@
   "requiredRoutes": {
     "health": "GET /api/health",
     "me": "GET /api/v1/me",
-    "ssoCallback": "GET /auth/callback"
+    "ssoLogin": "GET /auth/login",
+    "ssoCallback": "GET /auth/callback",
+    "ssoLogout": "POST /auth/logout"
   },
-  "ssoCookieName": "core_hub_access_token",
+  "ssoCookies": {
+    "$comment": "<name> = ชื่อระบบในทะเบียน (เท่ากับ SUBSYSTEM_ID) - ตรงกับ sso.sessionCookieSuffix / stateCookieSuffix ใน jwt-contract.json",
+    "session": "<name>_access_token",
+    "state": "<name>_sso_state"
+  },
   "ssoQueryParams": [
     "access_token",
     "token_type",
@@ -43,9 +51,59 @@
       "REJECTED"
     ],
     "status": [
+      "INACTIVE",
+      "ACTIVE",
+      "SUSPENDED"
+    ],
+    "exceptionStatus": [
+      "REQUESTED",
+      "APPROVED",
+      "REJECTED"
+    ]
+  },
+  "coreHubEnums": {
+    "$comment": "ค่าที่ Core Hub ส่งใน API (docs/reference-data.md ข้อ 4.8) - Core Hub เพิ่มค่าได้ ระบบย่อยต้องแสดงค่าที่ไม่รู้จักได้โดยไม่พัง",
+    "roomType": [
+      "LECTURE",
+      "LAB",
+      "SEMINAR",
+      "MEETING",
+      "PROJECT",
+      "OFFICE"
+    ],
+    "curriculumCategory": [
+      "GENERAL_EDUCATION",
+      "CORE",
+      "MAJOR_REQUIRED",
+      "MAJOR_ELECTIVE",
+      "FREE_ELECTIVE",
+      "OTHER"
+    ],
+    "personType": [
+      "STUDENT",
+      "STAFF"
+    ],
+    "personStatus": [
       "ACTIVE",
       "INACTIVE",
-      "SUSPENDED"
+      "GRADUATED"
+    ],
+    "personStatusFilter": [
+      "ACTIVE",
+      "INACTIVE",
+      "GRADUATED",
+      "ALL"
+    ],
+    "staffType": [
+      "LECTURER",
+      "OFFICER",
+      "TECHNICIAN",
+      "OTHER"
+    ],
+    "imageCategory": [
+      "PROFILE",
+      "NEWS",
+      "GENERAL"
     ]
   },
   "conventions": {
@@ -57,8 +115,11 @@
       "callback_url",
       "state"
     ],
-    "idFormat": "uuid-v4",
+    "idFormat": "uuid-v4 (id ที่ระบบย่อยสร้างเอง)",
+    "coreUserIdFormat": "opaque string ยาวไม่เกิน 64 - ไม่ใช่ UUID เสมอไป (user-<studentCode> หรือ UUID) - เก็บเป็น text ห้าม validate เป็น UUID",
+    "referenceCodePattern": "^[A-Z0-9-]{1,50}$",
     "dateFormat": "ISO-8601 UTC (suffix Z)",
+    "yearCalendar": "พุทธศักราช (academicYear, entryYear, code ภาค เช่น 2569-1)",
     "paginationQuery": "?page=<1..>&limit=<1..100>",
     "paginationDefaults": {
       "page": 1,
@@ -72,7 +133,14 @@
     ],
     "ownershipRule": "record.coreUserId === token.sub",
     "clockSkewSeconds": 60,
-    "jwksCacheTtlMinutes": 10
+    "jwksCacheTtlMinutes": 10,
+    "referenceDataCache": {
+      "$comment": "docs/reference-data.md ข้อ 7.3 - cache รวมทุกผู้ใช้ · ใช้ของเก่าตอน Core Hub ล่ม · ข้อมูลบุคคลห้าม cache",
+      "ttlMinutes": 10,
+      "minRefreshIntervalSeconds": 30,
+      "requestTimeoutSeconds": 5,
+      "staleOnError": true
+    }
   },
   "stack": {
     "mandatory": true,
@@ -97,8 +165,8 @@
       "ts-jest": "^29.4",
       "supertest": "^7"
     },
-    "frontend": "next@15+ (App Router) — pin เมื่อสร้าง frontend ตัวแรก",
-    "packageManager": "npm (ต้อง commit package-lock.json)"
+    "frontend": "next@15.5+ (App Router) - ต้องมีคำสั่ง next typegen (tech-stack.md)",
+    "packageManager": "pnpm@12.3.4 (ต้อง commit pnpm-lock.yaml · ห้ามมี package-lock.json / yarn.lock - QA-05)"
   },
   "naming": {
     "database": {
@@ -107,6 +175,12 @@
       "prismaField": "camelCase",
       "primaryKey": "id (uuid v4)",
       "foreignKey": "<entity>_id",
+      "coreReferences": {
+        "core_user_id": "claim sub - text ≤ 64 · index ไม่ unique",
+        "person_code": "personCode จาก GET /api/v1/people/me ตอนเกิดรายการ - text null ได้",
+        "<dataset>_code": "code ของข้อมูลอ้างอิง เช่น room_code faculty_code term_code course_code - ไม่เก็บชื่อ ไม่เก็บ id",
+        "image_id": "id ของรูปจาก POST /api/v1/images"
+      },
       "timestamps": [
         "created_at",
         "updated_at"
@@ -123,7 +197,7 @@
       "resource": "plural kebab-case",
       "maxNestingDepth": 1,
       "trailingSlash": false,
-      "pathParam": "uuid v4",
+      "pathParam": "uuid v4 (id ของระบบเอง) · code ของ Core Hub ตาม referenceCodePattern · อื่น ๆ ตอบ 400",
       "queryParam": "camelCase",
       "createStatus": 201,
       "deleteResponse": "200 + { id, deleted: true }",

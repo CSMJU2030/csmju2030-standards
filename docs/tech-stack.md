@@ -186,7 +186,7 @@ csmju-<subsystem-name>/
 ├── frontend/                         # โค้ด Next.js
 ├── backend/                          # โค้ด NestJS
 ├── standards/                        # Git Submodule ดึงไฟล์มาตรฐาน (csmju2030-standards)
-├── subsystem.yaml                    # manifest: name · standards_version · callback · probes
+├── subsystem.yaml                    # manifest: name · callback · probes (เวอร์ชัน standards อยู่ใน .standards-version)
 ├── .standards-version                # เวอร์ชันมาตรฐานที่ผูกอยู่
 └── docker-compose.yml
 ```
