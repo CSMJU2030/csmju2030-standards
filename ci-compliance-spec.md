@@ -187,18 +187,11 @@ UI Token Compliance
 ### 5.1 ไฟล์ `.github/CODEOWNERS`
 
 ```text
-# ค่าเริ่มต้น — PL ของระบบย่อยนี้ต้อง review ทุก PR
+# PL ของระบบย่อยนี้ approve คนเดียวก็ merge ได้ทุก PR (ไม่ต้องรอ DevOps/PM)
 *                       @csmju2030/pl-<subsystem-name>
 
-# ไฟล์ที่ AIE ห้ามแก้เอง — DevOps เท่านั้นที่ approve ได้
-/.github/               @csmju2030/devops
-/.github/workflows/     @csmju2030/devops
-/.github/CODEOWNERS     @csmju2030/devops
-/standards              @csmju2030/devops
-/subsystem.yaml         @csmju2030/devops @csmju2030/pm
-
-# ไฟล์ contract ที่กระทบระบบอื่น — ต้องมี PM ร่วม approve
-/backend/openapi.json   @csmju2030/pl-<subsystem-name> @csmju2030/pm
+# ข้อยกเว้นกฎ (UI-01 · ARC-02) — DevOps เท่านั้นที่ approve ได้ ทีมยกเว้นกฎให้ตัวเองไม่ได้
+/.compliance-exceptions.yml @csmju2030/devops
 ```
 
 ### 5.2 GitHub Teams ที่ต้องสร้าง
