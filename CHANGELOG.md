@@ -7,7 +7,9 @@
 
 ## ยังไม่ออกเวอร์ชัน
 
-(ยังไม่มี)
+- **ฟอร์ม issue "ขอข้อยกเว้นมาตรฐาน"** (`.github/ISSUE_TEMPLATE/compliance-exception.yml`) — template ที่ `ci-compliance-spec.md` ข้อ 11
+  อ้างถึงแต่ยังไม่เคยมี · ถามรหัสกฎ · `scope` · เหตุผล · ทางเลือกที่ลองแล้ว · ผลกระทบ · `expires` · ร่างรายการใน `.compliance-exceptions.yml` ·
+  เตือนว่า repo เป็น public · ไม่เปลี่ยนกฎหรือตัวตรวจ จึงไม่ขึ้นเวอร์ชัน
 
 ---
 

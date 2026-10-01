@@ -949,6 +949,10 @@ PM + DevOps พิจารณาร่วมกัน
                  เมื่อครบกำหนด CI จะ fail อีกครั้ง
 ```
 
+template คือฟอร์ม [`.github/ISSUE_TEMPLATE/compliance-exception.yml`](.github/ISSUE_TEMPLATE/compliance-exception.yml) —
+กด New issue ใน `csmju2030-standards` แล้วเลือก "ขอข้อยกเว้นมาตรฐาน" · ฟอร์มถามครบทุกช่องข้างบน พร้อม `scope` และร่างรายการใน `.compliance-exceptions.yml`
+· กฎในเอกสารที่ไม่มีตัวตรวจ CI ก็ยื่นด้วยฟอร์มนี้
+
 ### 11.1 ไฟล์ `.compliance-exceptions.yml`
 
 วางใน root ของ subsystem repo แก้ได้เฉพาะ DevOps (คุมด้วย CODEOWNERS)
