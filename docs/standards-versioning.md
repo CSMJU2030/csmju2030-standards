@@ -118,7 +118,7 @@ git push -u origin feature/<slug>/bump-standards-v1-7-0
 | ข้อมูลกลาง | ใช้ Core Hub ผ่าน backend · เก็บแค่ `code` / `core_user_id` / `person_code` · ลบตารางข้อมูลอ้างอิงที่ทำเอง | reference-data.md |
 | error | ใช้ error code ครบ 9 ค่า · 429/503 มี `Retry-After` | api-conventions.md |
 
-- PR นี้แก้ `subsystem.yaml` ด้วย ซึ่ง CODEOWNERS กำหนดให้ **DevOps หรือ PM approve** — PL ของทีม approve อย่างเดียวไม่พอ
+- PR นี้แก้ `subsystem.yaml` ด้วย — PL ของทีม approve คนเดียวก็ merge ได้ (repo ที่ CODEOWNERS ยังมีบรรทัด `/subsystem.yaml` ต้องให้ DevOps หรือ PM approve)
 - วิธีที่เร็วที่สุด: คัดลอก `backend/src/auth/` · `backend/src/common/` และ proxy ใน `frontend/next.config.ts` จาก demo แล้วปรับชื่อระบบ
 - ทดสอบตาม connect-core-hub ข้อ 6 ให้ครบก่อนขอ approve
 
@@ -223,7 +223,7 @@ CI ไม่ได้รันอะไรจาก submodule เพราะช
 
 **ช่อง `standards_version` ใน `subsystem.yaml` ยังต้องใส่ไหม**
 ไม่ต้อง ตั้งแต่ 1.5.1 ไม่มีเช็คไหนอ่านช่องนี้ repo เดิมจะคงไว้ก็ได้ (schema ยังรับ)
-ถ้าจะลบ ต้องทำใน PR ที่ DevOps หรือ PM approve เพราะ CODEOWNERS กำหนดเจ้าของ `subsystem.yaml` ไว้
+ถ้าจะลบ ทำใน PR ปกติที่ PL approve ได้เลย
 
 **ถอยเวอร์ชันได้ไหม**
 ไม่ได้ เพื่อกันการถอยไปใช้เวอร์ชันที่ตรวจหลวมกว่า ถ้าเวอร์ชันใหม่มีบั๊กจริง ให้เปิด issue ใน standards ให้ออกเวอร์ชันแก้

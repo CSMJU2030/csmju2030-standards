@@ -7,7 +7,10 @@
 
 ## ยังไม่ออกเวอร์ชัน
 
-(ยังไม่มี)
+- **CODEOWNERS:** PL approve คนเดียวก็ merge ได้ทุก PR — `templates/CODEOWNERS` เหลือ `*` → PL กับ
+  `/.compliance-exceptions.yml` → DevOps · เลิกให้ DevOps/PM ถือ `subsystem.yaml` · `backend/openapi.json` · `.github/`
+  (`.github/workflows/` กับ `CODEOWNERS` ยังมี `GH-03` กันอยู่) · ci-compliance-spec ข้อ 5.1 · standards-versioning ตามไฟล์ใหม่
+  · เปิด PR เปลี่ยนไฟล์นี้ใน 37 repo ทีมแล้ว (1 ต.ค.)
 
 ---
 
