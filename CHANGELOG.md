@@ -5,11 +5,23 @@
 
 ---
 
-## ยังไม่ออกเวอร์ชัน
+## 1.7.1 — 2026-10-03
 
+- `scripts/lib/allowed-deps.json` — อนุญาต realtime และเครื่องมือเทสต์หน้าเว็บ (PM/DevOps อนุมัติ 3 ต.ค. ตามคำขอของทีม csmju-nexus · standards#40):
+  - `allowed_backend`: `socket.io` · `@nestjs/websockets` · `@nestjs/platform-socket.io` (MIT)
+  - `allowed_frontend`: `socket.io-client` (MIT)
+  - `allowed_dev_tooling`: `@testing-library/jest-dom` · `@testing-library/user-event` (MIT) — คู่ของ `@testing-library/react`
+    ใช้ได้เฉพาะ `devDependencies` · อยู่ใน `dependencies` ยังตก `ARC-02`
+- `docs/tech-stack.md` ข้อ 1.2 · 1.3 · 1.4.3 (ใหม่) · `ci-compliance-spec.md` ข้อ 7.3 — อัปเดตให้ตรงกับ whitelist
+  พร้อมข้อกำหนด: `@nestjs/websockets` ใช้ major เดียวกับ NestJS · ตรวจ token ตอน handshake ด้วยตัวตรวจเดียวกับ REST · token ของ socket อยู่ใต้ `auth-contract.md` ข้อ 6.1
+- fixture `__fixtures__/ARC-02-REALTIME` + `scripts/self-test.sh` — 6 ตัวใหม่ผ่าน · เครื่องมือเทสต์ใน `dependencies` ถูกตีตก
 - **ฟอร์ม issue "ขอข้อยกเว้นมาตรฐาน"** (`.github/ISSUE_TEMPLATE/compliance-exception.yml`) — template ที่ `ci-compliance-spec.md` ข้อ 11
   อ้างถึงแต่ยังไม่เคยมี · ถามรหัสกฎ · `scope` · เหตุผล · ทางเลือกที่ลองแล้ว · ผลกระทบ · `expires` · ร่างรายการใน `.compliance-exceptions.yml` ·
-  เตือนว่า repo เป็น public · ไม่เปลี่ยนกฎหรือตัวตรวจ จึงไม่ขึ้นเวอร์ชัน
+  เตือนว่า repo เป็น public · ไม่เปลี่ยนกฎหรือตัวตรวจ
+
+**ใครต้องทำอะไร:** ไม่มีกฎที่เข้มขึ้น · ระบบย่อยที่จะใช้แพ็กเกจเหล่านี้ให้เลื่อน `.standards-version` และ submodule `standards`
+เป็น `1.7.1` (`docs/standards-versioning.md` ข้อ 2) · csmju-nexus เลื่อนแล้วลบรายการ `ARC-02` ของ standards#40 ออกจาก
+`.compliance-exceptions.yml` ได้ · ระบบย่อยอื่นไม่ต้องทำอะไร
 
 ---
 

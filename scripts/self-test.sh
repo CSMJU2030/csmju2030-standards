@@ -53,6 +53,10 @@ run_fixture_case "ARC-02-DEV" "check-authorized-deps.sh"
 # ARC-02-MAP: lucide-react / leaflet / qrcode.react / @tailwindcss/postcss are allowed since 1.2.1;
 # react-leaflet stays out (Hippocratic-2.1 is not an OSI licence) — use leaflet directly.
 run_fixture_case "ARC-02-MAP" "check-authorized-deps.sh"
+# ARC-02-REALTIME: socket.io / @nestjs/websockets / @nestjs/platform-socket.io /
+# socket.io-client are allowed since 1.7.1, and @testing-library/jest-dom /
+# user-event as dev tooling only — a runtime dependency on them still fails.
+run_fixture_case "ARC-02-REALTIME" "check-authorized-deps.sh"
 # ARC-02-DEV-UNLISTED is a regression case: dev_tooling_patterns used to
 # test each package name against itself, so any devDependency passed —
 # including a library outside the whitelist (react-leaflet) moved there to dodge it.
