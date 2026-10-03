@@ -7,7 +7,8 @@
     "allowed_backend รวม dependency ที่สัญญา v1.0 บังคับ: @prisma/adapter-pg + pg (Prisma 7 driver adapter), jose (ตรวจ JWKS+kid)",
     "jsonwebtoken / passport-jwt ยังห้าม เพราะไม่รองรับ JWKS + kid ตาม auth-contract.md ข้อ 4 — ให้ใช้ jose",
     "allowed_core_hub ใช้เพิ่มจาก allowed_backend เฉพาะ profile=core-hub (csmju-core-hub เป็นผู้ออก token จึงต้องมีไลบรารีเซ็น/ตรวจของตัวเอง · sharp ใช้ย่อรูปในบริการเก็บรูปกลาง)",
-    "lucide-react / leaflet / qrcode.react / @tailwindcss/postcss อนุญาตตั้งแต่ 1.2.1 (สาย 1.0.x ตั้งแต่ 1.0.2) · react-leaflet ไม่อนุญาต (license Hippocratic-2.1 ไม่ผ่าน OSI) ให้ใช้ leaflet ตรง ๆ"
+    "lucide-react / leaflet / qrcode.react / @tailwindcss/postcss อนุญาตตั้งแต่ 1.2.1 (สาย 1.0.x ตั้งแต่ 1.0.2) · react-leaflet ไม่อนุญาต (license Hippocratic-2.1 ไม่ผ่าน OSI) ให้ใช้ leaflet ตรง ๆ",
+    "socket.io / @nestjs/websockets / @nestjs/platform-socket.io (backend) · socket.io-client (frontend) อนุญาตตั้งแต่ 1.7.1 สำหรับ realtime · @testing-library/jest-dom / @testing-library/user-event เป็น dev tooling ตั้งแต่ 1.7.1 (ใช้ใน dependencies ไม่ได้)"
   ],
   "allowed_frontend": [
     "next",
@@ -25,6 +26,7 @@
     "lucide-react",
     "leaflet",
     "qrcode.react",
+    "socket.io-client",
     "zod",
     "openapi-typescript",
     "eslint",
@@ -39,9 +41,11 @@
     "@nestjs/core",
     "@nestjs/mapped-types",
     "@nestjs/platform-express",
+    "@nestjs/platform-socket.io",
     "@nestjs/schedule",
     "@nestjs/swagger",
     "@nestjs/testing",
+    "@nestjs/websockets",
     "@prisma/adapter-pg",
     "@prisma/client",
     "class-transformer",
@@ -55,6 +59,7 @@
     "prisma",
     "reflect-metadata",
     "rxjs",
+    "socket.io",
     "supertest",
     "typescript",
     "zod"
@@ -66,7 +71,9 @@
     "@nestjs/schematics",
     "@nestjs/testing",
     "@tailwindcss/postcss",
+    "@testing-library/jest-dom",
     "@testing-library/react",
+    "@testing-library/user-event",
     "@types/pg",
     "autoprefixer",
     "dotenv",

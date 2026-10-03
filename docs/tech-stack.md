@@ -27,6 +27,7 @@
 *   **Styling:** **Tailwind CSS** (ใช้งานร่วมกับ `@csmju2030/design-system` ของ Core)
 *   **State / Data Fetching:** Zustand, React Context, Axios หรือ React Query
 *   **ไอคอน · แผนที่ · QR:** `lucide-react` · `leaflet` · `qrcode.react` (ตั้งแต่ 1.2.1 ดูข้อ 1.4.2)
+*   **Realtime:** `socket.io-client` (ตั้งแต่ 1.7.1 ดูข้อ 1.4.3)
 *   ห้ามมีหน้า login ของตัวเอง — ต้องเข้าผ่าน Core Hub SSO (`auth-contract.md` ข้อ 5)
 
 #### 1.2.1 script `typecheck` ของ frontend ต้องสร้าง route types ก่อน
@@ -70,6 +71,7 @@ app/layout.tsx(23,50): error TS2304: Cannot find name 'LayoutProps'.
 | **class-validator / class-transformer** | `^0.15.1` / `^0.5.1` | ใช้กับ `ValidationPipe` |
 | **jose** | `^5.10` | ตรวจ JWT ผ่าน JWKS — **ห้ามใช้ `passport-jwt` ในระบบย่อย** เพราะไม่รองรับ JWKS + `kid` ตามสัญญา |
 | **Jest / ts-jest / supertest** | `^30` / `^29.4` / `^7` | |
+| **Realtime (ถ้าต้องใช้)** | `socket.io` `^4.8` | `@nestjs/websockets` + `@nestjs/platform-socket.io` ใช้ major เดียวกับ NestJS · ดูข้อ 1.4.3 |
 
 *   **Database:** Frontend ห้ามเชื่อมต่อ PostgreSQL ตรงเด็ดขาด ต้องผ่าน Backend ของระบบย่อยเท่านั้น (กฎ `ARC-01`)
 *   **Backend ต้องเป็น NestJS ทุกระบบย่อย** (กฎ `ARC-04`) — Next.js ทำหน้าเว็บเท่านั้น: route handler / server action
@@ -161,6 +163,18 @@ export function CampusMap({ lat, lng, zoom = 17 }: { lat: number; lng: number; z
 - ทุกแผนที่ต้องแสดง attribution ของ OpenStreetMap และทำตาม tile usage policy ของ OSM — ถ้าใช้ปริมาณมากให้ตั้ง tile server เอง
 - ถ้าตั้ง Content-Security-Policy ต้องเพิ่มโดเมน tile ใน `img-src`
 - QR code ใส่ได้เฉพาะข้อมูลสาธารณะ เช่น URL ของหน้าประกาศ — **ห้าม**ใส่ token รหัสผ่าน หรือข้อมูลบุคคล
+
+#### 1.4.3 Realtime และเครื่องมือเทสต์หน้าเว็บ (อนุญาตตั้งแต่ 1.7.1)
+
+| แพ็กเกจ | ฝั่ง | ใช้ทำอะไร | license |
+|---|---|---|---|
+| `socket.io` · `@nestjs/websockets` · `@nestjs/platform-socket.io` | backend | WebSocket gateway ของ NestJS — แชทสด แจ้งเตือนสด สถานะออนไลน์ signaling ของ WebRTC | MIT |
+| `socket.io-client` | frontend | client ของข้อข้างบน | MIT |
+| `@testing-library/jest-dom` · `@testing-library/user-event` | frontend · `devDependencies` เท่านั้น | matcher และการจำลองการกด/พิมพ์ในเทสต์ ใช้คู่กับ `@testing-library/react` | MIT |
+
+- `@nestjs/websockets` และ `@nestjs/platform-socket.io` ต้องใช้ major เดียวกับ `@nestjs/core`
+- การเชื่อม socket ต้องตรวจ token ของ Core Hub ตอน handshake ด้วยตัวตรวจชุดเดียวกับ REST (`auth-contract.md` ข้อ 4 ครบ 10 ขั้น) — ห้ามเขียนตัวตรวจแยก
+- token ที่ใช้ต่อ socket อยู่ใต้ `auth-contract.md` ข้อ 6.1 เหมือนกัน — ห้ามเก็บ ส่งต่อ หรือ log
 
 ### 1.5 ข้อยกเว้นของ Core Hub
 

@@ -586,12 +586,14 @@ echo "✅ [UI-01] ไม่พบ hex color ดิบ"
     "@csmju2030/design-system",
     "zustand", "axios", "@tanstack/react-query",
     "lucide-react", "leaflet", "qrcode.react",
+    "socket.io-client",
     "zod", "openapi-typescript",
     "eslint", "prettier", "vitest", "@testing-library/react"
   ],
   "allowed_backend": [
     "@nestjs/core", "@nestjs/common", "@nestjs/platform-express",
     "@nestjs/config", "@nestjs/swagger", "@nestjs/testing",
+    "@nestjs/websockets", "@nestjs/platform-socket.io", "socket.io",
     "typescript", "prisma", "@prisma/client",
     "class-validator", "class-transformer", "zod",
     "eslint", "prettier", "jest", "supertest"
