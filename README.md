@@ -145,6 +145,7 @@ scripts/lib/       allowed-deps.json — whitelist dependency
 schemas/           JSON Schema ของ shared data + subsystem.yaml
 fixtures/          บัญชี dev ของ Core Hub + manifest ตัวอย่าง (ใช้กับ conformance)
 templates/         ไฟล์ที่ทุก subsystem repo ต้องมีเหมือนกัน (subsystem.yaml, ci.yml, …)
+                   และ csmju-subsystem-web/ = หน้าเว็บตั้งต้นของ frontend/ (ui-design-system.md ข้อ 17.0)
 org-settings/      ruleset + checklist ที่ต้องตั้งในหน้า Settings ของ GitHub
 __fixtures__/      ตัวอย่าง pass/fail สำหรับ self-test
 .github/workflows/ subsystem-compliance.yml · core-hub-compliance.yml (reusable) · self-test.yml · ruleset-sweep.yml

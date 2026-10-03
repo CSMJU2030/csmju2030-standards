@@ -1,11 +1,11 @@
 # ui-design-system.md
 
-**เวอร์ชัน:** 1.3.0
+**เวอร์ชัน:** 1.3.1
 **ดูแลโดย:** PM1 (Design System & Frontend Experience) — *ปรับหมายเลข PM ตามการแบ่งงานจริงของทีม*
 **บังคับใช้กับ:** ทุก frontend ของระบบย่อยทั้ง 37 ระบบ ที่ plug เข้ากับ `csmju-core`
 **Stack บังคับ:** Next.js (frontend) · NestJS (backend) · PostgreSQL (database) · Tailwind CSS
 **เอกสารที่ต้องอ่านคู่กัน:** `auth-contract.md` (PM2) · `api-conventions.md` (PM3) · `data-dictionary.md` (PM3)
-**Package:** `@csmju2030/design-system` (npm, private registry ของ org) — ⚠️ **ยังไม่ได้เผยแพร่** ระหว่างนี้ให้ใช้ template `csmju-subsystem-web` แทน (ดูข้อ 17.0)
+**Package:** `@csmju2030/design-system` (npm, private registry ของ org) — ⚠️ **ยังไม่ประกาศใช้** (v1.3.0 ที่มีอยู่ขัดกับมาตรฐานนี้ ห้ามใช้) ระหว่างนี้ให้ใช้ [`templates/csmju-subsystem-web/`](../templates/csmju-subsystem-web/) แทน (ดูข้อ 17.0)
 **หมายเหตุ:** ไฟล์นี้เป็นฉบับรวม — แทนที่ `ui-design-system.md` + `ui-prompt-template.md` เดิม (ใช้ไฟล์เดียวจบ)
 **Repo:** `github.com/csmju2030/csmju2030-standards`
 **แหล่งอ้างอิงหน้าตาจริง (source of truth):** `csmju-core-hub/frontend` — token อยู่ที่ `app/globals.css` (`@theme` ของ Tailwind v4), class ปุ่ม/input/การ์ด/ตาราง อยู่ที่ `app/backoffice/_components/ui.ts` ถ้าเอกสารนี้กับโค้ดไม่ตรงกัน ให้ถือโค้ดเป็นหลักแล้วแก้เอกสาร
@@ -495,7 +495,7 @@ export default function Layout({ children }) {
 | โลโก้ | โลโก้ CSMJU บนกรอบขาว (`rounded-xl bg-white p-4 shadow-sm`) ด้านบนของ sidebar |
 | ปุ่มหลักของระบบ (ถ้ามี) | ปุ่ม gradient เต็มความกว้างใต้โลโก้ เช่น "+ สร้างประกาศใหม่" |
 | เมนู | ไอคอน 20px + ชื่อไทย (`text-label-md`) + ชื่ออังกฤษจาง (`text-caption text-white/50`) · ปกติ `text-white/70` hover `bg-white/5 text-white` · active `border-l-4 border-accent bg-white/10 text-white` + `aria-current="page"` |
-| ปุ่มออกจากระบบ | ล่างสุดของ sidebar: `rounded-lg border border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20` + ไอคอน logout |
+| ปุ่มออกจากระบบ | ล่างสุดของ sidebar: `rounded-lg border border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20` + ไอคอน logout · เป็น**ฟอร์ม `POST /auth/logout`** ของระบบนี้ ไม่ใช่ลิงก์ (`auth-contract.md` ข้อ 5) · เมนูด้านบนเลื่อนได้ในตัว (`overflow-y-auto`) ให้ปุ่มนี้อยู่ในจอเสมอ |
 | Top bar | สูง `64px` (`h-16`) พื้นขาว `border-b border-surface-variant shadow-sm` sticky บนสุด |
 | ค้นหา (desktop) | กลาง top bar กว้างสูงสุด `max-w-md` ทรง `rounded-full` พื้น `surface` + ไอคอนแว่นขยายซ้าย |
 | แจ้งเตือน | ปุ่มไอคอนวงกลม + จุดแดง `h-2 w-2 bg-error` มุมขวาบนเมื่อมีรายการใหม่ |
@@ -1125,35 +1125,39 @@ csmju-<subsystem-name>/
 
 ## 17. กระบวนการทำงาน
 
-### 17.0 ช่วงเปลี่ยนผ่าน: ยังไม่มี package `@csmju2030/design-system` 🔴
+### 17.0 ช่วงเปลี่ยนผ่าน: ยังไม่ประกาศใช้ package `@csmju2030/design-system` 🔴
 
-**`@csmju2030/design-system` คืออะไร:** ชื่อ **npm package** ที่วางแผนไว้ให้เป็นที่รวม UI กลาง (token สี/ฟอนต์, `CsmjuAppShell`, `CsmjuLogo`, ปุ่ม, Modal, ไอคอน ฯลฯ) ให้ทั้ง 37 ระบบติดตั้งด้วย `npm install` แล้วอัปเดตพร้อมกันด้วย `npm update` — **ไม่ใช่ไฟล์ และยังไม่ได้สร้าง/เผยแพร่** ทุกที่ในเอกสารนี้ที่อ้างถึง package นี้, `npx create-csmju-subsystem` หรือ `npx csmju-check-standards` คือแผนในอนาคต
+**`@csmju2030/design-system` คืออะไร:** ชื่อ **npm package** ที่วางแผนไว้ให้เป็นที่รวม UI กลาง (token สี/ฟอนต์, `CsmjuAppShell`, `CsmjuLogo`, ปุ่ม, Modal, ไอคอน ฯลฯ) ให้ทั้ง 37 ระบบติดตั้งแล้วอัปเดตพร้อมกัน — **ยังไม่ประกาศใช้** ทุกที่ในเอกสารนี้ที่อ้างถึง package นี้, `npx create-csmju-subsystem` หรือ `npx csmju-check-standards` คือแผนในอนาคต
 
-**ระหว่างนี้ให้ใช้ template `csmju-subsystem-web`** ซึ่งมีของกลางชุดเดียวกับหน้าเว็บ core hub อยู่ในโฟลเดอร์ `csmju/`
+> ⚠️ repo `CSMJU2030/design-system` มี **v1.3.0** (7 ก.ย. 2569) อยู่ใน GitHub Packages แต่สร้างตามเอกสารนี้ก่อนเวอร์ชัน 1.3.0 จึง**ขัดกับมาตรฐานปัจจุบัน**:
+> สีหลัก `#004C99` (ปัจจุบัน `primary-container` `#2154D9`) · กฎ `DS-08` ห้าม `next/font/google` (ข้อ 4.1 ให้ใช้ `next/font`) ·
+> `CsmjuAppShell` / `createCsmjuAuthRoutes` เรียก `/oauth/token` ซึ่ง Core Hub ไม่มี และเก็บ refresh token ในระบบย่อย (ผิด `auth-contract.md` ข้อ 2 และ 7) · แบ่งหน้าด้วย `per_page` (ผิด `api-conventions.md`) — **ห้ามใช้** ระบบที่ติดตั้งไปแล้วให้ถอดออก
 
-> ⚠️ template นี้อยู่ใน **repo `csmju-core-hub`** ที่ `templates/csmju-subsystem-web/` — **ไม่ใช่** `templates/` ของ repo มาตรฐานนี้ (ซึ่งมีแค่ `subsystem.yaml`, `ci.yml`, `CODEOWNERS`, PR template) ต้อง clone `csmju-core-hub` มาไว้ข้าง ๆ repo ของตัวเองก่อน ถ้าไม่มีสิทธิ์อ่าน repo นั้นให้ขอ PM
+**ระหว่างนี้ให้ใช้ template [`templates/csmju-subsystem-web/`](../templates/csmju-subsystem-web/) ของ repo มาตรฐานนี้** — มากับ submodule `standards/` ของทุกระบบ
+(ตรงกับเวอร์ชันใน `.standards-version` เสมอ ไม่ต้องขอสิทธิ์ repo อื่น) · มีของกลางชุดเดียวกับหน้าเว็บ Core Hub ในโฟลเดอร์ `src/csmju/` ·
+ปุ่มออกจากระบบเป็นฟอร์ม `POST /auth/logout` และ `next.config.ts` ส่ง `/api/*` กับ `/auth/*` ไป backend ตาม `auth-contract.md` ข้อ 5 แล้ว
 
 | ในเอกสารเขียนว่า | ช่วงนี้ให้ใช้ |
 |---|---|
-| `npm install @csmju2030/design-system` | จากรากของ repo ระบบย่อย: `cp -R ../csmju-core-hub/templates/csmju-subsystem-web/. frontend/` แล้ว `pnpm install` (ใส่ลงใน `frontend/` ของ repo เดิม — ห้ามแยกเป็น repo `-web` ต่างหาก · ห้ามใช้ `npm` เพราะจะได้ `package-lock.json` ซึ่งผิด `QA-05`) · ถ้า template วาง `app/` / `csmju/` ไว้ที่ราก ให้ย้ายเข้า `frontend/src/` ตามข้อ 16.1 |
+| `npm install @csmju2030/design-system` | ระบบใหม่ — จากรากของ repo ระบบย่อย: `cp -R standards/templates/csmju-subsystem-web/. frontend/` แล้ว `pnpm install` · ระบบที่มี `frontend/` แล้ว — copy เฉพาะ `src/csmju/`, `src/app/globals.css`, `public/csmju-logo.png` แล้วต่อเข้ากับของเดิมตาม `README.md` ของ template (ห้ามทับ `package.json` / `next.config.ts` ทั้งไฟล์ · ห้ามใช้ `npm` เพราะจะได้ `package-lock.json` ซึ่งผิด `QA-05`) |
 | `npx create-csmju-subsystem …` | copy template (ข้างบน) |
 | `import { … } from "@csmju2030/design-system"` | `import { … } from "@/csmju"` |
-| `import "@csmju2030/design-system/styles.css"` | มีแล้วใน `app/globals.css` ของ template |
+| `import "@csmju2030/design-system/styles.css"` | มีแล้วใน `src/app/globals.css` ของ template |
 | `@csmju2030/design-system/icons` | `import { EditIcon, … } from "@/csmju"` |
-| `npm update @csmju2030/design-system` | `git pull` ใน `csmju-core-hub` แล้ว copy `csmju/`, `app/globals.css`, `public/csmju-logo.png`, `design-system.md` จาก `templates/csmju-subsystem-web/` ทับของเดิมใน `frontend/` (ห้าม merge ทีละบรรทัด) |
+| `npm update @csmju2030/design-system` | เลื่อน `standards/` ตาม [`standards-versioning.md`](standards-versioning.md) แล้ว copy `src/csmju/`, `src/app/globals.css`, `public/csmju-logo.png` จาก `standards/templates/csmju-subsystem-web/` ทับของเดิมใน `frontend/` (ห้าม merge ทีละบรรทัด) |
 
-**ของที่มีใน `@/csmju` แล้ว:** `CsmjuAppShell` · `CsmjuLogo` · `PageHeader` · `Modal` · `ConfirmDeleteModal` · `Tabs` · `StatusBadge` · ไอคอนทั้งหมด · class ใน `ui.ts` (`primaryButtonClass`, `secondaryButtonClass`, `dangerButtonClass`, `inputClass`, `cardClass`, `thClass`, `tdClass`, `iconButtonClass`, `iconDangerButtonClass`) และตัวอย่าง `loading.tsx` / `error.tsx` / `not-found.tsx` ใน `app/`
+**ของที่มีใน `@/csmju` แล้ว:** `CsmjuAppShell` · `CsmjuLogo` · `PageHeader` · `Modal` · `ConfirmDeleteModal` · `Tabs` · `StatusBadge` · ไอคอนทั้งหมด · class ใน `ui.ts` (`primaryButtonClass`, `secondaryButtonClass`, `dangerButtonClass`, `inputClass`, `cardClass`, `thClass`, `tdClass`, `iconButtonClass`, `iconDangerButtonClass`) และตัวอย่าง `loading.tsx` / `error.tsx` / `not-found.tsx` ใน `src/app/`
 
 **ของในข้อ 7.1 ที่ยังไม่มี** (เช่น `DataTable`, `Toast`, `EmptyState`, `FormField`, `DatePicker`, `Can`, `formatDate`): ให้ประกอบในโฟลเดอร์ `components/` ของระบบตัวเองจาก class ใน `ui.ts` + token เท่านั้น ถือเป็น local component ชั่วคราว (ระบุใน `subsystem.yaml` → `local_components`) และส่งคำขอตามข้อ 17.4 เพื่อให้ PM ย้ายเข้าส่วนกลาง
 
 **กฎ:**
-- ❌ ห้ามแก้ไฟล์ใน `csmju/` และ `app/globals.css` ในระบบย่อย (เท่ากับการ fork design system) — ต้องแก้ที่ `csmju-core-hub` แล้วแจกจ่ายใหม่
-- ❌ ห้ามติดตั้งหรือ import `@csmju2030/design-system` จนกว่า PM จะประกาศว่าเผยแพร่แล้ว
-- เมื่อ package พร้อม: ลบโฟลเดอร์ `csmju/` แล้วเปลี่ยน `from "@/csmju"` เป็น `from "@csmju2030/design-system"` ทั้งโปรเจกต์ (template ตั้งชื่อ export ให้ตรงกันไว้แล้ว)
+- ❌ ห้ามแก้ไฟล์ใน `src/csmju/` และ `src/app/globals.css` ในระบบย่อย (เท่ากับการ fork design system) — ต้องแก้ที่ `templates/csmju-subsystem-web/` ของ repo มาตรฐานผ่าน PR แล้วแจกจ่ายในเวอร์ชันถัดไป
+- ❌ ห้ามติดตั้งหรือ import `@csmju2030/design-system` จนกว่า PM จะประกาศใช้
+- เมื่อ package พร้อม: ลบโฟลเดอร์ `src/csmju/` แล้วเปลี่ยน `from "@/csmju"` เป็น `from "@csmju2030/design-system"` ทั้งโปรเจกต์ (template ตั้งชื่อ export ให้ตรงกันไว้แล้ว)
 
 **ขั้นตอนของ AIE ช่วงนี้:**
-1. copy template → แก้ `TODO` ใน `app/layout.tsx` (ชื่อระบบ, เมนู, ผู้ใช้/ลิงก์ออกจากระบบ)
-2. เปิดแชต AI ใหม่ → วาง system prompt ข้อ 20.1 + แนบ `design-system.md` (Claude Code / Cursor / Copilot อ่าน `AGENTS.md` ของ template ให้อัตโนมัติ)
+1. copy template → แก้พอร์ตใน `package.json` และ `BACKEND_URL` ใน `.env` → แก้ `TODO` ใน `src/app/layout.tsx` (ชื่อระบบ, เมนู, ผู้ใช้จาก `GET /api/v1/me`)
+2. เปิดแชต AI ใหม่ → วาง system prompt ข้อ 20.1 + แนบเอกสารนี้ (Claude Code / Cursor / Copilot อ่าน `AGENTS.md` ของ template ให้อัตโนมัติ)
 3. สั่งงานทีละหน้าด้วยข้อ 20.2 → ตรวจด้วยข้อ 20.3 ก่อนเปิด PR
 
 ### 17.1 Design Review Gates (PL เป็นผู้ตรวจ)
@@ -1317,6 +1321,7 @@ ui:
 
 | เวอร์ชัน | วันที่ | การเปลี่ยนแปลง |
 |---|---|---|
+| 1.3.1 | 2026-10-03 | ข้อ 17.0 — template `csmju-subsystem-web` ย้ายมาอยู่ที่ `templates/` ของ repo มาตรฐาน (เดิมชี้ไป repo `csmju-core-hub` ที่ไม่มี template บน `develop`/`main`) · ปุ่มออกจากระบบของ `CsmjuAppShell` เป็นฟอร์ม `POST /auth/logout` · ระบุว่า `@csmju2030/design-system` v1.3.0 ขัดกับมาตรฐาน ห้ามใช้ · ข้อ 5.1 ปุ่มออกจากระบบเป็นฟอร์ม POST และเมนูต้องเลื่อนได้ |
 | 1.3.0 | 2026-09-24 | ปรับข้อ 2.1, 3, 4, 5, 6.2, 7.2, 8, 13, 14, 20.1 ให้ตรงกับหน้าเว็บจริงใน `csmju-core-hub/frontend`: palette Material 3 (`primary-container` `#2154D9`), gradient ของแบรนด์, ฟอนต์ Plus Jakarta Sans + Noto Sans Thai, type scale, radius/เงาของการ์ด, AppShell (sidebar 256px), สเปคปุ่มจาก `ui.ts` + component อื่น · อนุญาต `next/font/google` (self-host ตอน build) · ระบุให้จัดสไตล์ด้วย Tailwind CSS เท่านั้น · เพิ่มสถานะในเว็บปัจจุบันในข้อ 19.1 · เพิ่ม token สีประกอบแบรนด์ (`accent`, `brand-navy`, `brand-blue`, `brand-amber`, `sso`) · กำหนดให้ใช้สีเขียวเฉพาะหน้าจอที่แสดงสถานะ/ความเปลี่ยนแปลง · เพิ่มข้อ 14.1 โลโก้ + component `CsmjuLogo` · เพิ่มข้อ 17.0 ช่วงเปลี่ยนผ่าน + template `csmju-subsystem-web` · แก้ `error.tsx` ให้ใช้ `retry()` ตาม Next.js 16 |
 | 1.2.0 | 2026-08-12 | รวม `ui-prompt-template.md` เข้ามาเป็นข้อ 20 · เพิ่มบล็อก "วิธีใช้ไฟล์นี้" · ต่อจากนี้ใช้ไฟล์เดียว |
 | 1.1.0 | 2026-08-12 | ล็อก stack เป็น Next.js (App Router) + NestJS + PostgreSQL · เพิ่มข้อ 16.0–16.1.2 (กฎ Next.js และกฎ NestJS ที่กระทบหน้าจอ) · ปรับจำนวนระบบย่อยเป็น 37 ระบบ (AIE 1 คน : 1 ระบบ) · เพิ่มข้อห้ามข้อ 15–18 |

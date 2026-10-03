@@ -5,6 +5,27 @@
 
 ---
 
+## 1.7.2 — 2026-10-03
+
+- **template หน้าเว็บ [`templates/csmju-subsystem-web/`](templates/csmju-subsystem-web/)** — ย้ายมาจาก repo `csmju-core-hub`
+  (branch `feature/frontend` ของ Xo, `73ae729`) ที่ `ui-design-system.md` ข้อ 17.0 ชี้ไปแต่ไม่มีบน `develop`/`main` และทีมไม่มีสิทธิ์อ่าน ·
+  ตอนนี้มากับ submodule `standards/` ของทุกระบบ ตรงกับ `.standards-version`
+  - **ออกจากระบบเป็นฟอร์ม `POST /auth/logout`** ใน `CsmjuAppShell` (เดิมเป็นลิงก์ `logoutHref` ซึ่งไม่ถึง route ตาม `auth-contract.md` ข้อ 5) · ตัด prop `logoutHref`
+  - `next.config.ts` ส่ง `/api/*` `/auth/login` `/auth/callback` `/auth/logout` ไป backend (`BACKEND_URL`) แบบเดียวกับ demo · เพิ่ม `.env.example`
+  - โครง `src/` ตามข้อ 16.1 (alias `@/*` → `./src/*`) · `package.json` ชื่อ `frontend` มี `typecheck` · `--font-display` ต่อด้วย Noto Sans Thai ตามข้อ 4.1 ·
+    เมนูใน sidebar เลื่อนได้โดยปุ่มออกจากระบบอยู่ในจอเสมอ · `.gitignore` ไม่ซ่อน `.env.example`
+  - ตัด `design-system.md` (สำเนาเอกสารรุ่นเก่า) — `AGENTS.md` และ `README.md` ชี้ไป `standards/docs/ui-design-system.md` · README มีวิธีใช้ทั้งระบบใหม่และระบบที่มี `frontend/` แล้ว
+  - ตรวจแล้ว: `pnpm install` · `typecheck` · `lint` · `build` ผ่าน · `UI-01` `SEC-03` `SEC-04/05` `ARC-01` `ARC-02/03` `SEC-01/02` ผ่าน ·
+    ตัวตรวจของระบบย่อยไม่สแกน `standards/` จึงไม่กระทบ CI ของทีมใด
+- `docs/ui-design-system.md` 1.3.1 — ข้อ 17.0 ชี้ไป template ใหม่ และระบุว่า `@csmju2030/design-system` **v1.3.0 ขัดกับมาตรฐาน ห้ามใช้**
+  (สี `#004C99` · ห้าม `next/font` · auth ผ่าน `/oauth/token` ที่ Core Hub ไม่มี · `per_page`) · ข้อ 5.1 ปุ่มออกจากระบบเป็นฟอร์ม POST และเมนูเลื่อนได้
+
+**ใครต้องทำอะไร:** ไม่มีกฎหรือตัวตรวจที่เข้มขึ้น · ระบบที่ติดตั้ง `@csmju2030/design-system` ไปแล้วให้ถอดออกแล้วใช้ template นี้แทน
+(ตอบคำถามของ csmju-internship-directory) · ระบบที่ copy template จาก `csmju-core-hub` ไปแล้วให้ copy `src/csmju/` ใหม่ทับ
+เพื่อได้ปุ่มออกจากระบบแบบ POST
+
+---
+
 ## 1.7.1 — 2026-10-03
 
 - `scripts/lib/allowed-deps.json` — อนุญาต realtime และเครื่องมือเทสต์หน้าเว็บ (PM/DevOps อนุมัติ 3 ต.ค. ตามคำขอของทีม csmju-nexus · standards#40):
