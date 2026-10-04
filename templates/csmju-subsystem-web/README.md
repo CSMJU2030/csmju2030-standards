@@ -19,7 +19,7 @@ pnpm install
 
 แล้วแก้ตามนี้:
 1. `package.json` — พอร์ต `3200` ใน `dev` / `start` เป็นพอร์ต frontend ของทีม (32xx)
-2. `.env` — `BACKEND_URL` เป็นพอร์ต backend ของทีม (42xx)
+2. `.env` — `BACKEND_URL` เป็นพอร์ต backend ของทีม (42xx) · `CORE_HUB_WEB_URL` = หน้าเว็บ Core Hub (ปุ่ม "กลับ CSMJU Portal")
 3. `src/app/layout.tsx` — `TODO` 3 จุด: ชื่อระบบ (`DISPLAY_NAME`) · เมนู (`NAV`) · ข้อมูลผู้ใช้จาก `GET /api/v1/me`
 
 **ระบบที่มี `frontend/` อยู่แล้ว** — copy เฉพาะของกลาง แล้วต่อเข้ากับของเดิมเอง (ห้ามทับ `package.json` · `next.config.ts` ของเดิมทั้งไฟล์):
@@ -30,7 +30,7 @@ cp standards/templates/csmju-subsystem-web/src/app/globals.css frontend/src/app/
 cp standards/templates/csmju-subsystem-web/public/csmju-logo.png frontend/public/
 ```
 
-จากนั้นครอบหน้าด้วย `CsmjuAppShell` ใน `src/app/layout.tsx` ตามไฟล์ของ template · โหลดฟอนต์ตาม ui-design-system ข้อ 4.1 ·
+จากนั้นครอบหน้าด้วย `CsmjuAppShell` ใน `src/app/layout.tsx` ตามไฟล์ของ template (ส่ง `coreHubUrl` จาก env `CORE_HUB_WEB_URL`) · โหลดฟอนต์ตาม ui-design-system ข้อ 4.1 ·
 ตั้ง alias `@/*` → `./src/*` ใน `tsconfig.json` · และให้ `next.config.ts` ส่ง `/api/*` `/auth/login` `/auth/callback` `/auth/logout` ไป backend
 
 ## โครงสร้าง
@@ -38,7 +38,7 @@ cp standards/templates/csmju-subsystem-web/public/csmju-logo.png frontend/public
 ```
 src/
   csmju/              ← ของกลาง (อนาคตคือ package @csmju2030/design-system) ❌ ห้ามแก้
-    CsmjuAppShell.tsx   sidebar + top bar + footer · ปุ่มออกจากระบบ = ฟอร์ม POST /auth/logout
+    CsmjuAppShell.tsx   sidebar + top bar + footer · ปุ่ม "กลับ CSMJU Portal" · ปุ่มออกจากระบบ = ฟอร์ม POST /auth/logout
     CsmjuLogo.tsx       โลโก้ (ui-design-system ข้อ 14.1)
     PageHeader.tsx      ชื่อหน้า + คำอธิบาย
     Modal.tsx           Modal + ConfirmDeleteModal

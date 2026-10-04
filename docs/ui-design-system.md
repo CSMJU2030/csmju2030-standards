@@ -1,6 +1,6 @@
 # ui-design-system.md
 
-**เวอร์ชัน:** 1.3.1
+**เวอร์ชัน:** 1.3.2
 **ดูแลโดย:** PM1 (Design System & Frontend Experience) — *ปรับหมายเลข PM ตามการแบ่งงานจริงของทีม*
 **บังคับใช้กับ:** ทุก frontend ของระบบย่อยทั้ง 37 ระบบ ที่ plug เข้ากับ `csmju-core`
 **Stack บังคับ:** Next.js (frontend) · NestJS (backend) · PostgreSQL (database) · Tailwind CSS
@@ -493,6 +493,7 @@ export default function Layout({ children }) {
 |---|---|
 | Sidebar | กว้าง `256px` (`w-64`) พื้น `brand-gradient` + `shadow-xl` ตรึงซ้าย เต็มความสูง (`h-dvh`) |
 | โลโก้ | โลโก้ CSMJU บนกรอบขาว (`rounded-xl bg-white p-4 shadow-sm`) ด้านบนของ sidebar |
+| ปุ่มกลับ CSMJU Portal | ใต้โลโก้ (เหนือปุ่มหลัก): ลิงก์ `<a>` ไป `CORE_HUB_WEB_URL` (env · ห้าม hardcode) ไอคอน `ArrowBackIcon` + "กลับ CSMJU Portal" `text-white/80 hover:bg-white/10` · มีทุกระบบ — ส่ง `coreHubUrl` ให้ `CsmjuAppShell` |
 | ปุ่มหลักของระบบ (ถ้ามี) | ปุ่ม gradient เต็มความกว้างใต้โลโก้ เช่น "+ สร้างประกาศใหม่" |
 | เมนู | ไอคอน 20px + ชื่อไทย (`text-label-md`) + ชื่ออังกฤษจาง (`text-caption text-white/50`) · ปกติ `text-white/70` hover `bg-white/5 text-white` · active `border-l-4 border-accent bg-white/10 text-white` + `aria-current="page"` |
 | ปุ่มออกจากระบบ | ล่างสุดของ sidebar: `rounded-lg border border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20` + ไอคอน logout · เป็น**ฟอร์ม `POST /auth/logout`** ของระบบนี้ ไม่ใช่ลิงก์ (`auth-contract.md` ข้อ 5) · เมนูด้านบนเลื่อนได้ในตัว (`overflow-y-auto`) ให้ปุ่มนี้อยู่ในจอเสมอ |
@@ -1321,6 +1322,7 @@ ui:
 
 | เวอร์ชัน | วันที่ | การเปลี่ยนแปลง |
 |---|---|---|
+| 1.3.2 | 2026-10-05 | ข้อ 5.1 — ปุ่ม "กลับ CSMJU Portal" ใต้โลโก้ (ข้อ 1 ล็อก "ปุ่มกลับ Dashboard" ไว้แต่ template ยังไม่มี) · `CsmjuAppShell` รับ `coreHubUrl` จาก env `CORE_HUB_WEB_URL` |
 | 1.3.1 | 2026-10-03 | ข้อ 17.0 — template `csmju-subsystem-web` ย้ายมาอยู่ที่ `templates/` ของ repo มาตรฐาน (เดิมชี้ไป repo `csmju-core-hub` ที่ไม่มี template บน `develop`/`main`) · ปุ่มออกจากระบบของ `CsmjuAppShell` เป็นฟอร์ม `POST /auth/logout` · ระบุว่า `@csmju2030/design-system` v1.3.0 ขัดกับมาตรฐาน ห้ามใช้ · ข้อ 5.1 ปุ่มออกจากระบบเป็นฟอร์ม POST และเมนูต้องเลื่อนได้ |
 | 1.3.0 | 2026-09-24 | ปรับข้อ 2.1, 3, 4, 5, 6.2, 7.2, 8, 13, 14, 20.1 ให้ตรงกับหน้าเว็บจริงใน `csmju-core-hub/frontend`: palette Material 3 (`primary-container` `#2154D9`), gradient ของแบรนด์, ฟอนต์ Plus Jakarta Sans + Noto Sans Thai, type scale, radius/เงาของการ์ด, AppShell (sidebar 256px), สเปคปุ่มจาก `ui.ts` + component อื่น · อนุญาต `next/font/google` (self-host ตอน build) · ระบุให้จัดสไตล์ด้วย Tailwind CSS เท่านั้น · เพิ่มสถานะในเว็บปัจจุบันในข้อ 19.1 · เพิ่ม token สีประกอบแบรนด์ (`accent`, `brand-navy`, `brand-blue`, `brand-amber`, `sso`) · กำหนดให้ใช้สีเขียวเฉพาะหน้าจอที่แสดงสถานะ/ความเปลี่ยนแปลง · เพิ่มข้อ 14.1 โลโก้ + component `CsmjuLogo` · เพิ่มข้อ 17.0 ช่วงเปลี่ยนผ่าน + template `csmju-subsystem-web` · แก้ `error.tsx` ให้ใช้ `retry()` ตาม Next.js 16 |
 | 1.2.0 | 2026-08-12 | รวม `ui-prompt-template.md` เข้ามาเป็นข้อ 20 · เพิ่มบล็อก "วิธีใช้ไฟล์นี้" · ต่อจากนี้ใช้ไฟล์เดียว |
