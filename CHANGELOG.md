@@ -5,6 +5,20 @@
 
 ---
 
+## 1.7.3 — 2026-10-05
+
+- **ปุ่ม "กลับ CSMJU Portal"** ใน `CsmjuAppShell` ของ [`templates/csmju-subsystem-web/`](templates/csmju-subsystem-web/) —
+  `ui-design-system.md` ข้อ 1 ล็อก "ปุ่มกลับ Dashboard" ไว้ใน AppShell แต่ template 1.7.2 ยังไม่มี · prop ใหม่ `coreHubUrl` (ไม่ส่ง = ไม่แสดง) ·
+  `src/app/layout.tsx` ส่งค่าจาก env `CORE_HUB_WEB_URL` · เพิ่มใน `.env.example` และ README · ไอคอน `ArrowBackIcon` จากชุดกลาง
+- `docs/ui-design-system.md` 1.3.2 — ข้อ 5.1 เพิ่มแถวปุ่มนี้
+- ตรวจแล้ว: template `typecheck` · `lint` · `build` ผ่าน · `UI-01` ผ่าน · ปุ่มพาไป `CORE_HUB_WEB_URL` · ไม่ตั้ง env ไม่แสดงปุ่ม
+
+**ใครต้องทำอะไร:** ไม่มีกฎหรือตัวตรวจที่เข้มขึ้น · ระบบที่ใช้ template แล้ว: เลื่อนเป็น `1.7.3` → copy `src/csmju/` ทับ →
+ส่ง `coreHubUrl={process.env.CORE_HUB_WEB_URL}` ให้ `CsmjuAppShell` และใส่ `CORE_HUB_WEB_URL` ใน `.env` ของ frontend ·
+ระบบที่ทำ Shell เอง ให้เพิ่มลิงก์เดียวกันตามข้อ 5.1 (ตัวอย่างใน demo)
+
+---
+
 ## 1.7.2 — 2026-10-03
 
 - **template หน้าเว็บ [`templates/csmju-subsystem-web/`](templates/csmju-subsystem-web/)** — ย้ายมาจาก repo `csmju-core-hub`

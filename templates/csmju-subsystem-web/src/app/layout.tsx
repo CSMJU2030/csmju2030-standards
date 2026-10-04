@@ -23,6 +23,9 @@ const NAV: NavItem[] = [
   { label: "ภาพรวม", labelEn: "Overview", href: "/", icon: "dashboard" },
 ];
 
+// Core Hub web origin for the "กลับ CSMJU Portal" link — from .env, never hardcoded.
+const CORE_HUB_WEB_URL = process.env.CORE_HUB_WEB_URL;
+
 export const metadata: Metadata = {
   title: {
     template: `%s · ${DISPLAY_NAME} · CSMJU`,
@@ -43,6 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           // TODO: ผู้ใช้มาจาก GET /api/v1/me ของ backend ระบบนี้ (ไม่ใช่จาก Core Hub ตรง ๆ)
           // ปุ่มออกจากระบบเป็นฟอร์ม POST /auth/logout อยู่ใน CsmjuAppShell แล้ว (auth-contract.md ข้อ 5)
           user={{ initials: "AD", roleLabel: "ผู้ดูแลระบบ" }}
+          coreHubUrl={CORE_HUB_WEB_URL}
         >
           {children}
         </CsmjuAppShell>
