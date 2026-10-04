@@ -5,6 +5,16 @@
 
 ---
 
+## 1.7.4 — 2026-10-05
+
+- `templates/csmju-subsystem-web/package.json` — `next` และ `eslint-config-next` จาก `16.3.4` เป็น `16.3.6` ตาม Dependabot security update
+  (branch `dependabot/npm_and_yarn/templates/csmju-subsystem-web/next-16.3.6`) · ตรวจแล้ว: `typecheck` · `lint` · `build` · `UI-01` · `ARC-02/03` ผ่าน · หน้า template รันได้บน 16.3.6
+
+**ใครต้องทำอะไร:** ระบบที่สร้าง `frontend/` จาก template หรือใช้ Next.js `16.3.4` (รวม demo และ Core Hub) ให้เลื่อน `next`
+และ `eslint-config-next` เป็น `16.3.6` ใน `frontend/package.json` แล้ว `pnpm install` · ไม่มีกฎหรือตัวตรวจที่เข้มขึ้น
+
+---
+
 ## 1.7.3 — 2026-10-05
 
 - **ปุ่ม "กลับ CSMJU Portal"** ใน `CsmjuAppShell` ของ [`templates/csmju-subsystem-web/`](templates/csmju-subsystem-web/) —
