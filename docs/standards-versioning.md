@@ -210,6 +210,9 @@ PR ที่เปิดค้างและแก้ `ci.yml` อยู่แ�
 ถ้าต้องแก้ส่วนนี้ ให้ออก tag ใหม่แล้วรัน `migrate-ci-entry.sh <tag ใหม่>` ซ้ำเพื่อย้าย `ci.yml` ทุก repo
 ถ้าแก้แค่เช็คอื่น ไม่ต้องย้าย
 
+`images.yml` (build image ไป ghcr.io — [`deployment.md`](deployment.md) ข้อ 5) ปักหมุด `subsystem-images.yml` แยกจาก `ci.yml`
+วางและย้ายด้วย `org-settings/add-image-workflow.sh <tag>` — ย้ายเฉพาะเมื่อ `subsystem-images.yml` เปลี่ยน
+
 ---
 
 ## 6. คำถามที่พบบ่อย

@@ -12,6 +12,7 @@ security	No self-rolled JWT verify / login	check-no-jwt-verify.sh
 security	DB isolation	check-db-isolation.sh
 security	Authorized dependencies	check-authorized-deps.sh
 security	NestJS backend (ARC-04)	check-backend-nestjs.sh
+security	Deploy readiness (DEP-01..04)	check-deploy-ready.sh
 api	openapi.json sync	check-openapi-sync.sh
 api	API conventions	check-api-conventions.sh
 data-dictionary	Forbidden field aliases	check-field-aliases.sh

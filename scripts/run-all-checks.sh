@@ -21,6 +21,7 @@ declare -a JOBS=(
   "Security & Stack Scan|check-db-isolation.sh"
   "Security & Stack Scan|check-authorized-deps.sh"
   "Security & Stack Scan|check-backend-nestjs.sh"
+  "Security & Stack Scan|check-deploy-ready.sh"
   "API Contract Sync|check-openapi-sync.sh"
   "API Contract Sync|check-api-conventions.sh"
   "Data Dictionary Compliance|check-field-aliases.sh"

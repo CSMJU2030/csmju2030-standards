@@ -334,6 +334,10 @@ jobs:
 | `ARC-02` | Dependency ทั้งหมดอยู่ใน whitelist ของ stack | ❌ Fail | tech-stack.md 1 |
 | `ARC-03` | ไม่มี UI library ต้องห้าม (MUI/Antd/Bootstrap ฯลฯ) | ❌ Fail | ui-design-system.md 16.2 |
 | `ARC-04` | มี backend NestJS ใน `backend/` (`@nestjs/core` ใน dependencies · `main.ts` ใช้ `NestFactory`) — repo ที่เพิ่ง scaffold ข้าม | ❌ Fail | repo-structure.md 2 · tech-stack.md 1.3 |
+| `DEP-01` | มี `backend/Dockerfile` · และ `frontend/Dockerfile` เมื่อมี `frontend/package.json` — repo ที่เพิ่ง scaffold ข้าม | ❌ Fail | deployment.md 3 |
+| `DEP-02` | stage สุดท้ายของ Dockerfile ตั้ง `USER` ที่ไม่ใช่ `root`/`0` | ❌ Fail | deployment.md 3.3 |
+| `DEP-03` | `.dockerignore` ที่รากกัน `**/.env*` (หรือ `**/.env` + `**/.env.*`) และ `**/node_modules` | ❌ Fail | deployment.md 3.3 |
+| `DEP-04` | `frontend/next.config.*` ตั้ง `output: "standalone"` | ❌ Fail | deployment.md 3.3 |
 | `API-01` | `openapi.json` sync กับโค้ด backend | ❌ Fail | tech-stack.md 3 |
 | `API-02` | URL เป็น kebab-case + noun พหูพจน์ + มี `/v1/` | ❌ Fail | api-conventions.md 1 |
 | `API-03` | ทุก endpoint ห่อ response ด้วย envelope มาตรฐาน | ❌ Fail | api-conventions.md 3 |
@@ -369,7 +373,7 @@ jobs:
 | profile | ตัวเรียก | ผลต่อการตรวจ |
 |---|---|---|
 | `subsystem` | `run-all-checks.sh` · `subsystem-compliance.yml` | ตรวจครบทุกข้อในตาราง 7.1 |
-| `core-hub` | `run-core-hub-checks.sh` · `core-hub-compliance.yml` | ยกเว้น `GH-03` `GH-04` `SEC-04` `SEC-05` `API-01` `API-06` `UI-01..04` · `DD-01` ถูกข้ามในสคริปต์ · `ARC-02` ขยาย whitelist ด้วยคีย์ `allowed_core_hub` |
+| `core-hub` | `run-core-hub-checks.sh` · `core-hub-compliance.yml` | ยกเว้น `GH-03` `GH-04` `SEC-04` `SEC-05` `API-01` `API-06` `UI-01..04` `DEP-01..04` · `DD-01` และ `DEP` ถูกข้ามในสคริปต์ · `ARC-02` ขยาย whitelist ด้วยคีย์ `allowed_core_hub` |
 
 ระบบย่อยตั้ง `CSMJU_PROFILE=core-hub` เองไม่ได้ — workflow ของระบบย่อยไม่ได้ส่งค่านี้ และ `GH-03`
 ห้ามทีมแก้ไฟล์ workflow อยู่แล้ว

@@ -72,12 +72,13 @@
 | `DD-04` | ห้าม hardcode รายชื่อคณะ | **บังคับ** | — |
 | `DD-05` | ฟิลด์เงินห้ามเป็น float | **บังคับ** | — |
 | `UI-01..04` | design tokens · ห้าม emoji | **ยกเว้น (ชั่วคราว)** | frontend ของ Core Hub มีแล้ว แต่ยังไม่ได้ตรวจกับกฎชุดนี้ — PL กำหนดวันกลับมาบังคับ |
+| `DEP-01..04` | `backend/Dockerfile` · `frontend/Dockerfile` · `.dockerignore` · Next.js standalone | **ยกเว้น** | Core Hub build image จาก `deploy/` ของตัวเอง (`docs/DEPLOYMENT.md`) — ใช้หลักเดียวกันอยู่แล้ว: user ไม่ใช่ root · standalone · ไม่ build ข้อมูลลับเข้า image |
 | `QA-01..04` | lint · typecheck · test · build | **บังคับ** | — |
 | `QA-05` | pnpm เท่านั้น | **บังคับ** | — |
 | `QA-06` | ชื่อ package ไม่ซ้ำ · `--filter` ชี้ถูก | **บังคับ** | — |
 | `EXC-01` | `.compliance-exceptions.yml` ต้องมี `expires` + `issue` | **บังคับ** | — |
 
-รวม: **บังคับ 20 · ผ่อน 1 · ยกเว้น 6 · ยกเว้นชั่วคราว 2** (นับ `UI-01..04` และ `QA-01..04` เป็นกลุ่มละ 1 แถว)
+รวม: **บังคับ 20 · ผ่อน 1 · ยกเว้น 7 · ยกเว้นชั่วคราว 2** (นับ `UI-01..04` · `DEP-01..04` และ `QA-01..04` เป็นกลุ่มละ 1 แถว)
 
 ---
 

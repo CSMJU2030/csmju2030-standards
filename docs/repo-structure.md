@@ -36,7 +36,8 @@ csmju-<subsystem>/
 ├── standards/                         git submodule → csmju2030-standards
 ├── subsystem.yaml                     manifest เดียวที่ CI และ conformance อ่าน
 ├── pnpm-workspace.yaml                workspace ของ frontend + backend
-├── docker-compose.yml
+├── docker-compose.yml                 db + api + web แบบเดียวกับ server (deployment.md ข้อ 6)
+├── .dockerignore                      กัน **/.env* และ **/node_modules ออกจาก image (DEP-03)
 │
 ├── backend/                           NestJS — ต้องมีทุกระบบย่อย (ARC-04)
 │   ├── src/
@@ -60,13 +61,16 @@ csmju-<subsystem>/
 │   │   ├── migrations/                ห้ามลบ ห้าม squash
 │   │   └── seed.ts
 │   ├── test/
-│   ├── .env.example                   `.env` ห้าม commit
-│   ├── Dockerfile
+│   ├── .env.example                   `.env` ห้าม commit · DevOps ใช้เป็นรายการ env บน server
+│   ├── Dockerfile                     image api — copy จาก demo (DEP-01..02)
+│   ├── docker/entrypoint.sh           prisma migrate deploy แล้วค่อยเปิด server
 │   └── package.json
 │
 └── frontend/                          Next.js (App Router) — ถ้ามี UI
     ├── src/app/
     ├── .env.example
+    ├── Dockerfile                     image web — copy จาก templates/csmju-subsystem-web (DEP-01..02)
+    ├── next.config.ts                 output: "standalone" (DEP-04)
     └── package.json
 ```
 
@@ -80,6 +84,7 @@ csmju-<subsystem>/
 | `.standards-version` | เลือกว่า CI ตรวจด้วย standards เวอร์ชันไหน · กฎ `GH-04` ตรวจว่า submodule ชี้ tag เดียวกัน ([`standards-versioning.md`](standards-versioning.md)) |
 | `standards/` (submodule) | ดึงกฎกลางมาใช้ ไม่ต้องคัดลอกกฎเข้ามาเก็บเอง |
 | `pnpm-workspace.yaml` | กฎ `QA-05` |
+| `.dockerignore` | build context ของทั้งสอง image คือรากของ repo — ต้องกัน `**/.env*` และ `**/node_modules` (`DEP-03` · [`deployment.md`](deployment.md)) |
 | `README.md` | วิธีติดตั้ง/รัน/ทดสอบ ที่คำสั่งใช้ได้จริงทุกบรรทัด |
 | `REPORT.md` | ส่งพร้อมงาน (ดู [`../ai/AGENTS.md`](../ai/AGENTS.md) ข้อ 6) |
 

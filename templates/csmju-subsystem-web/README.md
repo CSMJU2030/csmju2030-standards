@@ -28,10 +28,23 @@ pnpm install
 cp -R standards/templates/csmju-subsystem-web/src/csmju frontend/src/
 cp standards/templates/csmju-subsystem-web/src/app/globals.css frontend/src/app/globals.css
 cp standards/templates/csmju-subsystem-web/public/csmju-logo.png frontend/public/
+cp standards/templates/csmju-subsystem-web/Dockerfile frontend/Dockerfile
 ```
 
 จากนั้นครอบหน้าด้วย `CsmjuAppShell` ใน `src/app/layout.tsx` ตามไฟล์ของ template (ส่ง `coreHubUrl` จาก env `CORE_HUB_WEB_URL`) · โหลดฟอนต์ตาม ui-design-system ข้อ 4.1 ·
 ตั้ง alias `@/*` → `./src/*` ใน `tsconfig.json` · และให้ `next.config.ts` ส่ง `/api/*` `/auth/login` `/auth/callback` `/auth/logout` ไป backend
+พร้อม `output: "standalone"` + `outputFileTracingRoot` (หัวข้อ Deploy)
+
+## Deploy (Docker)
+
+ทำตาม [`docs/deployment.md`](../../docs/deployment.md) — ไฟล์ของหน้าเว็บมาจาก template นี้แล้ว:
+
+- `Dockerfile` → copy เป็น `frontend/Dockerfile` (ห้ามแก้) · build จากรากของ repo: `docker build -f frontend/Dockerfile .`
+- `next.config.ts` ตั้ง `output: "standalone"` (`DEP-04`) — ระบบที่มี `frontend/` แล้วให้เพิ่ม `output` และ `outputFileTracingRoot` แบบไฟล์นี้
+- `BACKEND_URL` ถูกฝังตอน build — image ใช้ `http://api:4000` (service `api` ใน compose) · `.env` ใช้แค่ตอน dev
+- ไม่มีโฟลเดอร์ `public/` ก็ build ได้
+
+ส่วน `backend/Dockerfile` · `.dockerignore` · `docker-compose.yml` copy จาก `demo-student-subsystem`
 
 ## โครงสร้าง
 
@@ -52,7 +65,8 @@ src/
     loading.tsx · error.tsx · not-found.tsx   สถานะบังคับ
   components/         ← component เฉพาะระบบของคุณ
 public/csmju-logo.png
-next.config.ts        ส่ง /api/* และ /auth/* ไป backend (auth-contract ข้อ 5)
+next.config.ts        ส่ง /api/* และ /auth/* ไป backend (auth-contract ข้อ 5) · output: "standalone"
+Dockerfile            image ของหน้าเว็บ (deployment.md ข้อ 3)
 AGENTS.md / CLAUDE.md ← คำสั่งที่ AI อ่านอัตโนมัติ
 ```
 

@@ -45,6 +45,7 @@ declare -a EXEMPT=(
   "API-06|ต้องประกาศ public_endpoints|Core Hub ไม่มี subsystem.yaml (ไม่ได้ลงทะเบียนกับตัวเอง)"
   "API-01|openapi.json sync|ยังไม่มีสคริปต์ generate:openapi ใน Core Hub"
   "UI-01..04|UI design tokens|ยังไม่มี frontend ของ Core Hub ใน repo นี้"
+  "DEP-01..04|Dockerfile ใน backend/ frontend/|Core Hub build image จาก deploy/ ของตัวเอง (DEPLOYMENT.md)"
 )
 
 # bash 3.2 (macOS default) ไม่มี associative array — ใช้ indexed array คู่ขนาน

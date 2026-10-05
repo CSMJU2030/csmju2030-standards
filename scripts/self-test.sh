@@ -71,6 +71,17 @@ run_fixture_case "ARC-02-EXC" "check-authorized-deps.sh"
 run_fixture_case "ARC-04" "check-backend-nestjs.sh"
 run_fixture_case "ARC-04-NOTNEST" "check-backend-nestjs.sh"
 run_fixture_case "ARC-04-SCAFFOLD" "check-backend-nestjs.sh"
+# DEP-01..04: both images build from the repo (deployment.md 3). A USER set
+# only in the build stage does not carry into the final one; root-only
+# .dockerignore patterns miss backend/.env; a repo without a UI needs only
+# backend/Dockerfile; a fresh scaffold is skipped.
+run_fixture_case "DEP" "check-deploy-ready.sh"
+run_fixture_case "DEP-ROOT" "check-deploy-ready.sh"
+run_fixture_case "DEP-ROOT-EXPLICIT" "check-deploy-ready.sh"
+run_fixture_case "DEP-IGNORE" "check-deploy-ready.sh"
+run_fixture_case "DEP-STANDALONE" "check-deploy-ready.sh"
+run_fixture_case "DEP-BACKEND-ONLY" "check-deploy-ready.sh"
+run_fixture_case "DEP-SCAFFOLD" "check-deploy-ready.sh"
 run_fixture_case "DD-01"     "check-field-aliases.sh"
 # DD-02 is a regression case: the enum was copied wrong as
 # student|staff|faculty|admin|guest, which rejected the real value
@@ -473,6 +484,12 @@ CSMJU_PROFILE=subsystem "$SCRIPT_DIR/check-field-aliases.sh" "$PROFILE_FIXTURE" 
 assert_exit "DD-01 subsystem ตี user_id ตก" 1 "$?"
 CSMJU_PROFILE=core-hub  "$SCRIPT_DIR/check-field-aliases.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1
 assert_exit "DD-01 core-hub ข้าม (เจ้าของตาราง users)" 0 "$?"
+
+# Core Hub build image จาก deploy/ ไม่มี backend/Dockerfile — DEP ต้องข้ามเฉพาะ profile core-hub
+CSMJU_PROFILE=subsystem "$SCRIPT_DIR/check-deploy-ready.sh" "$FIXTURES_DIR/DEP/fail" >/dev/null 2>&1
+assert_exit "DEP subsystem ตี Dockerfile ที่ขาดตก" 1 "$?"
+CSMJU_PROFILE=core-hub  "$SCRIPT_DIR/check-deploy-ready.sh" "$FIXTURES_DIR/DEP/fail" >/dev/null 2>&1
+assert_exit "DEP core-hub ข้าม (image มาจาก deploy/)" 0 "$?"
 
 # ค่าเริ่มต้นต้องเป็น subsystem เสมอ — ห้าม profile รั่วเป็น core-hub เมื่อไม่ได้ตั้งค่า
 (unset CSMJU_PROFILE; "$SCRIPT_DIR/check-field-aliases.sh" "$PROFILE_FIXTURE" >/dev/null 2>&1)
