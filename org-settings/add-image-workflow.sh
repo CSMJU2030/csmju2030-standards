@@ -12,9 +12,10 @@
 # reused (merged with --merge) instead of opened twice.
 #
 # The file is written from templates/images.yml of the tag itself, with its
-# pin set to the tag — nothing else in the repo changes. A repo that has no
-# Dockerfile yet gets the file too: the build skips the missing image with a
-# notice, and starts publishing once the team adds its Dockerfiles (DEP-01).
+# pin set to the tag — nothing else in the repo changes. A repo still on
+# standards before 1.8.0 gets the file too: from v1.8.1 the build only plans
+# and skips with a notice, and starts publishing once the team moves to 1.8.0
+# or later, where DEP-01..04 hold its Dockerfiles to docs/deployment.md.
 #
 # The PR fails Convention Check (GH-03) on purpose — only DevOps may touch
 # .github/workflows/ — so it has to be merged by an org admin or team devops
@@ -115,15 +116,15 @@ for repo in "${REPOS[@]}"; do
   mkdir -p "$dir/.github/workflows"
   printf '%s\n' "$TEMPLATE" > "$dir/.github/workflows/images.yml"
   git -C "$dir" add .github/workflows/images.yml
-  git -C "$dir" commit -q -m "$title" -m "Every push to main or develop builds backend/Dockerfile and frontend/Dockerfile and pushes them to ghcr.io/$(printf '%s' "$ORG" | tr 'A-Z' 'a-z')/$repo-api and -web (csmju2030-standards docs/deployment.md)."
+  git -C "$dir" commit -q -m "$title" -m "Every push to main builds backend/Dockerfile and frontend/Dockerfile and pushes them to ghcr.io/$(printf '%s' "$ORG" | tr 'A-Z' 'a-z')/$repo-api and -web (csmju2030-standards docs/deployment.md), once the repo is on standards 1.8.0 or later."
   git -C "$dir" push -q -f -u origin "$branch"   # a branch left from an earlier run is replaced
 
   url="$(gh pr create -R "$ORG/$repo" --head "$branch" --title "$title" --body "$(printf '%s\n' \
-    "build image ของระบบนี้ไปไว้ที่ GitHub Container Registry ทุกครั้งที่ merge เข้า \`main\` หรือ \`develop\` ([docs/deployment.md](https://github.com/$ORG/csmju2030-standards/blob/main/docs/deployment.md) ข้อ 5)" \
+    "build image ของระบบนี้ไปไว้ที่ GitHub Container Registry ทุกครั้งที่ merge เข้า \`main\` ([docs/deployment.md](https://github.com/$ORG/csmju2030-standards/blob/main/docs/deployment.md) ข้อ 5)" \
     "" \
     "- \`backend/Dockerfile\` → \`ghcr.io/$(printf '%s' "$ORG" | tr 'A-Z' 'a-z')/$repo-api\` · \`frontend/Dockerfile\` → \`…-web\`" \
-    "- tag: ชื่อ branch (\`main\` · \`develop\`) และ \`sha-<commit>\` สำหรับย้อนกลับ" \
-    "- ยังไม่มี Dockerfile ก็ merge ได้ — workflow ข้าม image ที่ไม่มีไฟล์ จนกว่าทีมจะเพิ่มตาม \`DEP-01\` (standards 1.8.0)" \
+    "- tag: \`main\` และ \`sha-<commit>\` สำหรับย้อนกลับ" \
+    "- **ยังไม่ build จนกว่าทีมจะเลื่อน \`.standards-version\` เป็น 1.8.0 ขึ้นไป** (ผ่าน \`DEP-01..04\` แล้ว) — ก่อนหน้านั้น workflow แค่ตรวจแล้วข้ามพร้อมแจ้งเตือน ไม่ตก" \
     "" \
     "Convention Check ตก \`GH-03\` โดยตั้งใจ เพราะแก้ไฟล์ใน \`.github/workflows/\` ที่ DevOps เท่านั้นแก้ได้ — DevOps merge แบบ bypass")")"
   echo "🔀 $repo — $url"
