@@ -5,6 +5,24 @@
 
 ---
 
+## 1.8.1 — 2026-10-06
+
+แก้ workflow build image ก่อนวางในทุก repo — ทั้ง 37 repo มี `backend/Dockerfile` และ `frontend/Dockerfile` อยู่แล้ว
+แต่เขียนก่อนมีข้อกำหนด (ใช้ standalone 2 repo · ตั้ง user ที่ไม่ใช่ root 2 repo · 6 repo copy Dockerfile ตัวเก่าของ demo ที่ build ไม่ผ่าน)
+ถ้าวาง `images.yml` ของ 1.8.0 ทุก repo จะ build ทันทีที่ merge ครั้งถัดไป ส่วนใหญ่จะตก ทั้งที่ทีมยังไม่ได้เลื่อนเวอร์ชัน
+
+- `.github/workflows/subsystem-images.yml` — job ใหม่ **Plan** อ่าน `.standards-version` ก่อน: **build เฉพาะ repo ที่อยู่ 1.8.0 ขึ้นไป**
+  (Dockerfile ผ่าน `DEP-01..04` แล้ว) · ต่ำกว่านั้นข้ามพร้อมแจ้งเตือน ไม่ตก และไม่รัน job build เลย (ประหยัดนาที Actions) ·
+  เลือก image จาก Dockerfile ที่มีจริงใน job เดียว · `actions/checkout@v5` (Node 24 — แก้คำเตือน Node 20 deprecated)
+- `templates/images.yml` — build เฉพาะ push เข้า `main` (server ดึง `:main`) · branch อื่นสั่งเองได้ด้วย Run workflow · ปักหมุด `@v1.8.1`
+- `org-settings/add-image-workflow.sh` · `new-subsystem.sh` · `docs/deployment.md` 1.1 ข้อ 5 และ 7 — ข้อความตามพฤติกรรมใหม่
+- ตรวจแล้ว: logic ของ Plan กับ 9 กรณี (1.8.0 · 1.8.1 · 1.10.0 build · 1.7.4 · 1.0.0 · ไม่มีไฟล์ · ค่าเสีย ข้าม · มีแค่ backend · ไม่มี Dockerfile)
+
+**ใครต้องทำอะไร:** ทีมไม่ต้องทำอะไร · **DevOps:** รัน `add-image-workflow.sh v1.8.1` (ย้าย demo จาก `@v1.8.0` และวางให้ repo ที่เหลือ)
+— repo ที่ยังไม่ถึง 1.8.0 จะเริ่มได้ image เองเมื่อทีมเลื่อนเวอร์ชัน
+
+---
+
 ## 1.8.0 — 2026-10-06
 
 เตรียมทุกระบบย่อยขึ้น server กลาง (เครื่องเดียวกับ Core Hub) — ทีมเตรียม image ใน repo ได้ตั้งแต่ตอนนี้

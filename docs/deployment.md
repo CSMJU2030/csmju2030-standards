@@ -1,6 +1,6 @@
 # Deployment — ขึ้นระบบย่อยบน server
 
-**เวอร์ชัน 1.0** (standards 1.8.0) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
+**เวอร์ชัน 1.1** (standards 1.8.1) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
 
 ทุกระบบย่อยจะขึ้น server กลางของรายวิชา (เครื่องเดียวกับ Core Hub `https://csmju2030.jowave.com`)
 เอกสารนี้บอกว่า**ทีมต้องเตรียมอะไรใน repo** (ข้อ 3–4, 6) และ**DevOps ทำอะไรบน server** (ข้อ 5, 7)
@@ -141,15 +141,19 @@ DevOps ใช้ `backend/.env.example` เป็นรายการ env ข�
 
 ## 5. image บน GitHub Container Registry
 
-ทุกครั้งที่ push เข้า `main` หรือ `develop` workflow `.github/workflows/images.yml` ของ repo
+ทุกครั้งที่ push เข้า `main` workflow `.github/workflows/images.yml` ของ repo
 (DevOps วางให้ ทีมแก้ไม่ได้ — `GH-03`) เรียก `subsystem-images.yml` ของ standards ซึ่ง build แล้ว push:
 
 | image | จาก | tag |
 |---|---|---|
-| `ghcr.io/csmju2030/<repo>-api` | `backend/Dockerfile` | `main` หรือ `develop` (ตาม branch) · `sha-<commit 7 ตัว>` |
+| `ghcr.io/csmju2030/<repo>-api` | `backend/Dockerfile` | `main` · `sha-<commit 7 ตัว>` |
 | `ghcr.io/csmju2030/<repo>-web` | `frontend/Dockerfile` | เหมือนกัน |
 
-- ยังไม่มี Dockerfile → workflow ข้าม image นั้นพร้อมแจ้งเตือน ไม่ตก
+- **build เมื่อ `.standards-version` เป็น 1.8.0 ขึ้นไปเท่านั้น** — แปลว่า Dockerfile ผ่าน `DEP-01..04` แล้ว ·
+  ก่อนหน้านั้น workflow แค่ตรวจเวอร์ชัน (job **Plan**) แล้วข้ามพร้อมแจ้งเตือน ไม่ตก · Dockerfile ที่เขียนก่อนมีข้อกำหนดนี้
+  (พอร์ตอื่น · รันเป็น root · ไม่ใช่ standalone) จึงไม่ถูก build ไปจนกว่าทีมจะแก้แล้วเลื่อนเวอร์ชัน
+- ยังไม่มี Dockerfile → ข้าม image นั้นพร้อมแจ้งเตือน ไม่ตก
+- build เฉพาะ `main` (server ดึง `:main`) · branch อื่นสั่งเองได้ที่ **Actions → Images → Run workflow** ได้ tag ตามชื่อ branch
 - image เป็น **private** ตาม repo · server ดึงด้วย token อ่านอย่างเดียว (ข้อ 7)
 - ดูผลที่แท็บ **Actions → Images** ของ repo · build ตกให้แก้ใน repo แล้ว merge ใหม่
 - **ย้อนเวอร์ชัน:** DevOps ชี้ compose ไปที่ tag `sha-…` ของ commit ก่อนหน้าแล้ว `docker compose up -d`
@@ -184,8 +188,8 @@ docker compose down                 # หยุด (ข้อมูลยัง�
 
 1. ตั้งค่า org: **Settings → Packages → Package creation** ให้สร้าง package แบบ private ได้ ·
    ไม่ต้องเพิ่ม action ใน allow-list — `subsystem-images.yml` ใช้แค่ `actions/checkout` กับคำสั่ง `docker` บน runner
-2. ติด tag standards แล้วรัน `org-settings/add-image-workflow.sh v1.8.0` (dry run) → `--apply --merge`
-   — วาง `images.yml` ทุก repo · ระบบที่ยังไม่มี Dockerfile จะถูกข้ามจนกว่าทีมจะเพิ่ม
+2. รัน `org-settings/add-image-workflow.sh v1.8.1` (dry run) → `--apply --merge`
+   — วาง `images.yml` ทุก repo · repo ที่ยังไม่ถึง 1.8.0 จะไม่ build จนกว่าทีมจะเลื่อนเอง
 3. บน server: token อ่าน package (classic PAT สิทธิ์ `read:packages` เท่านั้น ของบัญชีที่อ่าน repo ได้) →
    `docker login ghcr.io` · ห้ามเก็บ token ใน repo หรือ log
 4. PostgreSQL ตัวกลาง: `max_connections` ไม่น้อยกว่า `จำนวนระบบ × 6 + 20` · network ภายในที่ api ทุกตัวเข้าถึงได้ · backup ด้วย `pg_dump` ทุกฐาน

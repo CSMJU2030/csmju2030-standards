@@ -88,7 +88,7 @@ sed "s#<subsystem-name>#${SUBSYSTEM}#g" \
 cp "$SCRIPT_DIR/templates/pull_request_template.md" .github/pull_request_template.md
 sed "s#csmju-change-me#${REPO_NAME}#" "$SCRIPT_DIR/templates/.env.example" > .env.example
 cp "$SCRIPT_DIR/templates/conformance-nightly.yml" .github/workflows/conformance-nightly.yml
-# build image api/web ไป ghcr.io ทุกครั้งที่ merge เข้า main/develop (docs/deployment.md ข้อ 5)
+# build image api/web ไป ghcr.io ทุกครั้งที่ merge เข้า main (docs/deployment.md ข้อ 5)
 cp "$SCRIPT_DIR/templates/images.yml" .github/workflows/images.yml
 
 # --- GH-04: ไฟล์นี้คือสิ่งที่สคริปต์เดิมลืมสร้าง ทำให้ทุก repo ใหม่ fail ทันที ---
