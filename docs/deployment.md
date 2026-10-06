@@ -1,6 +1,6 @@
 # Deployment — ขึ้นระบบย่อยบน server
 
-**เวอร์ชัน 1.2** (standards 1.8.2) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
+**เวอร์ชัน 1.3** (standards 1.8.3) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
 
 ทุกระบบย่อยจะขึ้น server กลางของรายวิชา (เครื่องเดียวกับ Core Hub `https://csmju2030.jowave.com`)
 เอกสารนี้บอกว่า**ทีมต้องเตรียมอะไรใน repo** (ข้อ 3–4, 6) และ**DevOps ทำอะไรบน server** (ข้อ 5, 7)
@@ -88,8 +88,10 @@ Dockerfile ใส่ค่า server จริงไว้ให้แล้ว 
 ### 3.4 ต้องทำตามแม้ไม่มีตัวตรวจ
 
 - **ไม่มี secret ใน Dockerfile** (`ARG` / `ENV`) — ค่าทุกอย่างมาจาก env ตอนรัน (ข้อ 4.2)
-- **ระบบไฟล์ของ container อ่านอย่างเดียว** — เขียนได้แค่ `/tmp` · ไฟล์ที่ผู้ใช้อัปโหลดเก็บผ่าน Core Hub
-  ([reference-data](reference-data.md) `POST /images`) · ทดสอบด้วย compose ของ demo ซึ่งล็อกแบบเดียวกับ server
+- **ระบบไฟล์ของ container อ่านอย่างเดียว** — เขียนได้แค่ `/tmp` (ข้อมูลหายเมื่อ container เริ่มใหม่) · ทดสอบด้วย compose ของ demo ซึ่งล็อกแบบเดียวกับ server ·
+  ไฟล์ที่ผู้ใช้อัปโหลดเก็บได้ 2 ที่ตามชนิด:
+  - **รูปที่ใครเห็นก็ได้** (ข่าว · ภาพประกอบ) → Core Hub `POST /images` ([reference-data](reference-data.md) ข้อ 6) — เปิดได้โดยไม่ login และถูกแปลงเป็น WebP
+  - **เอกสารที่ต้องตรวจสิทธิ์หรือเก็บต้นฉบับ** (บิล · สลิป · PDF · ไฟล์ที่มีข้อมูลส่วนบุคคล) → ฐานข้อมูลของระบบเอง (ข้อ 4.3)
 - **log ออก stdout เท่านั้น** ([logging](logging.md)) — ห้ามเขียนไฟล์ log
 - **ห้าม `chown -R` ทั้งโฟลเดอร์แอป** — Docker เก็บไฟล์ทุกไฟล์ซ้ำอีกชั้น image โตเท่าตัว (user `node` อ่านไฟล์ของ root ได้อยู่แล้ว)
 - **ลบ store และ cache ของ pnpm ใน `RUN` เดียวกับ `pnpm install`** — ไม่งั้นติดไปใน image อีกหลายร้อย MB (ดู `backend/Dockerfile` ของ demo)
@@ -143,6 +145,35 @@ const adapter = new PrismaPg({
 **web** — `CORE_HUB_WEB_URL` · `SUBSYSTEM_ID` · `TZ` (`BACKEND_URL` ฝังใน image แล้ว ข้อ 3.2)
 
 DevOps ใช้ `backend/.env.example` เป็นรายการ env ของระบบ — env ที่ไม่อยู่ในไฟล์นั้นจะไม่ถูกตั้งบน server
+
+### 4.3 เอกสารที่ผู้ใช้อัปโหลด (บิล · สลิป · PDF)
+
+เอกสารที่ต้องตรวจสิทธิ์ก่อนเปิด หรือต้องเก็บไฟล์ต้นฉบับไว้เป็นหลักฐาน เก็บในฐานข้อมูลของระบบเอง —
+ห้ามใช้บริการรูปของ Core Hub (เปิดสาธารณะ · cache 1 วัน · แปลงไฟล์) และห้ามเขียนลงดิสก์ของ container (อ่านอย่างเดียว · หายเมื่อเริ่มใหม่)
+
+| เรื่อง | กติกา |
+|---|---|
+| ชนิดไฟล์ | กำหนดรายการที่รับ (เช่น PDF · JPEG · PNG · WebP) และ**ตรวจจาก byte ต้นไฟล์** (`%PDF-` · `FF D8 FF` · `89 50 4E 47` · `RIFF…WEBP`) — ห้ามเชื่อชื่อไฟล์หรือ `Content-Type` ที่ส่งมา · ไม่รับ SVG · HTML |
+| ขนาด | ไม่เกิน **10 MB** ต่อไฟล์ — ตั้ง `limits.fileSize` ที่ตัวรับ multipart ให้ตัดตั้งแต่ตอนรับ ไม่ใช่ตรวจหลังรับครบ · ไฟล์เกินหรือชนิดไม่ตรงตอบ `400 VALIDATION_ERROR` (enum ปิดใน `contracts/error-codes.json` ไม่มี 413) · ทดสอบไฟล์ขนาดใกล้เพดานผ่านหน้าเว็บด้วย `docker compose` เพราะคำขอวิ่งผ่าน rewrites ของ Next.js ก่อนถึง api |
+| ต้นฉบับ | เก็บ bytes ตามที่อัปโหลด ไม่ย่อ ไม่แปลง · เก็บ `sha256` ไว้พิสูจน์ว่าไม่ถูกแก้ |
+| ตาราง | แยกตารางไฟล์ออกจากตารางธุรกิจ (คอลัมน์ `Bytes` ของ Prisma) — query รายการทั่วไปต้องไม่ดึงคอลัมน์ไฟล์มาด้วย |
+| เปิดดู | ส่งผ่าน api ที่**ตรวจสิทธิ์ทุกครั้ง** · `Content-Type` จากชนิดที่ตรวจได้ตอนรับ · `Content-Disposition: attachment` · `X-Content-Type-Options: nosniff` · `Cache-Control: private, no-store` |
+| ลบ | ตามกติกาธุรกิจของระบบ — เอกสารการเงินควร soft delete หรือห้ามลบหลังอนุมัติ · บันทึกว่าใครลบ |
+| ปริมาณ | ประเมินขนาดรวมต่อปีแจ้ง DevOps · เกิน **1 GB** ต้องตกลงกับ DevOps ก่อน (ฐานข้อมูลใช้ร่วมกันและ backup ทั้งก้อน) |
+
+```prisma
+model Attachment {
+  id                   String   @id @default(uuid())
+  mimeType             String   @map("mime_type")          // จากการตรวจ byte ต้นไฟล์
+  sizeBytes            Int      @map("size_bytes")
+  sha256               String   @map("sha256") @db.Char(64)
+  content              Bytes    @map("content")            // ไฟล์ต้นฉบับ
+  uploadedByCoreUserId String   @map("uploaded_by_core_user_id") @db.VarChar(64)
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@map("attachments")
+}
+```
 
 ---
 
