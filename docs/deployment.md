@@ -1,20 +1,20 @@
 # Deployment — ขึ้นระบบย่อยบน server
 
-**เวอร์ชัน 1.3** (standards 1.8.3) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
+**เวอร์ชัน 1.4** (standards 1.8.4) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
 
 ทุกระบบย่อยจะขึ้น server กลางของรายวิชา (เครื่องเดียวกับ Core Hub `https://csmju2030.jowave.com`)
 เอกสารนี้บอกว่า**ทีมต้องเตรียมอะไรใน repo** (ข้อ 3–4, 6) และ**DevOps ทำอะไรบน server** (ข้อ 5, 7)
 
-> **สถานะ:** spec เครื่องและชื่อ subdomain (ข้อ 2) **รออาจารย์อนุมัติ** — แต่ส่วนของทีมทำได้ตั้งแต่ตอนนี้
-> และ CI ตรวจ `DEP-01..04` ตั้งแต่ทีมเลื่อนเป็น 1.8.0 · ตัวอย่างที่ผ่านครบ: `demo-student-subsystem`
+> **สถานะ (6 ต.ค. 2569):** อาจารย์อนุมัติชื่อเว็บ (ข้อ 2) และขยายเครื่องแล้ว — ขึ้นระบบทีละระบบที่ผ่าน `DEP-01..04`
+> และซ้อมบน server แล้ว (ข้อ 7) · ตัวอย่างที่ผ่านครบ: `demo-student-subsystem`
 
 ---
 
 ## 1. ภาพรวม
 
 ```text
-ผู้ใช้ ─https─► Cloudflare ─► Apache (server) ─► <ระบบ>-web  Next.js :3000 ─► <ระบบ>-api  NestJS :4000 ─► PostgreSQL กลาง
-                                                  (เปิดผ่าน Apache)            (ไม่เปิดออกนอก)              (ฐานของระบบเอง)
+ผู้ใช้ ─https─► Cloudflare ─► Apache (server :443) ─► <ระบบ>-web  Next.js :3000 ─► <ระบบ>-api  NestJS :4000 ─► PostgreSQL กลาง
+                  (proxy)     อ่านชื่อ → พอร์ต 50xx       (127.0.0.1:50xx)             (ไม่เปิดออกนอก)              (ฐานของระบบเอง)
 ```
 
 แต่ละระบบ = **2 image** ที่ GitHub Actions build จาก repo ของทีมแล้วเก็บไว้ที่ GitHub Container Registry (ghcr.io)
@@ -29,14 +29,14 @@ server แค่ดึง image ไปรัน — **ไม่ build บน ser
 
 ---
 
-## 2. ชื่อเว็บของแต่ละระบบ (รออนุมัติ)
+## 2. ชื่อเว็บของแต่ละระบบ (อาจารย์อนุมัติ 6 ต.ค. 2569)
 
-- **แผน:** `https://<ชื่อในทะเบียน>.jowave.com` เช่น `https://csmju-quiz.jowave.com` — เป็นชื่อชั้นเดียว
+- **`https://<ชื่อในทะเบียน>.jowave.com`** เช่น `https://csmju-quiz.jowave.com` — อาจารย์จด subdomain ให้จากรายชื่อในไฟล์ map ของ Apache (ข้อ 7.1) · เป็นชื่อชั้นเดียว
   เพราะใบรับรอง https ของ Cloudflare ครอบแค่ `*.jowave.com` (ชื่อสองชั้นอย่าง `quiz.csmju2030.jowave.com` เบราว์เซอร์จะเตือนว่าไม่ปลอดภัย)
 - **ห้ามแยกระบบด้วย path** เช่น `csmju2030.jowave.com/quiz` — `/auth/login` `/auth/callback` `/auth/logout`
   ต้องอยู่ที่รากของ origin ([auth-contract](auth-contract.md) ข้อ 5) และเบราว์เซอร์กั้นความปลอดภัยตาม origin ไม่ใช่ตาม path:
   ระบบที่อยู่ origin เดียวกันอ่านหน้าและเรียก API ของกันได้ และได้คุกกี้ของ Core Hub ไปด้วย
-- ชื่อในทะเบียน (`name` · [subsystem-registry](subsystem-registry.md) ข้อ 2) จะกลายเป็น subdomain — ใช้ได้ไม่เกิน **63 ตัวอักษร**
+- ชื่อในทะเบียน (`name` · [subsystem-registry](subsystem-registry.md) ข้อ 2) จะกลายเป็น subdomain — ต้องขึ้นต้นด้วย `csmju-` และยาวไม่เกิน **63 ตัวอักษร**
 - **ตอนเปิดใช้จริง** server ปิดโหมดก่อนเปิดใช้ callback ที่เป็น `http://localhost` ใช้ไม่ได้ทันที —
   PL ขอ admin เปลี่ยน callback เป็น `https://<ชื่อ>.jowave.com/auth/callback` ก่อนวันนั้น ([subsystem-registry](subsystem-registry.md) ข้อ 4)
 
@@ -246,9 +246,33 @@ image ตัวเดียวกัน แต่สิ่งรอบ ๆ ไ�
 3. บน server: token อ่าน package (classic PAT สิทธิ์ `read:packages` เท่านั้น ของบัญชีที่อ่าน repo ได้) →
    `docker login ghcr.io` · ห้ามเก็บ token ใน repo หรือ log
 4. PostgreSQL ตัวกลาง: `max_connections` ไม่น้อยกว่า `จำนวนระบบ × 6 + 20` · network ภายในที่ api ทุกตัวเข้าถึงได้ · backup ด้วย `pg_dump` ทุกฐาน
-5. DNS และ Apache ตามที่อาจารย์อนุมัติ (ข้อ 2)
+5. Apache อ่านชื่อ → พอร์ตจากไฟล์ map (ข้อ 7.1) · ชื่อที่ไม่อยู่ใน map ตอบ 404 · ใบรับรองบนเครื่องต้องครอบ `*.jowave.com`
+   (เช่น Cloudflare Origin Certificate) และ Cloudflare ตั้ง SSL เป็น Full (strict)
+6. เครื่องเปิดพอร์ต 80/443 ตรง (ไม่ใช่ Cloudflare Tunnel) จึงต้อง:
+   - จำกัด AWS Security Group ให้พอร์ต 80/443 รับเฉพาะ [ช่วง IP ของ Cloudflare](https://www.cloudflare.com/ips/) — ไม่งั้นยิงตรงเข้าเครื่องได้โดยไม่ผ่าน Cloudflare
+   - เปิด `mod_remoteip` ของ Apache (`RemoteIPHeader CF-Connecting-IP` + `RemoteIPTrustedProxy` เป็นช่วง IP ของ Cloudflare) —
+     ไม่งั้นทุกระบบรวม Core Hub เห็นแต่ IP ของ Cloudflare และ rate limit ของ Core Hub จะปฏิเสธนักศึกษาที่ login พร้อมกัน
+7. ความจุ: เครื่องตอนนี้รับได้ราว 15–20 ระบบ (ระบบละ ~125 MB ตลอดเวลาแม้ไม่มีคนใช้ เพราะ Node.js รันค้าง) ·
+   เก็บตัวเลขจาก `docker stats` และ `free -m` ทุกครั้งที่เพิ่มระบบ · ใช้ RAM ถึงราว 80% ให้ส่งตัวเลขขออาจารย์เพิ่ม spec
 
-**ต่อระบบ**
+### 7.1 ชื่อเว็บ → พอร์ต (`/etc/apache2/csmju-map.txt`)
+
+Apache ใช้ไฟล์เดียวจับคู่ชื่อเว็บกับพอร์ตบนเครื่อง — หนึ่งบรรทัดต่อระบบ `<ชื่อในทะเบียน> <พอร์ต>` (ตัวอย่าง):
+
+```text
+csmju-quiz 5001
+csmju-lab-booking 5002
+```
+
+- พอร์ตเรียงต่อจากเลขสุดท้ายในไฟล์ เริ่มที่ `5001` · **ห้ามใช้ซ้ำ และห้ามเปลี่ยนเลขของระบบที่ขึ้นแล้ว**
+- หน้าเว็บของระบบนั้นเปิดที่ `127.0.0.1:<พอร์ต>` บนเครื่องเท่านั้น (compose ด้านล่าง) — api ไม่มีพอร์ตบนเครื่อง
+- อาจารย์ดึงชื่อจากไฟล์นี้ไปจด subdomain ให้ · แก้ไฟล์ต้องใช้ `sudo` · Apache อ่านไฟล์ใหม่เองเมื่อไฟล์เปลี่ยน
+  (ถ้าชื่อใหม่ยังไม่ขึ้น: `sudo apachectl configtest && sudo systemctl reload apache2`)
+
+### 7.2 ต่อระบบ
+
+1. เพิ่มบรรทัดใน `csmju-map.txt` (ข้อ 7.1) แล้วแจ้งอาจารย์ว่ามีชื่อใหม่
+2. สร้างฐานข้อมูลและ role:
 
 ```sql
 -- ชื่อ role/ฐาน = ชื่อในทะเบียน เปลี่ยน - เป็น _
@@ -256,6 +280,8 @@ CREATE ROLE csmju_quiz LOGIN PASSWORD '<สุ่มใหม่ ห้ามใ
 CREATE DATABASE csmju_quiz OWNER csmju_quiz;
 REVOKE ALL ON DATABASE csmju_quiz FROM PUBLIC;
 ```
+
+3. compose ของระบบ (ตัวอย่าง `csmju-quiz` ที่ได้พอร์ต `5001`):
 
 ```yaml
 # /srv/subsystems/csmju-quiz/compose.yml — ตัวอย่าง (ค่าจริงอยู่ใน api.env บน server เท่านั้น)
@@ -281,11 +307,14 @@ services:
     environment: { CORE_HUB_WEB_URL: 'https://csmju2030.jowave.com', SUBSYSTEM_ID: csmju-quiz, TZ: Asia/Bangkok }
     tmpfs: ['/tmp:size=32m', '/app/frontend/.next/cache:size=64m']
     depends_on: { api: { condition: service_healthy } }
-    ports: ['127.0.0.1:<พอร์ตของระบบบน server>:3000']   # Apache ส่ง <ชื่อ>.jowave.com มาที่นี่
+    ports: ['127.0.0.1:5001:3000']   # พอร์ตของระบบใน csmju-map.txt — Apache ส่ง csmju-quiz.jowave.com มาที่นี่
     mem_limit: 384m
 networks:
   subsystems-db: { external: true }
 ```
+
+4. `docker compose pull && docker compose up -d` แล้วเปิด `https://<ชื่อ>.jowave.com` ทดสอบ login กับทีม
+5. ก่อนวันเปิดใช้: PL ขอ admin เปลี่ยน callback ในทะเบียนเป็น `https://<ชื่อ>.jowave.com/auth/callback` (ข้อ 2)
 
 - อัปเดตหลังทีม merge: `docker compose pull && docker compose up -d` (ตั้งเวลาหรือสั่งเอง) · ลบ image เก่าเป็นระยะ (`docker image prune`)
 - ขนาดโดยประมาณต่อระบบ: web ~290 MB · api ~800 MB (ส่วนใหญ่คือ Prisma CLI ที่ใช้รัน migration)
