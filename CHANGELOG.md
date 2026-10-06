@@ -5,6 +5,43 @@
 
 ---
 
+## 1.8.0 — 2026-10-06
+
+เตรียมทุกระบบย่อยขึ้น server กลาง (เครื่องเดียวกับ Core Hub) — ทีมเตรียม image ใน repo ได้ตั้งแต่ตอนนี้
+ส่วนชื่อ subdomain และ spec เครื่องรออาจารย์อนุมัติ
+
+- **เอกสารใหม่ [`docs/deployment.md`](docs/deployment.md)** — ระบบละ 2 image (`web` Next.js :3000 · `api` NestJS :4000) ·
+  ชื่อเว็บ `<ชื่อในทะเบียน>.jowave.com` (แผน) และเหตุผลที่ห้ามแยกด้วย path · `BACKEND_URL` ถูกฝังตอน `next build`
+  จึงต้อง build ด้วย `http://api:4000` · ฐานข้อมูลเป็น PostgreSQL ตัวกลาง ระบบละ database + role · env ที่ server ส่งให้ ·
+  ทดสอบในเครื่องด้วย `docker compose` · งานของ DevOps ทั้งครั้งเดียวและต่อระบบ
+- **กฎใหม่ `DEP-01..04`** (`scripts/check-deploy-ready.sh` · job Security & Stack Scan ไม่ต้องแก้ workflow หรือ ruleset):
+  - `DEP-01` มี `backend/Dockerfile` และ `frontend/Dockerfile` (เมื่อมี `frontend/package.json`)
+  - `DEP-02` stage สุดท้ายของ Dockerfile ตั้ง `USER` ที่ไม่ใช่ root — `USER` ใน build stage ไม่ตามมา
+  - `DEP-03` `.dockerignore` ที่รากกัน `**/.env*` และ `**/node_modules` — `.env` เฉย ๆ กันแค่ที่ราก ไม่กัน `backend/.env`
+  - `DEP-04` `frontend/next.config.*` ตั้ง `output: "standalone"`
+  - ข้ามเมื่อ repo เพิ่ง scaffold · profile `core-hub` ยกเว้น (Core Hub build จาก `deploy/`) · fixture 7 ชุด + 2 assertion ของ profile ·
+    self-test 114/114 บน bash 3.2
+- **build image บน GitHub เก็บที่ ghcr.io** — reusable workflow ใหม่ `.github/workflows/subsystem-images.yml` และ
+  [`templates/images.yml`](templates/images.yml) ที่ DevOps วางในทุก repo: push เข้า `main`/`develop` แล้วได้
+  `ghcr.io/csmju2030/<repo>-api` และ `-web` (tag ชื่อ branch และ `sha-<commit>`) · ใช้แค่ `actions/checkout` + docker CLI
+  จึงไม่ต้องแก้ allow-list ของ Actions · ยังไม่มี Dockerfile ก็ข้ามพร้อมแจ้งเตือน ไม่ตก · วางด้วย
+  [`org-settings/add-image-workflow.sh`](org-settings/add-image-workflow.sh) · `new-subsystem.sh` สร้าง `images.yml` และ `.dockerignore` ให้ repo ใหม่
+- **template หน้าเว็บ** — เพิ่ม [`Dockerfile`](templates/csmju-subsystem-web/Dockerfile) (multi-stage · user `node` · healthcheck ·
+  สร้าง `public/` ให้เองเมื่อไม่มี) · `next.config.ts` ตั้ง `output: "standalone"` + `outputFileTracingRoot` · README หัวข้อ Deploy
+- อัปเดต `tech-stack.md` ข้อ 1.1 · `repo-structure.md` · `aie-workflow.md` 1.2 (ขั้น 7 และ Definition of Done) · `ai/AGENTS.md`
+  (กับดัก 3 แถว + คำสั่ง `docker compose`) · `ci-compliance-spec.md` ข้อ 7.1 และ 7.3 · `core-hub-rules.md` · `standards-versioning.md` ข้อ 5.4 ·
+  `org-settings-checklist.md` (Package creation)
+- ตรวจแล้ว: image ของ template build และรันได้ (healthy · user `node` · rewrites ชี้ `http://api:4000`) · demo build ทั้ง `api` และ `web`
+  แล้วรันครบ `db` + `api` + `web` แบบ read-only ไม่มี capability — migration ผ่าน · `/api/*` ผ่าน web ถึง api · `/auth/login` พาไป Core Hub ·
+  RAM web ~40 MB · api ~85 MB · คำสั่ง build/push ของ workflow ทดสอบกับ registry ในเครื่อง ได้ tag ครบและ cache ใช้ซ้ำได้
+
+**ใครต้องทำอะไร:** ทีมที่เลื่อนเป็น `1.8.0` ต้องผ่าน `DEP-01..04` — copy `frontend/Dockerfile` และแก้ `next.config.ts` ตาม template ·
+copy `backend/Dockerfile` · `backend/docker/entrypoint.sh` · `.dockerignore` · `docker-compose.yml` จาก demo ·
+จำกัด connection ด้วย `DATABASE_POOL_MAX` (deployment.md ข้อ 4.1) · ทีมที่ยังอยู่ 1.7.x ยังไม่โดนตรวจ ·
+**DevOps:** ตั้ง Package creation แล้วรัน `add-image-workflow.sh v1.8.0` หลังติด tag
+
+---
+
 ## 1.7.4 — 2026-10-05
 
 - `templates/csmju-subsystem-web/package.json` — `next` และ `eslint-config-next` จาก `16.3.4` เป็น `16.3.6` ตาม Dependabot security update

@@ -19,7 +19,7 @@
 | **Node.js** | `22.x` | ตรงกับ Core Hub |
 | **TypeScript** | `^5.9` | เปิด `strictNullChecks` อย่างน้อย |
 | **package manager** | **pnpm `12.3.4`** | ตั้ง `"packageManager": "pnpm@12.3.4"` ใน `package.json` ที่ราก (CI ใช้เลขนี้) · ต้อง commit `pnpm-lock.yaml` · ห้ามมี `package-lock.json` / `yarn.lock` (กฎ `QA-05`) |
-| **Docker + docker compose** | — | ต้องมี `Dockerfile` และ `docker-compose.yml` |
+| **Docker + docker compose** | — | ต้องมี `backend/Dockerfile` · `frontend/Dockerfile` · `.dockerignore` ที่ราก และ `docker-compose.yml` — ข้อกำหนดของ image อยู่ใน [`deployment.md`](deployment.md) (`DEP-01..04`) |
 
 ### 1.2 Frontend Stack
 *   **Core Framework:** **Next.js** (App Router) — `15.5+` (ต้องมีคำสั่ง `next typegen` ดูข้อ 1.2.1)

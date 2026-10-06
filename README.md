@@ -37,6 +37,7 @@ repo นี้เป็นแหล่งความจริงเพียง
 | เกณฑ์ผ่าน/ไม่ผ่าน และวิธีรัน | [`docs/conformance.md`](docs/conformance.md) |
 | วิธีแตก branch, ตั้งชื่อ commit, เปิด PR | [`docs/github-workflow.md`](docs/github-workflow.md) ข้อ 1 |
 | เลื่อนเวอร์ชัน standards ของระบบย่อย (ทำเองได้) | [`docs/standards-versioning.md`](docs/standards-versioning.md) |
+| Dockerfile · image บน ghcr.io · ขึ้น server | [`docs/deployment.md`](docs/deployment.md) |
 | กฎของ Core Hub และข้อยกเว้น (ทีม Core Hub เท่านั้น) | [`docs/core-hub-rules.md`](docs/core-hub-rules.md) |
 | ใช้ AI ช่วยเขียนโค้ด | [`ai/AGENTS.md`](ai/AGENTS.md) · [`ai/TASK_TEMPLATE.md`](ai/TASK_TEMPLATE.md) |
 

@@ -92,6 +92,9 @@ reference implementation: `demo-student-subsystem/backend/` (ตั้งแต�
 | "`prisma migrate dev` เปลี่ยนชื่อคอลัมน์" | จะกลายเป็น drop+add ข้อมูลหาย — เขียน `RENAME COLUMN` เอง |
 | "แก้เทส/สคริปต์ให้ผ่าน" | ห้ามแตะ `standards/` — ให้แก้โค้ดตัวเอง |
 | "`typecheck` ของ frontend ใช้ `tsc --noEmit` พอ" | ต้องเป็น `next typegen && tsc --noEmit` ไม่งั้นผ่านในเครื่องแต่ตกบน CI (`tech-stack.md` ข้อ 1.2.1) |
+| "ตั้ง `BACKEND_URL` ตอนรัน container ให้ชี้ backend" | `rewrites()` ถูกฝังตอน `next build` — ใน image ต้อง build ด้วย `http://api:4000` (service `api`) ตาม Dockerfile ของ template ([deployment](../docs/deployment.md) ข้อ 3.2) |
+| "ใส่ `USER node` ใน build stage ก็พอ" · "`chown -R node:node /app` ให้ชัวร์" | `USER` ต้องอยู่ใน **stage สุดท้าย** (`DEP-02`) · ห้าม `chown -R` ทั้งแอป — image โตเท่าตัว และ `node` อ่านไฟล์ของ root ได้อยู่แล้ว |
+| "ใส่ค่า env ของ server ไว้ใน Dockerfile" · "เขียนไฟล์ลงโฟลเดอร์แอป" | ค่าทุกอย่างมาจาก env ตอนรัน (ค่าลับห้ามอยู่ใน `ARG`/`ENV`) · container อ่านอย่างเดียว เขียนได้แค่ `/tmp` — ไฟล์ผู้ใช้เก็บผ่าน Core Hub |
 | "รายงานว่าเสร็จ น่าจะผ่าน" | ต้องแนบผลรันจริงของ CI + conformance |
 
 ---
@@ -106,6 +109,9 @@ pnpm --filter backend start:dev
 
 # ตรวจ typecheck แบบเดียวกับ CI (ลบของค้างก่อน ไม่งั้นผ่านหลอก)
 rm -rf frontend/.next && pnpm -r typecheck
+
+# image แบบเดียวกับ server — db + api + web ต้อง healthy (docs/deployment.md ข้อ 6)
+docker compose up -d --build && docker compose ps
 
 # ตัวตัดสิน
 ./standards/scripts/run-all-checks.sh .        # static — เหมือน CI

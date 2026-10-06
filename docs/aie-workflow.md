@@ -1,6 +1,6 @@
 # AIE Workflow — ทำระบบย่อยตั้งแต่ศูนย์จนส่งมอบ
 
-**เวอร์ชัน 1.1** (standards 1.7.0) · Core Hub ที่ใช้คือ server จริง `https://csmju2030.jowave.com`
+**เวอร์ชัน 1.2** (standards 1.8.0) · Core Hub ที่ใช้คือ server จริง `https://csmju2030.jowave.com`
 
 > เอกสารนี้คือ**ลำดับขั้นตอน** ไม่ใช่เนื้อกฎ — แต่ละขั้นจะชี้ไปยังเอกสารที่มีรายละเอียดจริง
 > อ่านครั้งเดียวจบก่อนเริ่มงาน แล้วเปิดค้างไว้ใช้เป็น checklist ระหว่างทำ
@@ -238,6 +238,10 @@ script `typecheck` ของ frontend ต้องเป็นแบบนี้
 (Next.js สร้าง type ของ route/layout ตอน dev/build เท่านั้น CI ที่ checkout ใหม่จะไม่มี
 ดู [`tech-stack.md`](tech-stack.md) ข้อ 1.2.1)
 
+**เตรียม deploy ตั้งแต่ตอนนี้** ([`deployment.md`](deployment.md)) — `frontend/Dockerfile` และ `next.config.ts` (`output: "standalone"`)
+copy จาก `standards/templates/csmju-subsystem-web/` · `backend/Dockerfile` · `backend/docker/entrypoint.sh` · `.dockerignore`
+และ `docker-compose.yml` copy จาก demo · CI ตรวจ `DEP-01..04` ตั้งแต่ 1.8.0
+
 ---
 
 ## ขั้น 8 — ตรวจเอง 2 ชั้นก่อนเปิด PR
@@ -300,6 +304,7 @@ repo ที่ DevOps สร้างด้วย `new-subsystem.sh` มีไ�
 ## ขั้น 10 — Definition of Done
 
 - [ ] `run-all-checks.sh` ผ่านทุกข้อ
+- [ ] `docker compose up -d --build` แล้ว `db` `api` `web` เป็น `healthy` และ login ผ่าน `http://localhost:32xx` ได้ ([`deployment.md`](deployment.md) ข้อ 6)
 - [ ] `conformance` ได้ `0 failed` `0 skipped` ที่ระดับที่ตกลงกับ PL (รันด้วยไฟล์บัญชีนอก repo)
 - [ ] เข้าระบบผ่าน SSO ได้จริงกับ server จริงทั้ง 2 ทาง — ปุ่ม login ของระบบ และเมนูในพอร์ทัล ([`connect-core-hub.md`](connect-core-hub.md) ข้อ 6)
 - [ ] ค้น log แล้วไม่พบ token (`eyJ`) · `access_token=` · header `Authorization`/`Cookie`

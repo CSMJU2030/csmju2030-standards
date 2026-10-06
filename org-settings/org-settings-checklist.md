@@ -22,6 +22,7 @@
 | Members can delete repositories | ⬜ ยังไม่ได้ตั้ง — ตั้งในหน้าเว็บ: Settings → Member privileges |
 | Members can change repo visibility | ⬜ ยังไม่ได้ตั้ง — ตั้งในหน้าเว็บ: Settings → Member privileges |
 | Custom secret-scanning pattern (CSMJU client_secret) | ⬜ ต้องทำในหน้าเว็บ |
+| Package creation = Private (image ของระบบย่อยบน ghcr.io — `docs/deployment.md` ข้อ 5) | ⬜ ตั้งในหน้าเว็บ: Settings → Packages · `subsystem-images.yml` ใช้แค่ `actions/checkout` + docker CLI จึงไม่ต้องแก้ allow-list |
 
 ## Teams to create (§5.2)
 
