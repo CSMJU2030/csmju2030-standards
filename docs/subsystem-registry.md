@@ -86,6 +86,9 @@ Content-Type: application/json
 **ตอนเปิดใช้จริง** server จะปิดโหมดก่อนเปิดใช้ callback ที่เป็น `http` ทุกตัวจะเข้าไม่ได้ทันที
 (ผู้ใช้เห็น "ระบบนี้ยังไม่เปิดให้ใช้งาน") — ระบบที่ deploy แล้วต้องให้ admin เปลี่ยน callback เป็น `https` ของ host จริงก่อนวันนั้น
 
+**ทะเบียนหนึ่งระบบมี callback ได้ค่าเดียว** — admin เปลี่ยนเป็น `https://<ชื่อ>.jowave.com/auth/callback` ทันทีที่ระบบขึ้น server
+แล้วทีมนั้น login จาก `http://localhost` ไม่ได้อีก (PM ตัดสิน 7 ต.ค. 2569 · [deployment](deployment.md) ข้อ 2 และ 7.2)
+
 Core Hub ตรวจตามลำดับนี้ก่อนออก token ([auth-contract](auth-contract.md) ข้อ 5.3 บอกว่าผู้ใช้เห็นอะไร):
 
 ```text

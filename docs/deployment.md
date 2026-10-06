@@ -1,6 +1,6 @@
 # Deployment — ขึ้นระบบย่อยบน server
 
-**เวอร์ชัน 1.4** (standards 1.8.4) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
+**เวอร์ชัน 1.4** (standards 1.8.4 · แก้เพิ่ม 7 ต.ค. 2569 — ข้อ 2 · 5 · 7.2) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
 
 ทุกระบบย่อยจะขึ้น server กลางของรายวิชา (เครื่องเดียวกับ Core Hub `https://csmju2030.jowave.com`)
 เอกสารนี้บอกว่า**ทีมต้องเตรียมอะไรใน repo** (ข้อ 3–4, 6) และ**DevOps ทำอะไรบน server** (ข้อ 5, 7)
@@ -25,7 +25,7 @@ server แค่ดึง image ไปรัน — **ไม่ build บน ser
 |---|---|
 | ทีม (AIE · PL) | `frontend/Dockerfile` · `backend/Dockerfile` · `.dockerignore` · Next.js standalone · จำกัด connection · ทดสอบด้วย `docker compose` ในเครื่อง (ข้อ 3, 4, 6) |
 | DevOps | วาง `images.yml` ในทุก repo · สร้างฐาน + role · compose และ Apache บน server · token สำหรับดึง image (ข้อ 5, 7) |
-| PL | ขอ admin ระบบกลางเปลี่ยน callback เป็น `https` ก่อนวันเปิดใช้ (ข้อ 2) |
+| PL | ส่งคำขอขึ้น server เมื่อพัฒนาและทดสอบในเครื่องเสร็จแล้ว (ข้อ 7.2) · หลังขึ้นแล้ว merge เข้า `main` = อัปเดตระบบบน server |
 
 ---
 
@@ -37,8 +37,11 @@ server แค่ดึง image ไปรัน — **ไม่ build บน ser
   ต้องอยู่ที่รากของ origin ([auth-contract](auth-contract.md) ข้อ 5) และเบราว์เซอร์กั้นความปลอดภัยตาม origin ไม่ใช่ตาม path:
   ระบบที่อยู่ origin เดียวกันอ่านหน้าและเรียก API ของกันได้ และได้คุกกี้ของ Core Hub ไปด้วย
 - ชื่อในทะเบียน (`name` · [subsystem-registry](subsystem-registry.md) ข้อ 2) จะกลายเป็น subdomain — ต้องขึ้นต้นด้วย `csmju-` และยาวไม่เกิน **63 ตัวอักษร**
-- **ตอนเปิดใช้จริง** server ปิดโหมดก่อนเปิดใช้ callback ที่เป็น `http://localhost` ใช้ไม่ได้ทันที —
-  PL ขอ admin เปลี่ยน callback เป็น `https://<ชื่อ>.jowave.com/auth/callback` ก่อนวันนั้น ([subsystem-registry](subsystem-registry.md) ข้อ 4)
+- **ขึ้น server แล้ว login จาก localhost ไม่ได้อีก** (PM ตัดสิน 7 ต.ค. 2569) — ทะเบียนหนึ่งระบบมี callback ได้ค่าเดียว
+  พอระบบขึ้น server แล้ว admin เปลี่ยน callback เป็น `https://<ชื่อ>.jowave.com/auth/callback` ทันที ·
+  จากนั้น `http://localhost:32xx` ของทีมนั้น login ผ่าน Core Hub ไม่ได้ ต้องทดสอบบน server (merge เข้า `main` แล้วรอ ~10 นาที) —
+  **ขอขึ้น server เมื่อพัฒนาและทดสอบในเครื่องเสร็จแล้วเท่านั้น** ([subsystem-registry](subsystem-registry.md) ข้อ 4)
+- **ตอนเปิดใช้จริง** server ปิดโหมดก่อนเปิดใช้ ทะเบียนที่ยังเป็น `http://localhost` ใช้ไม่ได้ทันที — ระบบที่ยังไม่ขึ้น server จะเปิดใช้ไม่ได้
 
 ---
 
@@ -194,7 +197,7 @@ model Attachment {
 - build เฉพาะ `main` (server ดึง `:main`) · branch อื่นสั่งเองได้ที่ **Actions → Images → Run workflow** ได้ tag ตามชื่อ branch
 - image เป็น **private** ตาม repo · server ดึงด้วย token อ่านอย่างเดียว (ข้อ 7)
 - ดูผลที่แท็บ **Actions → Images** ของ repo · build ตกให้แก้ใน repo แล้ว merge ใหม่
-- **ย้อนเวอร์ชัน:** DevOps ชี้ compose ไปที่ tag `sha-…` ของ commit ก่อนหน้าแล้ว `docker compose up -d`
+- **ขึ้น server:** server ดึง `:main` ใหม่เองทุก ~10 นาทีหลังขึ้นระบบครั้งแรกแล้ว (ข้อ 7.2) · **ย้อนเวอร์ชัน:** DevOps ปักหมุด tag `sha-…` ของ commit ก่อนหน้า
 
 ---
 
@@ -231,7 +234,7 @@ image ตัวเดียวกัน แต่สิ่งรอบ ๆ ไ�
 | URL | `http://localhost:32xx` | `https://<ชื่อ>.jowave.com` ผ่าน Cloudflare + Apache | ห้ามสร้าง URL เต็มจาก request และห้ามฝัง `localhost` (ข้อ 3.4) |
 | RAM | compose ของ demo จำกัดเท่า server | api `512m` · web `384m` | เกินแล้วถูก kill — ดู `docker stats` ตอนทดสอบ |
 | เน็ตขาออก | ออกได้ทุกที่ | ออกได้ แต่ IP ของ server ทั้งเครื่องใช้เพดานเรียก Core Hub ร่วมกัน | cache ข้อมูลอ้างอิงตาม [reference-data](reference-data.md) · ไม่เรียก Core Hub ทีละแถว |
-| callback | `http://localhost:32xx/auth/callback` (โหมดก่อนเปิดใช้) | `https://<ชื่อ>.jowave.com/auth/callback` | PL ขอ admin เปลี่ยนก่อนวันเปิด (ข้อ 2) |
+| callback | `http://localhost:32xx/auth/callback` (โหมดก่อนเปิดใช้) | `https://<ชื่อ>.jowave.com/auth/callback` | ทะเบียนมีได้ค่าเดียว — เปลี่ยนทันทีที่ขึ้น server แล้ว localhost login ไม่ได้อีก (ข้อ 2) |
 
 ---
 
@@ -269,6 +272,17 @@ csmju-lab-booking 5002
   (ถ้าชื่อใหม่ยังไม่ขึ้น: `sudo apachectl configtest && sudo systemctl reload apache2`)
 
 ### 7.2 ต่อระบบ
+
+**PL ส่งคำขอขึ้น server** (ถึง PM) เมื่อครบทุกข้อ — ไม่ครบยังไม่ขึ้น:
+
+- [ ] ทะเบียนใน Core Hub อนุมัติและเปิดใช้งานแล้ว · `.standards-version` ≥ 1.8.0 · CI ล่าสุดของ `main` ผ่านครบรวม `DEP`
+- [ ] Actions → **Images** ล่าสุดของ `main` ผ่าน (Plan · Image (api) · Image (web))
+- [ ] ทดสอบ `docker compose up -d --build` ในเครื่องผ่านตามข้อ 6 และ login ผ่าน `http://localhost:32xx` ได้
+- [ ] รายการ env ครบใน `backend/.env.example` · ค่าลับส่งให้ PM ทางข้อความส่วนตัว
+- [ ] สิ่งพิเศษ (ถ้ามี): WebSocket · รันโค้ดของผู้ใช้ (ข้อ 8) · เก็บเอกสารในฐาน (ขนาดต่อปี — ข้อ 4.3)
+- [ ] ทีมรับทราบว่าหลังขึ้น server จะ login จาก localhost ไม่ได้อีก (ข้อ 2)
+
+**DevOps ทำ:**
 
 1. เพิ่มบรรทัดใน `csmju-map.txt` (ข้อ 7.1) แล้วแจ้งอาจารย์ว่ามีชื่อใหม่
 2. สร้างฐานข้อมูลและ role:
@@ -312,10 +326,13 @@ networks:
   subsystems-db: { external: true }
 ```
 
-4. `docker compose pull && docker compose up -d` แล้วเปิด `https://<ชื่อ>.jowave.com` ทดสอบ login กับทีม
-5. ก่อนวันเปิดใช้: PL ขอ admin เปลี่ยน callback ในทะเบียนเป็น `https://<ชื่อ>.jowave.com/auth/callback` (ข้อ 2)
+4. `docker compose up -d` แล้วเปิด `https://<ชื่อ>.jowave.com` ว่าหน้าเว็บขึ้น
+5. admin เปลี่ยน callback ในทะเบียนเป็น `https://<ชื่อ>.jowave.com/auth/callback` ทันที แล้วทดสอบ login กับทีม (ข้อ 2)
 
-- อัปเดตหลังทีม merge: `docker compose pull && docker compose up -d` (ตั้งเวลาหรือสั่งเอง) · ลบ image เก่าเป็นระยะ (`docker image prune`)
+- **อัปเดตอัตโนมัติ:** server ดึง image `:main` ใหม่ของทุกระบบทุก ~10 นาที และรีสตาร์ตเฉพาะระบบที่ image เปลี่ยน —
+  PL merge เข้า `main` คือการ deploy ไม่ต้องขอ DevOps · ลบ image เก่าทุกวัน (`docker image prune`)
+- **ย้อนเวอร์ชัน:** PL แจ้ง DevOps → ปักหมุดระบบนั้นที่ tag `sha-…` ก่อนหน้าและหยุดอัปเดตอัตโนมัติเฉพาะระบบนั้น ·
+  migration ย้อนไม่ได้ ถ้าพังเพราะ migration ต้องกู้ฐานจาก backup ของคืนก่อน
 - ขนาดโดยประมาณต่อระบบ: web ~290 MB · api ~800 MB (ส่วนใหญ่คือ Prisma CLI ที่ใช้รัน migration)
 
 ### 7.3 ความจุและ swap
