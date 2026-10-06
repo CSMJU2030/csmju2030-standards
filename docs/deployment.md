@@ -1,6 +1,6 @@
 # Deployment — ขึ้นระบบย่อยบน server
 
-**เวอร์ชัน 1.1** (standards 1.8.1) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
+**เวอร์ชัน 1.2** (standards 1.8.2) · ตัวตรวจ `DEP-01..04` · image สร้างด้วย `subsystem-images.yml`
 
 ทุกระบบย่อยจะขึ้น server กลางของรายวิชา (เครื่องเดียวกับ Core Hub `https://csmju2030.jowave.com`)
 เอกสารนี้บอกว่า**ทีมต้องเตรียมอะไรใน repo** (ข้อ 3–4, 6) และ**DevOps ทำอะไรบน server** (ข้อ 5, 7)
@@ -97,6 +97,10 @@ Dockerfile ใส่ค่า server จริงไว้ให้แล้ว 
   ถ้าข้าม container จะพยายามดาวน์โหลดตอนสตาร์ตแล้วพัง
 - **ตอนสตาร์ตห้าม** `prisma migrate dev` · `prisma db push` · seed ข้อมูลตัวอย่าง — ใช้ `prisma migrate deploy` เท่านั้น
 - งานตั้งเวลาต้องระบุ `timeZone: 'Asia/Bangkok'` ([tech-stack](tech-stack.md) ข้อ 1.4.1)
+- **ห้ามสร้าง URL เต็มจาก request** (`new URL(path, request.url)` · `request.headers.host` · `req.protocol`) — ในเครื่องได้
+  `http://localhost:32xx` แต่บน server request ผ่าน Cloudflare และ Apache มา จะได้ host หรือ `http` ผิด · redirect ภายในระบบใช้ path
+  (`/bookings`) · ลิงก์ไป Core Hub ใช้ `CORE_HUB_WEB_URL` · ห้ามฝัง `localhost` ในโค้ด
+- **ไม่รันโค้ดที่ผู้ใช้ส่งมา** ใน api — ถ้าระบบต้องทำ (ตัวตรวจโค้ด) ทำตามข้อ 8 เท่านั้น
 
 ---
 
@@ -107,6 +111,9 @@ Dockerfile ใส่ค่า server จริงไว้ให้แล้ว 
 - **PostgreSQL 16 ตัวกลาง** บน server (แยกจากฐานของ Core Hub) — DevOps สร้าง **database + role ระบบละ 1 ชุด**
   role เป็นเจ้าของ database ของตัวเองและเข้าฐานอื่นไม่ได้ จึงยังเป็น "1 ระบบ = 1 ฐานข้อมูล" ตามเดิม
 - migration รันเองตอน api สตาร์ต (`prisma migrate deploy` ใน `entrypoint.sh`) · migration ที่ขึ้น server แล้วห้ามแก้หรือลบ
+- **role ของระบบไม่ใช่ superuser** — migration ที่มี `CREATE EXTENSION` (เช่น `uuid-ossp` · `pg_trgm` · `citext`) ผ่านในเครื่อง
+  (user `postgres`) แต่**ตกบน server** · ใช้ของที่มีในตัว PostgreSQL 16 แทน (`gen_random_uuid()` ไม่ต้องใช้ extension ·
+  `@default(uuid())` ของ Prisma สร้างค่าฝั่งแอป) · ถ้าจำเป็นจริงให้ขอ DevOps ติดตั้งให้ก่อน แล้วเขียน `CREATE EXTENSION IF NOT EXISTS`
 - **จำกัด connection ต่อระบบ** ด้วย env `DATABASE_POOL_MAX` (ค่าเริ่มต้น `5`) — `pg` เปิดได้ 10 เส้นต่อระบบโดยค่าเริ่มต้น
   37 ระบบจะต้องใช้ 370 เส้น ซึ่งเกินที่ PostgreSQL รับได้ · ทำแบบ demo (`backend/src/prisma/prisma.service.ts`):
 
@@ -164,7 +171,8 @@ DevOps ใช้ `backend/.env.example` เป็นรายการ env ข�
 
 ใช้ `docker-compose.yml` แบบของ demo: service `db` · `api` · `web` (ชื่อต้องตรง ข้อ 3.1) ·
 web เปิดที่ `127.0.0.1:<พอร์ต frontend ของทีม>:3000` เพื่อให้ callback `http://localhost:32xx/auth/callback` ที่ลงทะเบียนไว้ยังใช้ได้ ·
-api และ web ล็อกแบบเดียวกับ server (`read_only` · `cap_drop: [ALL]` · `no-new-privileges`)
+api และ web ล็อกแบบเดียวกับ server (`read_only` · `cap_drop: [ALL]` · `no-new-privileges`) ·
+จำกัด RAM เท่ากับ server (`mem_limit` api `512m` · web `384m`) และหมุน log (`max-size: 10m` · `max-file: 3`)
 
 ```bash
 docker compose up -d --build        # build ทั้งสอง image แล้วรัน db + api + web
@@ -180,6 +188,20 @@ docker compose down                 # หยุด (ข้อมูลยัง�
 - [ ] `/api/*` ผ่าน web ไปถึง api (`curl http://localhost:32xx/api/health` ตอบ 200)
 - [ ] RAM ตอนใช้งานปกติ web + api รวมไม่เกิน **~400 MB** (demo: web ~40 MB · api ~85 MB)
 
+### 6.1 ในเครื่องต่างจาก server ตรงไหน
+
+image ตัวเดียวกัน แต่สิ่งรอบ ๆ ไม่เหมือนกัน — รันในเครื่องได้คือด่านแรก ก่อนเปิดใช้ DevOps จะซ้อมรัน image จาก ghcr.io บน server จริงกับทีมอีกครั้ง
+
+| เรื่อง | ในเครื่อง | บน server | ทีมต้องทำ |
+|---|---|---|---|
+| CPU | Mac รุ่น M = arm64 · Windows/Intel = amd64 | amd64 (GitHub build ให้) | ไม่ใช้ package ที่มีแต่ binary ของเครื่องตัวเอง · ดูผล Actions → Images ทุกครั้ง |
+| ฐานข้อมูล | user `postgres` (superuser) ใน container ของทีม | role ของระบบใน PostgreSQL ตัวกลาง | ห้าม `CREATE EXTENSION` เอง (ข้อ 4.1) · ห้ามพึ่งข้อมูลจาก seed |
+| env | เขียนใน `docker-compose.yml` | DevOps ตั้งตาม `backend/.env.example` | ประกาศ env ทุกตัวใน `.env.example` (ข้อ 4.2) — ตัวที่ไม่มีจะไม่ถูกตั้ง และ api สตาร์ตไม่ขึ้น |
+| URL | `http://localhost:32xx` | `https://<ชื่อ>.jowave.com` ผ่าน Cloudflare + Apache | ห้ามสร้าง URL เต็มจาก request และห้ามฝัง `localhost` (ข้อ 3.4) |
+| RAM | compose ของ demo จำกัดเท่า server | api `512m` · web `384m` | เกินแล้วถูก kill — ดู `docker stats` ตอนทดสอบ |
+| เน็ตขาออก | ออกได้ทุกที่ | ออกได้ แต่ IP ของ server ทั้งเครื่องใช้เพดานเรียก Core Hub ร่วมกัน | cache ข้อมูลอ้างอิงตาม [reference-data](reference-data.md) · ไม่เรียก Core Hub ทีละแถว |
+| callback | `http://localhost:32xx/auth/callback` (โหมดก่อนเปิดใช้) | `https://<ชื่อ>.jowave.com/auth/callback` | PL ขอ admin เปลี่ยนก่อนวันเปิด (ข้อ 2) |
+
 ---
 
 ## 7. งานของ DevOps
@@ -189,7 +211,7 @@ docker compose down                 # หยุด (ข้อมูลยัง�
 1. ตั้งค่า org: **Settings → Packages → Package creation** ให้สร้าง package แบบ private ได้ ·
    ไม่ต้องเพิ่ม action ใน allow-list — `subsystem-images.yml` ใช้แค่ `actions/checkout` กับคำสั่ง `docker` บน runner
 2. รัน `org-settings/add-image-workflow.sh v1.8.1` (dry run) → `--apply --merge`
-   — วาง `images.yml` ทุก repo · repo ที่ยังไม่ถึง 1.8.0 จะไม่ build จนกว่าทีมจะเลื่อนเอง
+   — วาง `images.yml` ทุก repo · repo ที่ยังไม่ถึง 1.8.0 จะไม่ build จนกว่าทีมจะเลื่อนเอง (ทำแล้ว 6 ต.ค. 2569 ครบ 38 repo)
 3. บน server: token อ่าน package (classic PAT สิทธิ์ `read:packages` เท่านั้น ของบัญชีที่อ่าน repo ได้) →
    `docker login ghcr.io` · ห้ามเก็บ token ใน repo หรือ log
 4. PostgreSQL ตัวกลาง: `max_connections` ไม่น้อยกว่า `จำนวนระบบ × 6 + 20` · network ภายในที่ api ทุกตัวเข้าถึงได้ · backup ด้วย `pg_dump` ทุกฐาน
@@ -212,6 +234,7 @@ x-hardening: &hardening
   cap_drop: [ALL]
   security_opt: ['no-new-privileges:true']
   restart: unless-stopped
+  logging: { driver: json-file, options: { max-size: '10m', max-file: '3' } }   # 37 ระบบ — ไม่หมุน log ดิสก์เต็ม
 services:
   api:
     <<: *hardening
@@ -235,3 +258,53 @@ networks:
 
 - อัปเดตหลังทีม merge: `docker compose pull && docker compose up -d` (ตั้งเวลาหรือสั่งเอง) · ลบ image เก่าเป็นระยะ (`docker image prune`)
 - ขนาดโดยประมาณต่อระบบ: web ~290 MB · api ~800 MB (ส่วนใหญ่คือ Prisma CLI ที่ใช้รัน migration)
+
+---
+
+## 8. ระบบที่ต้องรันโค้ดของผู้ใช้
+
+ระบบที่รับโค้ดจากผู้ใช้มารัน (ตัวตรวจคำตอบ · playground) คือจุดที่ถูกเจาะง่ายที่สุดของทั้ง server — โค้ดนั้นเขียนโดยใครก็ได้
+ข้อนี้ใช้กับทุกระบบ (ตอนนี้: `csmju-coding-arena`) · **ต้องให้ PM อนุมัติก่อนเปิดใช้บน server**
+
+### 8.1 ห้าม
+
+| วิธี | ทำไม |
+|---|---|
+| mount `/var/run/docker.sock` ของ server เข้า container | Docker ตัวหลักรันเป็น root — ใครสั่งได้ก็สร้าง container ที่ mount `/` ของ host ได้ = root ทั้งเครื่อง รวม Core Hub และทุกระบบ |
+| docker-socket-proxy | กรองได้แค่ชนิดคำสั่ง ไม่ได้กรอง flag — ยังสั่ง `--privileged` หรือ mount ไฟล์ของ host ได้ |
+| Docker-in-Docker เป็น container ที่ 3 | ต้องรันแบบ `--privileged` ซึ่งหลุดออก host ได้ และเพิ่ม container นอก web + api |
+| รันโค้ดใน api ตรง ๆ (`child_process` · `eval` · `vm`) | โค้ดผู้ใช้อ่าน env (`DATABASE_URL`) และออกเน็ตได้ · nsjail/bubblewrap ใช้ไม่ได้ใน container ที่ตัด capability |
+| บริการตรวจโค้ดภายนอกโดยไม่ได้อนุมัติ | ต้องส่ง test case ที่ซ่อนไว้และโค้ดของผู้ใช้ออกนอก |
+
+### 8.2 ทางที่ใช้
+
+server มี **Docker แบบ rootless ที่แยกไว้รันโค้ดโดยเฉพาะ** (daemon ของ user `judge` ที่ไม่ใช่ root · DevOps ดูแล) —
+api ของระบบที่ได้รับอนุมัติสั่ง `docker run` ผ่าน env `DOCKER_HOST` ที่ DevOps ตั้งให้ ระบบยังเป็น web + api เหมือนเดิม
+
+- api ของระบบนั้นบน server รันเป็น uid ของ `judge` และมีแค่ socket ของ daemon นี้ — มองไม่เห็น Docker ตัวหลัก
+- user `judge` ไม่มีเน็ตขาออก · image ที่ใช้รันโค้ดดึงไว้ล่วงหน้าโดย DevOps และอ้างด้วย digest
+- `backend/Dockerfile` เพิ่มแค่ตัวสั่ง (`RUN apk add --no-cache docker-cli` · `ENV DOCKER_CONFIG=/tmp/.docker`) — ไม่มี daemon ใน image
+- `backend/.env.example` ประกาศ `DOCKER_HOST=` (ว่าง = ตอน dev ใช้ Docker ในเครื่อง) และ env ของ image ที่ใช้รันโค้ด
+- ถ้าภายหลังได้เครื่องแยกสำหรับรันโค้ด ทีมเปลี่ยนแค่ค่า `DOCKER_HOST`
+
+### 8.3 container ที่รันโค้ดผู้ใช้ — ขั้นต่ำทุกครั้ง
+
+| flag / พฤติกรรม | เพื่อ |
+|---|---|
+| `--network=none` | ออกเน็ตไม่ได้ |
+| `--read-only` + `--tmpfs=/tmp:rw,noexec,nosuid,size=16m` | เขียนได้แค่ `/tmp` และรันไฟล์จากที่นั่นไม่ได้ |
+| `--user=65534:65534` · `--cap-drop=ALL` · `--security-opt=no-new-privileges` | ไม่ใช่ root และยกสิทธิ์ไม่ได้ |
+| `--memory` = `--memory-swap` · `--cpus` · `--pids-limit` | จำกัด RAM (ไม่ใช้ swap) · CPU · กัน fork bomb |
+| `--ulimit nofile=64:64` | จำกัดจำนวนไฟล์ที่เปิดได้ |
+| `--rm` + ลบใน `finally` (`docker rm -f <ชื่อ>`) | ไม่มี container ค้างเมื่อ api ล่มกลางงาน |
+| `--pull=never` + image อ้างด้วย digest | ใช้ image ที่ DevOps ดึงไว้เท่านั้น ผลตรวจคงที่ |
+| จำกัดเวลาและขนาด output ฝั่ง api | โค้ดวนไม่จบหรือพิมพ์ไม่หยุดไม่ทำให้ api ค้าง |
+| ตรวจทีละงาน (หรือจำนวนที่ตกลงกับ DevOps) | RAM ของ server ใช้ร่วมกันทุกระบบ |
+
+ตัวอย่างที่ทำครบ: `csmju-coding-arena` `backend/src/evaluation/sandbox-runner.ts` (ขาดแค่ `--ulimit`)
+
+### 8.4 ทดสอบในเครื่อง
+
+`pnpm dev` ใช้ Docker ในเครื่องตามปกติ (ไม่ตั้ง `DOCKER_HOST`) · ถ้าจะทดสอบ api ใน container ให้ mount socket ของ Docker Desktop
+ผ่านไฟล์ compose แยกที่ใช้เฉพาะในเครื่อง (`docker-compose.local-judge.yml`) — **ห้ามนำวิธีนี้ไปใช้บน server**
+และก่อนเปิดใช้ ซ้อมกับ DevOps บน server ด้วยโค้ดที่พยายามออกเน็ต · เขียนไฟล์ · fork bomb · กิน RAM · วนไม่จบ ทุกข้อต้องถูกหยุด

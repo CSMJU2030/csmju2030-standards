@@ -5,6 +5,29 @@
 
 ---
 
+## 1.8.2 — 2026-10-06
+
+เอกสารอย่างเดียว — ไม่มีกฎหรือตัวตรวจที่เข้มขึ้น ไม่ต้องเลื่อนเวอร์ชันก็อ่านได้บน GitHub
+
+- `docs/deployment.md` 1.2
+  - **ข้อ 8 ใหม่ — ระบบที่ต้องรันโค้ดของผู้ใช้** (ตอบคำถามของ `csmju-coding-arena`): ห้าม mount `/var/run/docker.sock` ·
+    docker-socket-proxy · Docker-in-Docker แบบ privileged · รันโค้ดใน api ตรง ๆ · ทางที่ใช้คือ Docker แบบ rootless ของ user `judge`
+    ที่ server เตรียมให้ผ่าน `DOCKER_HOST` (ระบบยังเป็น web + api) · flag ขั้นต่ำของ container ที่รันโค้ด · การทดสอบในเครื่อง ·
+    ต้องให้ PM อนุมัติก่อนเปิดใช้
+  - **ข้อ 6.1 ใหม่ — ในเครื่องต่างจาก server ตรงไหน** (CPU · role ของฐานข้อมูล · env · URL · RAM · เน็ต · callback)
+  - ข้อ 3.4 — ห้ามสร้าง URL เต็มจาก request (`new URL(path, request.url)` · Host header) และห้ามฝัง `localhost` · ห้ามรันโค้ดผู้ใช้ใน api
+  - ข้อ 4.1 — role บน server ไม่ใช่ superuser: `CREATE EXTENSION` ตกบน server · ใช้ `gen_random_uuid()` ที่มีในตัว
+  - ข้อ 6 และ 7 — compose ในเครื่องจำกัด RAM เท่า server และหมุน log · compose บน server หมุน log (`max-size: 10m` · `max-file: 3`)
+- `ai/AGENTS.md` — กับดัก 2 แถว: `docker.sock` / รันโค้ดผู้ใช้ด้วย `child_process` · `CREATE EXTENSION` / URL เต็มจาก request
+- **แก้ข้อมูลใน 1.8.1:** ที่เขียนว่า "ทั้ง 37 repo มี `backend/Dockerfile` และ `frontend/Dockerfile` อยู่แล้ว" ผิด — สคริปต์สำรวจนับไฟล์ที่ไม่มีเป็นมี ·
+  ข้อมูลจริง ณ 6 ต.ค.: ไม่มี Dockerfile เลย 23 repo · มีแค่ `backend/Dockerfile` 8 repo · มีทั้งสอง 6 repo · ใน 14 repo ที่มี `backend/Dockerfile`
+  มี 6 repo ที่ copy ตัวเก่าของ demo ซึ่ง build ไม่ผ่าน — เหตุผลของ 1.8.1 (build เฉพาะ repo ที่ถึง 1.8.0) ยังเหมือนเดิม
+
+**ใครต้องทำอะไร:** ทีมที่รันโค้ดของผู้ใช้อ่านข้อ 8 · ทุกทีมอ่านข้อ 6.1 ก่อนทดสอบ Docker · ทีมที่ copy `docker-compose.yml` ของ demo ไปแล้ว
+เพิ่ม `mem_limit` และ `logging` ตาม demo (หลัง PR ของ demo merge)
+
+---
+
 ## 1.8.1 — 2026-10-06
 
 แก้ workflow build image ก่อนวางในทุก repo — ทั้ง 37 repo มี `backend/Dockerfile` และ `frontend/Dockerfile` อยู่แล้ว
