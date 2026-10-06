@@ -96,6 +96,8 @@ reference implementation: `demo-student-subsystem/backend/` (ตั้งแต�
 | "ใส่ `USER node` ใน build stage ก็พอ" · "`chown -R node:node /app` ให้ชัวร์" | `USER` ต้องอยู่ใน **stage สุดท้าย** (`DEP-02`) · ห้าม `chown -R` ทั้งแอป — image โตเท่าตัว และ `node` อ่านไฟล์ของ root ได้อยู่แล้ว |
 | "ใส่ค่า env ของ server ไว้ใน Dockerfile" · "เขียนไฟล์ลงโฟลเดอร์แอป" | ค่าทุกอย่างมาจาก env ตอนรัน (ค่าลับห้ามอยู่ใน `ARG`/`ENV`) · container อ่านอย่างเดียว เขียนได้แค่ `/tmp` — ไฟล์ผู้ใช้เก็บผ่าน Core Hub |
 | "mount `/var/run/docker.sock` ให้ api สั่ง Docker ได้" · "รันโค้ดของผู้ใช้ด้วย `child_process`" | ห้ามทั้งคู่ — socket ของ Docker = root ทั้ง server · ระบบที่ต้องรันโค้ดผู้ใช้ใช้ Docker แบบ rootless ที่ server เตรียมให้ผ่าน `DOCKER_HOST` และต้องได้อนุมัติ ([deployment](../docs/deployment.md) ข้อ 8) |
+| "อัปโหลดบิล สลิป หรือ PDF ไปที่ Core Hub `/images`" · "เขียนไฟล์ลงดิสก์ของ server" | `/images` เปิดสาธารณะ · cache 1 วัน · แปลงเป็น WebP — เอกสารที่ต้องตรวจสิทธิ์หรือเก็บต้นฉบับเก็บในฐานของระบบเอง ตรวจชนิดจาก byte ต้นไฟล์ ([deployment](../docs/deployment.md) ข้อ 4.3) |
+| "ผูกบัญชี LINE หรือแชตให้สร้างรายการแทนผู้ใช้" | ตัวตนต้องมาจาก token ที่ตรวจแล้วเท่านั้น ([auth-contract](../docs/auth-contract.md) ข้อ 9) — ช่องทางแชตต้องคุยกับ PL ก่อน |
 | "`CREATE EXTENSION` ใน migration" · "`new URL(path, request.url)` ทำ redirect" | role บน server ไม่ใช่ superuser — extension ต้องขอ DevOps · URL เต็มจาก request ผิดเมื่ออยู่หลัง Cloudflare/Apache — ใช้ path หรือ `CORE_HUB_WEB_URL` ([deployment](../docs/deployment.md) ข้อ 3.4 · 4.1 · 6.1) |
 | "รายงานว่าเสร็จ น่าจะผ่าน" | ต้องแนบผลรันจริงของ CI + conformance |
 
