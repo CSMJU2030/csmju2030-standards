@@ -251,10 +251,10 @@ image ตัวเดียวกัน แต่สิ่งรอบ ๆ ไ�
 4. PostgreSQL ตัวกลาง: `max_connections` ไม่น้อยกว่า `จำนวนระบบ × 6 + 20` · network ภายในที่ api ทุกตัวเข้าถึงได้ · backup ด้วย `pg_dump` ทุกฐาน
 5. Apache อ่านชื่อ → พอร์ตจากไฟล์ map (ข้อ 7.1) · ชื่อที่ไม่อยู่ใน map ตอบ 404 · ใบรับรองบนเครื่องต้องครอบ `*.jowave.com`
    (เช่น Cloudflare Origin Certificate) และ Cloudflare ตั้ง SSL เป็น Full (strict)
-6. เครื่องเปิดพอร์ต 80/443 ตรง (ไม่ใช่ Cloudflare Tunnel) จึงต้อง:
-   - จำกัด AWS Security Group ให้พอร์ต 80/443 รับเฉพาะ [ช่วง IP ของ Cloudflare](https://www.cloudflare.com/ips/) — ไม่งั้นยิงตรงเข้าเครื่องได้โดยไม่ผ่าน Cloudflare
-   - เปิด `mod_remoteip` ของ Apache (`RemoteIPHeader CF-Connecting-IP` + `RemoteIPTrustedProxy` เป็นช่วง IP ของ Cloudflare) —
-     ไม่งั้นทุกระบบรวม Core Hub เห็นแต่ IP ของ Cloudflare และ rate limit ของ Core Hub จะปฏิเสธนักศึกษาที่ login พร้อมกัน
+6. เครื่องที่อยู่หลัง Cloudflare ต้อง:
+   - รับพอร์ต 80/443 เฉพาะจาก[ช่วง IP ของ Cloudflare](https://www.cloudflare.com/ips/) (AWS Security Group) — ทุกคำขอต้องผ่าน Cloudflare
+   - ส่ง IP จริงของผู้ใช้ต่อให้ทุกระบบ: `mod_remoteip` ของ Apache (`RemoteIPHeader CF-Connecting-IP` + `RemoteIPTrustedProxy` เป็นช่วง IP ของ Cloudflare) —
+     rate limit ต่อ IP ของ Core Hub ต้องเห็นผู้ใช้แต่ละคน ไม่ใช่ Cloudflare
 7. เปิด swap ให้เครื่อง (ข้อ 7.3) — ระบบที่ไม่มีคนใช้จะย้ายไปพักใน swap และคืน RAM ให้ระบบที่มีคนใช้
 
 ### 7.1 ชื่อเว็บ → พอร์ต (`/etc/apache2/csmju-map.txt`)
