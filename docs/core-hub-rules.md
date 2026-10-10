@@ -47,7 +47,7 @@
 
 | รหัส | กฎ | สถานะ | หมายเหตุ |
 |---|---|---|---|
-| `GH-01` | ชื่อ branch `feature/<subsystem>/<เรื่อง>` | **บังคับ** | Core Hub ใช้ `feature/core-hub/<เรื่อง>` และใช้ `develop` → `main` ตาม github-workflow.md ข้อ 1.5 (`develop` = dev server · `main` = production) |
+| `GH-01` | ชื่อ branch `feature/<subsystem>/<เรื่อง>` | **บังคับ** | Core Hub ใช้ `feature/core-hub/<เรื่อง>` และใช้ `develop` → `main` ตาม github-workflow.md ข้อ 1.5 (`develop` = dev server · `main` = production) · รับ branch `dependabot/…` ด้วย เพราะ Dependabot ตั้งชื่อเองและเปลี่ยน prefix ไม่ได้ (ข้อยกเว้นเดียวกับระบบย่อย) |
 | `GH-02` | Conventional Commits | **บังคับ** | — |
 | `GH-03` | ห้ามแก้ `.github/workflows/`, `CODEOWNERS`, `standards` | **ยกเว้น** | Core Hub เป็นเจ้าของ workflow ของตัวเอง |
 | `GH-04` | `.standards-version` ตรงกับ `VERSION` ของ standards | **ยกเว้น** | Core Hub ไม่ได้ผูก standards เป็น submodule |

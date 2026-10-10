@@ -105,6 +105,6 @@ package-lock.json  ·  yarn.lock        (ใช้ pnpm-lock.yaml เท่า�
 
 - branch หลักคือ `main` และต้องอยู่ในสถานะที่ conformance ผ่านเสมอ
 - แตก branch: `feature/<subsystem>/<เรื่อง>` **แบบเดียว** — ตัวพิมพ์เล็ก ตัวเลข และขีดกลาง (`GH-01` ไม่รับ `fix/…` หรือ `refactor/…`
-  งานแก้บั๊กก็ใช้ `feature/<subsystem>/fix-<เรื่อง>` แล้วใช้ commit type `fix`)
+  งานแก้บั๊กก็ใช้ `feature/<subsystem>/fix-<เรื่อง>` แล้วใช้ commit type `fix`) · branch ที่ Dependabot สร้างเองขึ้นต้นด้วย `dependabot/` และ `GH-01` รับไว้ (ไม่ต้องเปลี่ยนชื่อ — ดู `github-workflow.md` ข้อ 1.1)
 - commit ใช้ Conventional Commits: `feat(<subsystem>): …` — ชนิดที่อนุญาต `feat|fix|chore|refactor|docs|test|ci`
 - รายละเอียดและกฎที่ CI ตรวจ ดู [`github-workflow.md`](github-workflow.md)

@@ -201,6 +201,34 @@ GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "release/1.1" "main" >/d
 assert_exit "GH-01 fail (other long-lived names are still rejected)" 1 "$?"
 GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "main" "main" >/dev/null 2>&1
 assert_exit "GH-01 fail (main as a head outside the back-merge)" 1 "$?"
+# Dependabot names its own branches dependabot/<ecosystem>/<path>/<package>-<version>
+# and the prefix cannot be configured, so that prefix alone is accepted.
+for b in \
+  "dependabot/npm_and_yarn/next-16.3.9" \
+  "dependabot/github_actions/actions/checkout-6.0.0" \
+  "dependabot/npm_and_yarn/minor-and-patch-3f9a1c2b7d" \
+  "dependabot/npm_and_yarn/templates/csmju-subsystem-web/next-16.3.6" \
+  "dependabot/npm_and_yarn/@types/node-22.5.4"; do
+  GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "$b" "develop" >/dev/null 2>&1
+  assert_exit "GH-01 pass (Dependabot branch $b)" 0 "$?"
+done
+GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "dependabot/npm_and_yarn/next-16.3.9" "main" >/dev/null 2>&1
+assert_exit "GH-01 pass (Dependabot branch into main)" 0 "$?"
+# CI hands the head branch over as GITHUB_HEAD_REF — same source as for any other PR.
+GITHUB_HEAD_REF="dependabot/npm_and_yarn/next-16.3.9" GITHUB_BASE_REF="main" "$SCRIPT_DIR/check-branch-name.sh" . >/dev/null 2>&1
+assert_exit "GH-01 pass (Dependabot branch read from GITHUB_HEAD_REF)" 0 "$?"
+# Look-alikes and other bots stay rejected: only the exact dependabot/ prefix is the exception.
+for b in \
+  "dependabotx/foo" \
+  "feature-dependabot/x" \
+  "xdependabot/npm_and_yarn/next-16.3.9" \
+  "Dependabot/npm_and_yarn/next-16.3.9" \
+  "dependabot" \
+  "dependabot/" \
+  "renovate/npm_and_yarn/next-16.3.9"; do
+  GITHUB_BASE_REF="" "$SCRIPT_DIR/check-branch-name.sh" . "$b" "develop" >/dev/null 2>&1
+  assert_exit "GH-01 fail (look-alike or other bot branch $b)" 1 "$?"
+done
 
 # --- GH-02: commit messages (needs a real git repo, built on the fly) ----
 echo
@@ -229,6 +257,18 @@ setup_and_run_gh02() {
     fail)
       (cd "$dir" && echo a >> README.md && git add -A && git commit -qm "updated some stuff") >/dev/null 2>&1
       ;;
+    dependabot)
+      # What Dependabot writes when dependabot.yml sets commit-message.prefix to
+      # chore(deps) / ci(deps): a single update, a dev dependency, a GitHub
+      # Action and a grouped update.
+      (
+        cd "$dir"
+        echo a >> README.md && git add -A && git commit -qm "chore(deps): bump next from 16.3.8 to 16.3.9"
+        echo b >> README.md && git add -A && git commit -qm "chore(deps-dev): bump typescript from 5.8.2 to 5.8.3"
+        echo c >> README.md && git add -A && git commit -qm "ci(deps): bump actions/checkout from 5 to 6"
+        echo d >> README.md && git add -A && git commit -qm "chore(deps): bump the minor-and-patch group with 3 updates"
+      ) >/dev/null 2>&1
+      ;;
     merge)
       # Reproduces a pull_request checkout: a synthetic merge commit on top of
       # a valid Conventional Commit. The merge subject must be ignored.
@@ -252,6 +292,8 @@ setup_and_run_gh02 "pass"
 assert_exit "GH-02 pass (conventional commit)" 0 "$?"
 setup_and_run_gh02 "fail"
 assert_exit "GH-02 fail (non-conventional commit)" 1 "$?"
+setup_and_run_gh02 "dependabot"
+assert_exit "GH-02 pass (Dependabot commits with the chore(deps) / ci(deps) prefix)" 0 "$?"
 setup_and_run_gh02 "merge"
 assert_exit "GH-02 pass (synthetic merge commit ignored)" 0 "$?"
 

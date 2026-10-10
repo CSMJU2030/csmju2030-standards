@@ -14,7 +14,7 @@
 1. **Branch Protection:** ไม่ push ตรงเข้า `main` และ `develop` เด็ดขาด ทุกอย่างเข้าผ่าน PR
 2. **Reviewer:** กำหนด CODEOWNERS ให้ PL (Project Lead) เป็น required reviewer ของ `main` (และ `develop` ถ้ามี) เสมอ
 3. **Feature Branch:** AIE ต้องทำงานใน feature branch เท่านั้น
-4. **Naming Convention:** ใช้ branch naming รูปแบบ `feature/<subsystem>/<เรื่องที่ทำ>` ข้อยกเว้นมีแค่ PR ระหว่าง `develop` กับ `main` (ข้อ 1.5)
+4. **Naming Convention:** ใช้ branch naming รูปแบบ `feature/<subsystem>/<เรื่องที่ทำ>` ข้อยกเว้นมี 2 อย่าง: PR ระหว่าง `develop` กับ `main` (ข้อ 1.5) และ branch ที่ขึ้นต้นด้วย `dependabot/` ซึ่ง Dependabot ตั้งชื่อเองและเปลี่ยน prefix ไม่ได้ `GH-01` จึงรับเฉพาะ prefix นี้ (ไม่รับ `renovate/` หรือชื่ออื่น) · commit ของ Dependabot ยังต้องตามข้อ 1.3 ให้ตั้ง `commit-message.prefix` ใน `dependabot.yml` เป็น `chore(deps)` (GitHub Actions ใช้ `ci(deps)`)
 5. **CI/CD:** CI จะรัน automated compliance ทุกครั้งที่เปิด PR
 
 ### 1.2 ขั้นตอนการทำงานจริง (Git Commands สำหรับ AIE)
@@ -123,7 +123,7 @@ feature/<subsystem>/<เรื่อง>  →  PR (squash)  →  develop  →  �
 | ดึง hotfix กลับเข้า develop | — | `main` → `develop` | **Create a merge commit** |
 
 hotfix ใช้ชื่อ branch แบบ feature ตามปกติ เช่น `feature/core-hub/hotfix-login-loop` · PR `develop` → `main` และ `main` → `develop`
-เป็นข้อยกเว้นเดียวของกฎชื่อ branch (`GH-01` ดูจาก base ของ PR)
+เป็นข้อยกเว้นของกฎชื่อ branch ที่ `GH-01` ดูจาก base ของ PR (อีกข้อยกเว้นคือ branch `dependabot/…` ในข้อ 1.1)
 
 **ทำไม PR ระหว่าง `develop` กับ `main` ห้าม squash:** squash สร้าง commit ใหม่บน `main` ที่ `develop` ไม่มี
 รอบ release ถัดไป GitHub จะเห็นงานเก่าทั้งหมดเป็นของใหม่อีกครั้ง PR จะรวม commit เดิมซ้ำและชนกันซ้ำทุกรอบ

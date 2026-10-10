@@ -321,7 +321,7 @@ jobs:
 
 | รหัส | Check | ระดับ | อ้างอิง |
 |---|---|---|---|
-| `GH-01` | Branch name ตรงรูปแบบ `feature/<subsystem>/<เรื่อง>` ยกเว้น PR `develop` → `main` และ `main` → `develop` | ❌ Fail | github-workflow.md 1.1, 1.5 |
+| `GH-01` | Branch name ตรงรูปแบบ `feature/<subsystem>/<เรื่อง>` ยกเว้น PR `develop` → `main` และ `main` → `develop` และ branch ที่ขึ้นต้นด้วย `dependabot/` | ❌ Fail | github-workflow.md 1.1, 1.5 |
 | `GH-02` | Commit message ตาม Conventional Commits | ❌ Fail | github-workflow.md 1.3 |
 | `GH-03` | ไม่มีการแก้ไข `.github/workflows/` และ `.github/CODEOWNERS` (submodule `standards` เลื่อนเองได้ตั้งแต่ 1.5.1) | ❌ Fail | github-workflow.md 5 |
 | `GH-04` | `.standards-version` มี tag จริง · ไม่ต่ำกว่า `MIN_VERSION` · ไม่ถอยจาก branch ปลายทาง · submodule `standards/` ชี้ tag เดียวกัน · CI ตรวจด้วยชุดตรวจของเวอร์ชันนั้น | ❌ Fail | standards-versioning.md |
@@ -392,10 +392,13 @@ set -euo pipefail
 BRANCH="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}"
 BASE="${GITHUB_BASE_REF:-}"          # GitHub Actions ตั้งให้ทุก PR · ในเครื่องว่าง
 PATTERN='^feature/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$'
+DEPENDABOT_PATTERN='^dependabot/[A-Za-z0-9._@+/-]+$'
 
-# ข้อยกเว้นเดียว: PR ระหว่าง branch หลักสองตัว (github-workflow.md ข้อ 1.5)
+# ข้อยกเว้นที่ 1: PR ระหว่าง branch หลักสองตัว (github-workflow.md ข้อ 1.5)
 [[ "$BRANCH" == "develop" && "$BASE" == "main" ]] && exit 0   # ขึ้น production
 [[ "$BRANCH" == "main" && "$BASE" == "develop" ]] && exit 0   # ดึง hotfix กลับ
+# ข้อยกเว้นที่ 2: Dependabot ตั้งชื่อ branch เองและเปลี่ยน prefix ไม่ได้ — รับเฉพาะ dependabot/
+[[ "$BRANCH" =~ $DEPENDABOT_PATTERN ]] && exit 0
 
 if [[ ! "$BRANCH" =~ $PATTERN ]]; then
   cat <<EOF
@@ -404,6 +407,7 @@ if [[ ! "$BRANCH" =~ $PATTERN ]]; then
    ต้องเป็น: feature/<subsystem>/<เรื่องที่ทำ>
    ตัวอย่าง: feature/equipment/add-borrow-return
    ข้อยกเว้น: PR develop → main และ main → develop (github-workflow.md ข้อ 1.5)
+            และ branch ที่ขึ้นต้นด้วย dependabot/ (github-workflow.md ข้อ 1.1)
    อ้างอิง: github-workflow.md ข้อ 1.1 (4)
    วิธีแก้: git branch -m feature/<subsystem>/<เรื่อง>
 EOF
@@ -823,7 +827,7 @@ conditions:
     include: ["csmju-*"]
   ref_name:
     include: ["refs/heads/**"]
-    exclude: ["refs/heads/main"]
+    exclude: ["refs/heads/main", "refs/heads/dependabot/**"]
 
 rules:
   - type: branch_name_pattern

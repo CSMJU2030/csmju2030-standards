@@ -22,7 +22,7 @@ env:
   # pin in ci.yml really pins them. github.job_workflow_sha is empty in a
   # called workflow and a checkout with no ref takes main. Moves with VERSION
   # on every release (self-test fails when they differ).
-  STANDARDS_ENTRY_REF: v1.8.4
+  STANDARDS_ENTRY_REF: v1.8.5
 
 jobs:
   convention-check:
