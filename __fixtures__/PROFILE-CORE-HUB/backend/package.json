@@ -10,7 +10,7 @@
     "bcrypt": "5.1.1",
     "prisma": "7.9.1",
     "@prisma/client": "7.9.1",
-    "sharp": "0.35.4"
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "typescript": "5.9.0",
