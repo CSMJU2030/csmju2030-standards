@@ -10,7 +10,8 @@
       ],
       "exclude": [
         "refs/heads/main",
-        "refs/heads/develop"
+        "refs/heads/develop",
+        "refs/heads/dependabot/**"
       ]
     }
   },

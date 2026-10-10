@@ -7,6 +7,13 @@
 # whose default branch is still `master` would have its own default branch
 # rejected. Rename such repos to `main` before applying — as of
 # 2026-09-04 CSMJU2030/csmju-equipment still defaults to `master`.
+#
+# refs/heads/dependabot/** is excluded too: Dependabot names its branches itself
+# (dependabot/<ecosystem>/<path>/<package>-<version>) and the prefix cannot be
+# configured, so without the exclusion every Dependabot push is rejected (GH-01
+# in scripts/check-branch-name.sh accepts the same prefix). Repos that already
+# have this ruleset keep the old payload until `apply-rulesets.sh repo <repo>`
+# is run again (the sweep only creates missing rulesets).
 
 name: csmju2030-branch-naming
 enforcement: active
@@ -17,7 +24,7 @@ conditions:
     include: ["csmju-*"]
   ref_name:
     include: ["refs/heads/**"]
-    exclude: ["refs/heads/main", "refs/heads/develop"]
+    exclude: ["refs/heads/main", "refs/heads/develop", "refs/heads/dependabot/**"]
 
 rules:
   - type: branch_name_pattern

@@ -5,9 +5,27 @@
 
 ---
 
-## ยังไม่ออกเวอร์ชัน (อยู่บน `main` · จะรวมในเวอร์ชันถัดไป)
+## 1.8.5 — 2026-10-10
 
-แก้เอกสารเพิ่มจาก 1.8.4 โดยไม่ออก tag ใหม่ (PM ตัดสิน 7 ต.ค. 2569) — อ่านได้ที่ `main` บน GitHub · ทีมที่ปักหมุด `v1.8.4` ยังเห็นฉบับเดิมใน submodule
+แก้ `GH-01` ไม่ให้ตก PR ของ Dependabot — Dependabot ตั้งชื่อ branch เองเป็น `dependabot/<ecosystem>/<path>/<package>-<version>`
+(เช่น `dependabot/npm_and_yarn/next-16.3.9` · `dependabot/github_actions/actions/checkout-6.0.0` · แบบรวมกลุ่ม `dependabot/npm_and_yarn/minor-and-patch-<hash>`)
+และเปลี่ยน prefix ไม่ได้ ทุก PR ของมันจึงตก `GH-01` · รอบนี้รวมเอกสารที่แก้บน `main` หลัง 1.8.4 (ไม่ได้ออก tag) เข้ามาด้วย
+
+- **`GH-01` รับ branch ที่ขึ้นต้นด้วย `dependabot/`** (`scripts/check-branch-name.sh`) — รูปแบบที่รับคือ `^dependabot/[A-Za-z0-9._@+/-]+$`
+  เฉพาะ prefix นี้ ไม่รับ `renovate/` · `dependabotx/…` · `feature-dependabot/…` · `Dependabot/…` · กฎส่วนที่เหลือของ `GH-01` เหมือนเดิมทุกข้อ
+  (`feature/<subsystem>/<เรื่อง>` · `develop` → `main` · `main` → `develop`) · ชื่อ branch ยังอ่านจาก `GITHUB_HEAD_REF` ทางเดียวกับเดิม
+- **ruleset `csmju2030-branch-naming`** (`org-settings/ruleset-branch-naming.org.json` · `.repo.json` · `.yml`) — เพิ่ม `refs/heads/dependabot/**` ใน `exclude`
+  ไม่งั้น GitHub ตีตก push ของ Dependabot ตั้งแต่ก่อนถึง CI · repo ที่ตั้ง ruleset ไปแล้วยังใช้ค่าเดิมจนกว่าจะรัน `apply-rulesets.sh repo <repo>` ซ้ำ
+  (Ruleset Sweep สร้างเฉพาะตัวที่ยังไม่มี ไม่ทับตัวเดิม)
+- **`GH-02` ไม่ต้องแก้** — ตรวจแล้ว: รับ `chore(deps): bump next from 16.3.8 to 16.3.9` · `chore(deps-dev): …` · `ci(deps): bump actions/checkout from 5 to 6` ·
+  `chore(deps): bump the minor-and-patch group with 3 updates` · ข้อความตั้งต้นของ Dependabot (`Bump …` ไม่มี type) ยังตก
+  จึงต้องตั้ง `commit-message.prefix` ใน `dependabot.yml` เป็น `chore(deps)` (GitHub Actions ใช้ `ci(deps)`) · ไม่มีตัวตรวจ PR title ใน scripts หรือ workflow ใด
+- `docs/github-workflow.md` ข้อ 1.1 และ 1.5 · `docs/core-hub-rules.md` (`GH-01`) · `docs/repo-structure.md` ข้อ 5 · `ci-compliance-spec.md` ข้อ 7.1 · 7.2 · 9.2 —
+  เขียนข้อยกเว้นและเหตุผล · ข้อ 1.1 บอกให้ตั้ง prefix ของ commit
+- `scripts/self-test.sh` — เพิ่ม 15 assertion (114 → 129): `GH-01` ผ่าน 7 (5 ชื่อ branch · base `main` · อ่านจาก `GITHUB_HEAD_REF`) ตก 7 (ชื่อที่หน้าตาคล้าย) ·
+  `GH-02` ผ่านกับ commit แบบ Dependabot 1 · `VERSION` · `STANDARDS_ENTRY_REF` ของทั้งสอง workflow เป็น `1.8.5`
+
+เอกสารที่แก้บน `main` หลัง 1.8.4 (PM ตัดสิน 7 ต.ค. 2569 ว่าไม่ออก tag แยก) ออกพร้อมเวอร์ชันนี้:
 
 - **ขึ้น server แล้ว login จาก localhost ไม่ได้อีก** — ทะเบียนหนึ่งระบบมี callback ได้ค่าเดียว · admin เปลี่ยนเป็น https ของ server ทันทีที่ขึ้น ·
   ทีมทดสอบบน server เท่านั้น จึงขอขึ้นเมื่อพัฒนาเสร็จแล้ว (`docs/deployment.md` ข้อ 2 · 6.1 · 7.2 · `docs/subsystem-registry.md` ข้อ 4)
@@ -15,6 +33,12 @@
 - **อัปเดตอัตโนมัติ** — หลังขึ้นครั้งแรก server ดึง `:main` ใหม่เองทุก ~10 นาที: PL merge เข้า `main` = deploy · ย้อนเวอร์ชันด้วยการปักหมุด `sha-…`
   (`deployment.md` ข้อ 5 · 7.2)
 - `deployment.md` ข้อ 7 — เขียนงานด้านความปลอดภัยของเครื่องเป็นข้อกำหนด ไม่บรรยายสภาพเครื่องจริง (repo นี้เป็นสาธารณะ — รายละเอียดเครื่องอยู่ในเอกสารของ DevOps)
+
+**ใครต้องทำอะไร:** repo ได้ประโยชน์ต่อเมื่อ CI ใช้ v1.8.5 แล้วเท่านั้น — ถ้ายังไม่เลื่อน PR ของ Dependabot ยังตก `GH-01` เหมือนเดิม ·
+**Core Hub:** `ci.yml` ปักหมุด `core-hub-compliance.yml@v1.7.0` อยู่ ต้องเปลี่ยนเป็น `@v1.8.5` (PL/DevOps — PR นี้ไม่ได้แก้ให้) ·
+**ระบบย่อย:** ชุดตรวจมาจากเวอร์ชันใน `.standards-version` ให้เลื่อนเป็น `1.8.5` พร้อม submodule `standards` ตามข้อ 2 ของ `docs/standards-versioning.md` ·
+**DevOps:** รัน `apply-rulesets.sh repo <repo>` ซ้ำกับ repo ที่มี ruleset `csmju2030-branch-naming` อยู่แล้ว ·
+**ทุก repo ที่เปิด Dependabot:** ตั้ง `commit-message.prefix` ตามข้อ 1.1 · ระบบย่อยที่ Dependabot แก้ `.github/workflows/` ยังตก `GH-03` (Core Hub ยกเว้น)
 
 ---
 
