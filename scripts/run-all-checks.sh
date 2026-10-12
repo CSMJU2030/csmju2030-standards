@@ -30,6 +30,7 @@ declare -a JOBS=(
   "Data Dictionary Compliance|check-money-fields.sh"
   "UI Token Compliance|check-ui-tokens.sh"
   "Code Quality|check-qa.sh"
+  "Code Quality|check-dependency-audit.sh"
   "Exception Validation|check-exceptions.sh"
 )
 

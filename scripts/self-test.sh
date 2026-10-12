@@ -505,6 +505,36 @@ echo "== QA-06: workspace filter ต้องชี้ถูก =="
 run_fixture_case "QA-06"     "check-qa.sh"
 
 echo ""
+echo "== SEC-06: dependency audit (⚠️ Warn) =="
+# SEC-06 is Warn, so both fixtures exit 0 — what differs is the warning.
+# Each fixture holds a saved `pnpm audit --prod --json` (audit.json) read via
+# CSMJU_AUDIT_REPORT, so self-test never asks the npm registry. The fail
+# fixture is multer 2.2.0, the advisory that started this rule; the pass one
+# has only a moderate advisory, which is not reported.
+if command -v node >/dev/null 2>&1; then
+  SEC06="$FIXTURES_DIR/SEC-06"
+  out=$(CSMJU_AUDIT_REPORT="$SEC06/pass/audit.json" "$SCRIPT_DIR/check-dependency-audit.sh" "$SEC06/pass" 2>&1)
+  code=$?
+  [[ "$code" -eq 0 && "$out" == *"✅ [SEC-06]"* && "$out" != *"⚠️  [SEC-06]"* ]]
+  assert_exit "SEC-06 pass-fixture: moderate only → ผ่าน ไม่มีคำเตือน (exit=$code)" 0 "$?"
+  out=$(CSMJU_AUDIT_REPORT="$SEC06/fail/audit.json" "$SCRIPT_DIR/check-dependency-audit.sh" "$SEC06/fail" 2>&1)
+  code=$?
+  [[ "$code" -eq 0 && "$out" == *"⚠️  [SEC-06] multer 2.2.0 — high"* && "$out" == *"ต้องเป็น: >=2.3.0"* ]]
+  assert_exit "SEC-06 fail-fixture: เตือน multer 2.2.0 high พร้อมรุ่นที่แก้ แต่ยังไม่ block (exit=$code)" 0 "$?"
+  out=$(GITHUB_ACTIONS=true CSMJU_AUDIT_REPORT="$SEC06/fail/audit.json" "$SCRIPT_DIR/check-dependency-audit.sh" "$SEC06/fail" 2>&1)
+  [[ "$out" == *"::warning title=SEC-06 multer::"* ]]
+  assert_exit "SEC-06 ขึ้น ::warning ในหน้า PR เมื่อรันใน GitHub Actions" 0 "$?"
+  out=$(CSMJU_AUDIT_REPORT=/dev/null "$SCRIPT_DIR/check-dependency-audit.sh" "$SEC06/pass" 2>&1)
+  code=$?
+  [[ "$code" -eq 0 && "$out" == *"ตรวจไม่ได้"* ]]
+  assert_exit "SEC-06 อ่านผล audit ไม่ได้ (registry ล่ม) → เตือนแล้วผ่าน (exit=$code)" 0 "$?"
+  out=$("$SCRIPT_DIR/check-dependency-audit.sh" "$FIXTURES_DIR/QA-05/pass" 2>&1)
+  code=$?
+  [[ "$code" -eq 0 && "$out" == *"ข้ามการตรวจ"* ]]
+  assert_exit "SEC-06 ข้าม repo ที่ยังไม่มี pnpm-lock.yaml (exit=$code)" 0 "$?"
+fi
+
+echo ""
 echo "== Profile: core-hub (docs/core-hub-rules.md) =="
 # fixture เดียวกัน ต้องให้ผลตรงข้ามกันตาม CSMJU_PROFILE — ถ้า profile หลุด
 # ระบบย่อยจะแอบใช้ passport-jwt/user_id ได้ทันที จึงต้องยืนยันทั้งสองทิศทาง

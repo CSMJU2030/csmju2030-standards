@@ -1,0 +1,29 @@
+{
+  "advisories": {
+    "1116001": {
+      "findings": [{ "version": "2.2.0", "paths": ["backend>@nestjs/platform-express>multer"], "dev": false, "optional": false, "bundled": false }],
+      "id": 1116001,
+      "title": "multer vulnerable to Denial of Service via file descriptor leak on aborted uploads",
+      "module_name": "multer",
+      "vulnerable_versions": "=2.2.0",
+      "patched_versions": ">=2.3.0",
+      "severity": "high",
+      "cwe": [],
+      "github_advisory_id": "GHSA-qfvm-cv95-jqjf",
+      "url": "https://github.com/advisories/GHSA-qfvm-cv95-jqjf"
+    },
+    "1117002": {
+      "findings": [{ "version": "2.2.0", "paths": ["backend>@nestjs/platform-express>multer"], "dev": false, "optional": false, "bundled": false }],
+      "id": 1117002,
+      "title": "multer vulnerable to Denial of Service via orphaned disk writes on aborted uploads",
+      "module_name": "multer",
+      "vulnerable_versions": ">=2.2.0 <2.4.0",
+      "patched_versions": ">=2.4.0",
+      "severity": "moderate",
+      "cwe": [],
+      "github_advisory_id": "GHSA-3pph-fpjx-jg34",
+      "url": "https://github.com/advisories/GHSA-3pph-fpjx-jg34"
+    }
+  },
+  "metadata": { "vulnerabilities": { "info": 0, "low": 0, "moderate": 1, "high": 1, "critical": 0 }, "dependencies": 1, "devDependencies": 0, "optionalDependencies": 0, "totalDependencies": 1 }
+}

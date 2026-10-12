@@ -32,6 +32,7 @@ declare -a JOBS=(
   "Data Dictionary|check-no-hardcoded-faculty.sh"
   "Data Dictionary|check-money-fields.sh"
   "Code Quality|check-qa.sh"
+  "Code Quality|check-dependency-audit.sh"
   "Exception Validation|check-exceptions.sh"
 )
 

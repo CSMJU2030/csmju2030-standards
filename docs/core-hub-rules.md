@@ -56,6 +56,7 @@
 | `SEC-03` | ห้ามเก็บ token ใน `localStorage` | **บังคับ** | — |
 | `SEC-04` | ต้องตรวจ JWT ผ่าน JWKS + `kid` · ห้ามออก/เซ็นเอง · ห้าม `jsonwebtoken`/`passport-jwt` | **ยกเว้น** | Core Hub เป็นผู้ออก token |
 | `SEC-05` | ห้ามมีหน้า login / ฟอร์ม username-password | **ยกเว้น** | Core Hub คือหน้า login กลาง |
+| `SEC-06` | dependency ใน production ไม่มี advisory ระดับ high/critical | **บังคับ** | Core Hub เข้มกว่าระบบย่อย: job `audit` ใน `ci.yml` ของตัวเองรัน `pnpm audit --prod --audit-level=high` ระดับ Fail อยู่แล้ว · `core-hub-compliance.yml` จึงไม่รันซ้ำ (รันในเครื่องผ่าน `run-core-hub-checks.sh`) |
 | `ARC-01` | frontend ห้ามต่อ DB ตรง | **บังคับ** | — |
 | `ARC-02` | dependency ต้องอยู่ใน whitelist ของ stack | **ผ่อน** | เพิ่มได้เฉพาะรายการใน §4 |
 | `ARC-03` | ห้าม UI library ต้องห้าม (MUI/Antd/Bootstrap) | **บังคับ** | ตรวจ `frontend/` ของ Core Hub (พอร์ทัล · หลังบ้าน · `/sso/*`) |

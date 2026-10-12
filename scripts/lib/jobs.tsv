@@ -21,4 +21,5 @@ data-dictionary	No hardcoded faculty list	check-no-hardcoded-faculty.sh
 data-dictionary	Money fields are integers	check-money-fields.sh
 ui	Design token usage	check-ui-tokens.sh
 quality	QA checks (lint/typecheck/test/build/pnpm-only)	check-qa.sh
+quality	Dependency audit (SEC-06)	check-dependency-audit.sh
 exceptions	Validate .compliance-exceptions.yml	check-exceptions.sh

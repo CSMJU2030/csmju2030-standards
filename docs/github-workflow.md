@@ -158,6 +158,28 @@ merge commit ทำให้ `main` มี commit ชุดเดียวกั
 *   **ชื่อ workspace ต้องไม่ซ้ำกัน** — ถ้า `name` ใน `package.json` ที่รากซ้ำกับของ `backend/`
     `pnpm --filter backend test` จะไม่ match อะไรเลยแล้วคืน exit 0 (กฎ `QA-06` ดู [`repo-structure.md`](repo-structure.md) ข้อ 3)
 
+### 2.1 Dependency ที่มีช่องโหว่ (`SEC-06`)
+
+CI รัน `pnpm audit --prod` ใน job Code Quality (อ่านจาก `pnpm-lock.yaml` · ไม่นับ devDependencies) แล้วแสดงทุก advisory
+ระดับ **high/critical** พร้อมรุ่นที่แก้แล้ว — ตั้งแต่ 1.9.0 เป็น **⚠️ Warn** (ยัง merge ได้ · เห็นเป็นคำเตือนในหน้า PR)
+และจะเป็น **❌ Fail** ในเวอร์ชันที่ PL ประกาศ จึงควรแก้ทันทีที่เห็น โดยเฉพาะก่อนขึ้น server
+
+ตรวจในเครื่องได้เองด้วย `pnpm audit --prod` ที่รากของ repo แล้วแก้ตามชนิดของ dependency:
+
+*   **dependency ตรง** (อยู่ใน `package.json` ของเรา): `pnpm --filter <workspace> up <แพ็กเกจ>@<รุ่นที่แก้แล้ว>`
+*   **dependency ทางอ้อม** (มากับแพ็กเกจอื่น เช่น `multer` มากับ `@nestjs/platform-express`): อัปเดตตัวที่ดึงมันเข้ามาก่อน
+    ถ้ายังไม่มีรุ่นที่แก้ ให้บังคับรุ่นด้วย `overrides` ใน **`pnpm-workspace.yaml`** (pnpm 12 ไม่อ่าน `pnpm.overrides` ใน `package.json` แล้ว)
+    แล้ว `pnpm install` และตรวจด้วย `pnpm why <แพ็กเกจ>` ว่าเหลือรุ่นเดียว
+
+```yaml
+# pnpm-workspace.yaml
+overrides:
+  multer: '>=2.4.0'   # GHSA-qfvm-cv95-jqjf และอื่น ๆ — เขียนเหตุผลไว้ ลบเมื่อแพ็กเกจต้นทางอัปเดตแล้ว
+```
+
+*   override ข้าม major (เช่น `7.x` → `8.x`) ต้องรันเทสต์และ build ให้ผ่านก่อน · ถ้าแก้ไม่ได้จริง (ไม่มีรุ่นที่แก้)
+    ให้เปิด issue แจ้ง PL พร้อมลิงก์ advisory
+
 ---
 
 ## 3. CI Compliance Checklist (`.github/workflows/`)
@@ -172,6 +194,7 @@ merge commit ทำให้ `main` มี commit ชุดเดียวกั
 6. **Standards Version Check (`GH-04`):** CI ตรวจด้วยชุดตรวจของเวอร์ชันใน `.standards-version` และ submodule `standards/` ต้องชี้ tag เดียวกัน
    (ไม่ต่ำกว่า `MIN_VERSION` และไม่ถอยจาก branch ปลายทาง — [`standards-versioning.md`](standards-versioning.md))
 7. **Build:** `next build` และ `nest build` ต้องผ่านทั้งคู่ก่อน merge ได้
+8. **Dependency Audit (`SEC-06`):** `pnpm audit --prod` ไม่มีช่องโหว่ระดับ high/critical (ข้อ 2.1)
 
 > **repo ที่ DevOps สร้างด้วย `new-subsystem.sh` มีไฟล์ CI ครบตั้งแต่ commit แรก** — ทีมไม่ต้องเพิ่มไฟล์ CI เอง
 > ข้อยกเว้นของ `GH-03` เหลือแค่ repo เดิมที่ติดตั้งมาตรฐานผ่าน PR: PR นั้นต้องเพิ่ม `.github/workflows/ci.yml`
