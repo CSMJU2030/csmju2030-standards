@@ -5,6 +5,35 @@
 
 ---
 
+## 1.9.0 — 2026-10-12
+
+เพิ่มกฎ **`SEC-06` ตรวจช่องโหว่ของ dependency** — ที่มา: advisory ของ `multer` (ก.ย. 2569 · high 4 ตัว ทำให้เซิร์ฟเวอร์ล่มได้ แก้ครบใน 2.4.0)
+ไล่ `pnpm-lock.yaml` ของทุก repo ใน org แล้ว เจอ 2 repo ที่ยังใช้รุ่นมีช่องโหว่ และ demo กับ template ที่ทุกทีมคัดลอกก็ยังมี
+advisory ระดับ high ค้างอยู่ — ก่อนหน้านี้มีแค่ Core Hub ที่ CI ตรวจเรื่องนี้
+
+- **`SEC-06` ⚠️ Warn** (`scripts/check-dependency-audit.sh` · `scripts/lib/audit-report.js`) — รัน `pnpm audit --prod` ใน job **Code Quality**
+  (มี pnpm/node อยู่แล้ว · ไม่ต้องแก้ workflow) แล้วแสดงทุก advisory ระดับ high/critical: แพ็กเกจ · รุ่นที่ติดตั้ง · เส้นทาง · รุ่นที่แก้แล้ว · ลิงก์
+  และขึ้น `::warning` ในหน้า PR · ไม่ block merge ในเวอร์ชันนี้ — **PL ประกาศเวอร์ชันที่จะเปลี่ยนเป็น ❌ Fail** (แก้ `LEVEL=fail` ในสคริปต์)
+  · ต่อ npm registry ไม่ได้ = เตือนแล้วผ่าน (registry ล่มต้องไม่ทำให้ทุก PR ตก) · ไม่มี `pnpm-lock.yaml` = ข้าม
+- `docs/github-workflow.md` ข้อ 2.1 (ใหม่) — วิธีแก้: `pnpm up` สำหรับ dependency ตรง · `overrides` ใน `pnpm-workspace.yaml` สำหรับ dependency ทางอ้อม
+  (pnpm 12 ไม่อ่าน `pnpm.overrides` ใน `package.json`) · ข้อ 3 เพิ่มรายการที่ 8 · `ci-compliance-spec.md` ข้อ 7.1 · 8.1 ·
+  `docs/core-hub-rules.md` — Core Hub **บังคับ** และเข้มกว่าอยู่แล้ว (job `audit` ใน `ci.yml` ของตัวเองเป็น Fail) จึงไม่เพิ่มใน `core-hub-compliance.yml`
+- `scripts/lib/jobs.tsv` · `run-all-checks.sh` · `run-core-hub-checks.sh` — เพิ่มเช็คใน Code Quality
+- `scripts/self-test.sh` — เพิ่ม 5 assertion (129 → 134) กับ `__fixtures__/SEC-06/{pass,fail}` ซึ่งเก็บผล `pnpm audit --json` ไว้
+  (`CSMJU_AUDIT_REPORT`) self-test จึงไม่ต่อ registry: pass = moderate อย่างเดียว · fail = `multer` 2.2.0 ถูกเตือนแต่ไม่ block ·
+  `::warning` ใน Actions · อ่านผลไม่ได้ = เตือนแล้วผ่าน · ไม่มี lockfile = ข้าม
+- **template `csmju-subsystem-web`** — `next` และ `eslint-config-next` 16.3.6 → **16.3.8** (16.3.6 มี advisory ของ Next.js 6 ตัว
+  รวม SSRF ใน Image Optimization ระดับ high)
+- `VERSION` · `STANDARDS_ENTRY_REF` ของทั้งสอง workflow เป็น `1.9.0`
+
+**ใครต้องทำอะไร:** **ระบบย่อย:** ได้เช็คนี้เมื่อเลื่อน `.standards-version` เป็น `1.9.0` พร้อม submodule `standards` (ไม่ต้องรอ PL เลื่อน `ci.yml`
+— เช็คอยู่ใน job Code Quality ที่ entry point ตั้งแต่ 1.5.1 รันผ่าน `jobs.tsv` อยู่แล้ว) · ตรวจในเครื่องได้ทันทีด้วย `pnpm audit --prod` ·
+**repo ที่ยังใช้ `multer` < 2.4.0 (2 repo):** PL แจ้งทีมโดยตรง — ไม่ระบุชื่อที่นี่เพราะ repo นี้เป็นสาธารณะ ·
+**demo-student-subsystem:** ยังมี high 5 ตัว (`next` 16.3.6 · `sharp` · `source-map-js` · `deepmerge-ts` · `mysql2`) ต้องแก้ตามแบบ Core Hub ·
+**Core Hub:** ไม่ต้องทำอะไร
+
+---
+
 ## 1.8.5 — 2026-10-10
 
 แก้ `GH-01` ไม่ให้ตก PR ของ Dependabot — Dependabot ตั้งชื่อ branch เองเป็น `dependabot/<ecosystem>/<path>/<package>-<version>`

@@ -330,6 +330,7 @@ jobs:
 | `SEC-03` | ไม่มี token เก็บใน `localStorage` | ❌ Fail | ui-design-system.md 16.2 |
 | `SEC-04` | ตรวจ JWT ตามสัญญา: RS256 + JWKS + `kid` · ห้าม HS256/alg=none/กุญแจฝังในโค้ด/ออก token เอง/ใช้ jsonwebtoken-passport-jwt | ❌ Fail | auth-contract.md 4, 9 |
 | `SEC-05` | ไม่มีหน้า login / form username-password ในระบบย่อย | ❌ Fail | auth-contract.md 1, 9 |
+| `SEC-06` | dependency ใน production (`pnpm audit --prod`) ไม่มี advisory ระดับ high/critical — ตรวจใน job Code Quality · ต่อ npm registry ไม่ได้ = เตือนแล้วผ่าน · ระดับ Fail ตั้งแต่เวอร์ชันที่ PL ประกาศ | ⚠️ Warn | github-workflow.md 2.1 |
 | `ARC-01` | ไม่มี Prisma client / `pg` import ใน `frontend/` | ❌ Fail | tech-stack.md 1.2 |
 | `ARC-02` | Dependency ทั้งหมดอยู่ใน whitelist ของ stack | ❌ Fail | tech-stack.md 1 |
 | `ARC-03` | ไม่มี UI library ต้องห้าม (MUI/Antd/Bootstrap ฯลฯ) | ❌ Fail | ui-design-system.md 16.2 |
@@ -653,6 +654,7 @@ csmju2030-standards/
 │   ├── check-no-secrets.sh              # SEC-01,02
 │   ├── check-no-local-storage.sh        # SEC-03
 │   ├── check-no-jwt-verify.sh           # SEC-04,05
+│   ├── check-dependency-audit.sh        # SEC-06
 │   ├── check-db-isolation.sh            # ARC-01
 │   ├── check-authorized-deps.sh         # ARC-02,03
 │   ├── check-openapi-sync.sh            # API-01
